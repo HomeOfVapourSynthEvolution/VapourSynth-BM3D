@@ -322,6 +322,8 @@ public:
         right.vsapi = nullptr;
         right.node = nullptr;
         right.vi = nullptr;
+
+        return *this;
     }
 
     virtual ~VSData()
