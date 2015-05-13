@@ -23,7 +23,6 @@
 
 #include <cstdint>
 #include <cfloat>
-#include <xtr1common>
 
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -48,43 +47,41 @@ typedef float FLType;
 
 
 // determine whether _Ty satisfies Signed Int requirements
-template<class _Ty>
-struct _IsSInt
-    : std::_Cat_base<std::is_same<_Ty, signed char>::value
-    || std::is_same<_Ty, short>::value
-    || std::is_same<_Ty, int>::value
-    || std::is_same<_Ty, long>::value
-    || std::is_same<_Ty, long long>::value>
+template<typename _Ty>
+struct _IsSInt : std::integral_constant<bool,
+    std::is_same<_Ty, signed char>::value ||
+    std::is_same<_Ty, short>::value ||
+    std::is_same<_Ty, int>::value ||
+    std::is_same<_Ty, long>::value ||
+    std::is_same<_Ty, long long>::value>
 {};
 
 // determine whether _Ty satisfies Unsigned Int requirements
-template<class _Ty>
-struct _IsUInt
-    : std::_Cat_base<std::is_same<_Ty, unsigned char>::value
-    || std::is_same<_Ty, unsigned short>::value
-    || std::is_same<_Ty, unsigned int>::value
-    || std::is_same<_Ty, unsigned long>::value
-    || std::is_same<_Ty, unsigned long long>::value>
+template<typename _Ty>
+struct _IsUInt : std::integral_constant<bool,
+    std::is_same<_Ty, unsigned char>::value ||
+    std::is_same<_Ty, unsigned short>::value ||
+    std::is_same<_Ty, unsigned int>::value ||
+    std::is_same<_Ty, unsigned long>::value ||
+    std::is_same<_Ty, unsigned long long>::value>
 {};
 
 // determine whether _Ty satisfies Int requirements
-template<class _Ty>
-struct _IsInt
-    : std::_Cat_base<_IsSInt<_Ty>::value
-    || _IsUInt<_Ty>::value>
+template<typename _Ty>
+struct _IsInt : std::integral_constant<bool,
+    _IsSInt<_Ty>::value ||
+    _IsUInt<_Ty>::value>
 {};
 
 // determine whether _Ty satisfies Float requirements
-template<class _Ty>
-struct _IsFloat
-    : std::_Cat_base<std::is_same<_Ty, float>::value
-    || std::is_same<_Ty, double>::value
-    || std::is_same<_Ty, long double>::value>
+template<typename _Ty>
+struct _IsFloat : std::integral_constant<bool,
+    std::is_floating_point<_Ty>::value>
 {};
 
 
-#define isSInt(T) (_IsUInt<T>::value)
-#define isUInt(T) (_IsSInt<T>::value)
+#define isSInt(T) (_IsSInt<T>::value)
+#define isUInt(T) (_IsUInt<T>::value)
 #define isInt(T) (_IsInt<T>::value)
 #define isFloat(T) (_IsFloat<T>::value)
 
