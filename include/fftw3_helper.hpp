@@ -64,6 +64,7 @@ struct fftwh
 
         plan &operator=(plan &&right)
         {
+            destroy_plan();
             p = right.p;
             right.p = nullptr;
             return *this;
@@ -568,6 +569,7 @@ struct fftwh<float>
 
         plan &operator=(plan &&right)
         {
+            destroy_plan();
             p = right.p;
             right.p = nullptr;
             return *this;
@@ -1072,6 +1074,7 @@ struct fftwh<long double>
 
         plan &operator=(plan &&right)
         {
+            destroy_plan();
             p = right.p;
             right.p = nullptr;
             return *this;

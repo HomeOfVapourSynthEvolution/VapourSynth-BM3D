@@ -310,6 +310,9 @@ public:
 
     _Myt &operator=(_Myt &&right)
     {
+        if (node)
+            vsapi->freeNode(node);
+
         vsapi = right.vsapi;
         node = right.node;
         vi = right.vi;
