@@ -382,6 +382,9 @@ public:
 
     _Myt &operator=(_Myt &&right)
     {
+        if (node)
+            vsapi->freeNode(node);
+
         vsapi = right.vsapi;
         node = right.node;
         vi = right.vi;
@@ -394,6 +397,8 @@ public:
         right.vsapi = nullptr;
         right.node = nullptr;
         right.vi = nullptr;
+
+        return *this;
     }
 
     virtual ~VSData()

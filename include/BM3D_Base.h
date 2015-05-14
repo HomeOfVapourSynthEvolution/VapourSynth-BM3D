@@ -143,6 +143,9 @@ public:
     {
         _Mybase::operator=(std::move(right));
 
+        if (rdef && rnode)
+            vsapi->freeNode(rnode);
+
         rdef = right.rdef;
         rnode = right.rnode;
         rvi = right.rvi;
