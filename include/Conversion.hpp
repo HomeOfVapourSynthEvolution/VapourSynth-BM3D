@@ -90,6 +90,9 @@ void ConvertToY(_Dt1 *dst, const _St1 *srcR, const _St1 *srcG, const _St1 *srcB,
     const auto sRange = sCeil - sFloor;
     const auto dRange = dCeil - dFloor;
 
+    const FLType lowerL = static_cast<FLType>(dFloor);
+    const FLType upperL = static_cast<FLType>(dCeil);
+
     if (matrix == ColorMatrix::GBR)
     {
         RangeConvert(dst, srcG, height, width, dst_stride, src_stride, dFloor, dFloor, dCeil, sFloor, sFloor, sCeil, false);
@@ -102,11 +105,12 @@ void ConvertToY(_Dt1 *dst, const _St1 *srcR, const _St1 *srcG, const _St1 *srcB,
 
         LOOP_VH(height, width, dst_stride, src_stride, [&](PCType i0, PCType i1)
         {
-            dst[i0] = static_cast<dstType>(
+            dst[i0] = static_cast<dstType>(Clip(
                 (static_cast<FLType>(srcR[i1])
                 + static_cast<FLType>(srcG[i1])
                 + static_cast<FLType>(srcB[i1]))
-                * gain + offset);
+                * gain + offset,
+                lowerL, upperL));
         });
     }
     else if (matrix == ColorMatrix::Minimum)
@@ -117,9 +121,11 @@ void ConvertToY(_Dt1 *dst, const _St1 *srcR, const _St1 *srcG, const _St1 *srcB,
 
         LOOP_VH(height, width, dst_stride, src_stride, [&](PCType i0, PCType i1)
         {
-            dst[i0] = static_cast<dstType>(static_cast<FLType>(
+            dst[i0] = static_cast<dstType>(Clip(
+                static_cast<FLType>(
                 ::Min(srcR[i1], ::Min(srcG[i1], srcB[i1]))
-                ) * gain + offset);
+                ) * gain + offset,
+                lowerL, upperL));
         });
     }
     else if (matrix == ColorMatrix::Maximum)
@@ -130,9 +136,11 @@ void ConvertToY(_Dt1 *dst, const _St1 *srcR, const _St1 *srcG, const _St1 *srcB,
 
         LOOP_VH(height, width, dst_stride, src_stride, [&](PCType i0, PCType i1)
         {
-            dst[i0] = static_cast<dstType>(static_cast<FLType>(
+            dst[i0] = static_cast<dstType>(Clip(
+                static_cast<FLType>(
                 ::Max(srcR[i1], ::Max(srcG[i1], srcB[i1]))
-                ) * gain + offset);
+                ) * gain + offset,
+                lowerL, upperL));
         });
     }
     else
@@ -150,11 +158,12 @@ void ConvertToY(_Dt1 *dst, const _St1 *srcR, const _St1 *srcG, const _St1 *srcB,
 
         LOOP_VH(height, width, dst_stride, src_stride, [&](PCType i0, PCType i1)
         {
-            dst[i0] = static_cast<dstType>(
+            dst[i0] = static_cast<dstType>(Clip(
                 Kr * static_cast<FLType>(srcR[i1])
                 + Kg * static_cast<FLType>(srcG[i1])
                 + Kb * static_cast<FLType>(srcB[i1])
-                + offset);
+                + offset,
+                lowerL, upperL));
         });
     }
 }
@@ -181,11 +190,16 @@ void MatrixConvert_RGB2YUV(_Dt1 *dstY, _Dt1 *dstU, _Dt1 *dstV,
     const auto dRangeY = dCeilY - dFloorY;
     const auto dRangeC = dCeilC - dFloorC;
 
+    const FLType lowerLY = static_cast<FLType>(dFloorY);
+    const FLType upperLY = static_cast<FLType>(dCeilY);
+    const FLType lowerLC = static_cast<FLType>(dFloorC);
+    const FLType upperLC = static_cast<FLType>(dCeilC);
+
     if (matrix == ColorMatrix::GBR)
     {
-        RangeConvert(dstY, srcG, height, width, dst_stride, src_stride, dFloorY, dFloorY, dCeilY, sFloor, sFloor, sCeil, false);
-        RangeConvert(dstU, srcB, height, width, dst_stride, src_stride, dFloorY, dFloorY, dCeilY, sFloor, sFloor, sCeil, false);
-        RangeConvert(dstV, srcR, height, width, dst_stride, src_stride, dFloorY, dFloorY, dCeilY, sFloor, sFloor, sCeil, false);
+        RangeConvert(dstY, srcG, height, width, dst_stride, src_stride, dFloorY, dFloorY, dCeilY, sFloor, sFloor, sCeil, true);
+        RangeConvert(dstU, srcB, height, width, dst_stride, src_stride, dFloorY, dFloorY, dCeilY, sFloor, sFloor, sCeil, true);
+        RangeConvert(dstV, srcR, height, width, dst_stride, src_stride, dFloorY, dFloorY, dCeilY, sFloor, sFloor, sCeil, true);
     }
     else if (matrix == ColorMatrix::OPP)
     {
@@ -199,23 +213,23 @@ void MatrixConvert_RGB2YUV(_Dt1 *dstY, _Dt1 *dstU, _Dt1 *dstV,
 
         LOOP_VH(height, width, dst_stride, src_stride, [&](PCType i0, PCType i1)
         {
-            dstY[i0] = static_cast<dstType>(
+            dstY[i0] = static_cast<dstType>(Clip(
                 (static_cast<FLType>(srcR[i1])
                 + static_cast<FLType>(srcG[i1])
                 + static_cast<FLType>(srcB[i1]))
-                * gainY + offsetY
-                );
-            dstU[i0] = static_cast<dstType>(
+                * gainY + offsetY,
+                lowerLY, upperLY));
+            dstU[i0] = static_cast<dstType>(Clip(
                 (static_cast<FLType>(srcR[i1])
                 - static_cast<FLType>(srcB[i1]))
-                * gainU + offsetC
-                );
-            dstV[i0] = static_cast<dstType>(
+                * gainU + offsetC,
+                lowerLC, upperLC));
+            dstV[i0] = static_cast<dstType>(Clip(
                 (static_cast<FLType>(srcR[i1])
                 - static_cast<FLType>(srcG[i1]) * FLType(2)
                 + static_cast<FLType>(srcB[i1]))
-                * gainV + offsetC
-                );
+                * gainV + offsetC,
+                lowerLC, upperLC));
         });
     }
     else if (matrix == ColorMatrix::Minimum || matrix == ColorMatrix::Maximum)
@@ -247,21 +261,24 @@ void MatrixConvert_RGB2YUV(_Dt1 *dstY, _Dt1 *dstU, _Dt1 *dstV,
 
         LOOP_VH(height, width, dst_stride, src_stride, [&](PCType i0, PCType i1)
         {
-            dstY[i0] = static_cast<dstType>(
+            dstY[i0] = static_cast<dstType>(Clip(
                 Yr * static_cast<FLType>(srcR[i1])
                 + Yg * static_cast<FLType>(srcG[i1])
                 + Yb * static_cast<FLType>(srcB[i1])
-                + offsetY);
-            dstU[i0] = static_cast<dstType>(
+                + offsetY,
+                lowerLY, upperLY));
+            dstU[i0] = static_cast<dstType>(Clip(
                 Ur * static_cast<FLType>(srcR[i1])
                 + Ug * static_cast<FLType>(srcG[i1])
                 + Ub * static_cast<FLType>(srcB[i1])
-                + offsetC);
-            dstV[i0] = static_cast<dstType>(
+                + offsetC,
+                lowerLC, upperLC));
+            dstV[i0] = static_cast<dstType>(Clip(
                 Vr * static_cast<FLType>(srcR[i1])
                 + Vg * static_cast<FLType>(srcG[i1])
                 + Vb * static_cast<FLType>(srcB[i1])
-                + offsetC);
+                + offsetC,
+                lowerLC, upperLC));
         });
     }
 }
@@ -283,11 +300,14 @@ void MatrixConvert_YUV2RGB(_Dt1 *dstR, _Dt1 *dstG, _Dt1 *dstB,
     const auto sRangeC = sCeilC - sFloorC;
     const auto dRange = dCeil - dFloor;
 
+    const FLType lowerL = static_cast<FLType>(dFloor);
+    const FLType upperL = static_cast<FLType>(dCeil);
+
     if (matrix == ColorMatrix::GBR)
     {
-        RangeConvert(dstG, srcY, height, width, dst_stride, src_stride, dFloor, dFloor, dCeil, sFloorY, sFloorY, sCeilY, false);
-        RangeConvert(dstB, srcU, height, width, dst_stride, src_stride, dFloor, dFloor, dCeil, sFloorY, sFloorY, sCeilY, false);
-        RangeConvert(dstR, srcV, height, width, dst_stride, src_stride, dFloor, dFloor, dCeil, sFloorY, sFloorY, sCeilY, false);
+        RangeConvert(dstG, srcY, height, width, dst_stride, src_stride, dFloor, dFloor, dCeil, sFloorY, sFloorY, sCeilY, true);
+        RangeConvert(dstB, srcU, height, width, dst_stride, src_stride, dFloor, dFloor, dCeil, sFloorY, sFloorY, sCeilY, true);
+        RangeConvert(dstR, srcV, height, width, dst_stride, src_stride, dFloor, dFloor, dCeil, sFloorY, sFloorY, sCeilY, true);
     }
     else if (matrix == ColorMatrix::Minimum || matrix == ColorMatrix::Maximum)
     {
@@ -318,9 +338,6 @@ void MatrixConvert_YUV2RGB(_Dt1 *dstR, _Dt1 *dstG, _Dt1 *dstB,
         if (!dstFloat) offsetG += FLType(0.5);
         FLType offsetB = -static_cast<FLType>(sFloorY) * By - sNeutralC * (Bu + Bv) + dFloor;
         if (!dstFloat) offsetB += FLType(0.5);
-
-        const FLType lowerL = static_cast<FLType>(dFloor);
-        const FLType upperL = static_cast<FLType>(dCeil);
 
         if (matrix == ColorMatrix::YCgCo)
         {
@@ -389,51 +406,47 @@ void MatrixConvert_YUV2RGB(_Dt1 *dstR, _Dt1 *dstG, _Dt1 *dstB,
 // Template functions of class VSProcess
 
 
-template < typename T >
-void VSProcess::Int2Float(FLType *dst, const T *src,
+template < typename _Ty >
+void VSProcess::Int2Float(FLType *dst, const _Ty *src,
     PCType height, PCType width, PCType dst_stride, PCType src_stride,
-    bool chroma, bool clip)
+    bool chroma, bool full, bool clip)
 {
-    const FLType dFloor = FLType(chroma ? -0.5 : 0);
-    const FLType dNeutral = chroma ? FLType(0) : dFloor;
-    const FLType dCeil = FLType(chroma ? 0.5 : 1);
+    FLType dFloor, dNeutral, dCeil;
+    _Ty sFloor, sNeutral, sCeil;
 
-    const T sFloor = T(0);
-    const T sNeutral = chroma ? T(1 << (bps - 1)) : sFloor;
-    const T sCeil = T((1 << bps) - 1);
+    GetQuanPara(dFloor, dNeutral, dCeil, 32, full, chroma);
+    GetQuanPara(sFloor, sNeutral, sCeil, fi->bitsPerSample, full, chroma);
 
     RangeConvert(dst, src, height, width, dst_stride, src_stride,
         dFloor, dNeutral, dCeil, sFloor, sNeutral, sCeil, clip);
 }
 
-template < typename T >
-void VSProcess::Float2Int(T *dst, const FLType *src,
+template < typename _Ty >
+void VSProcess::Float2Int(_Ty *dst, const FLType *src,
     PCType height, PCType width, PCType dst_stride, PCType src_stride,
-    bool chroma, bool clip)
+    bool chroma, bool full, bool clip)
 {
-    const T dFloor = T(0);
-    const T dNeutral = chroma ? T(1 << (bps - 1)) : dFloor;
-    const T dCeil = T((1 << bps) - 1);
+    _Ty dFloor, dNeutral, dCeil;
+    FLType sFloor, sNeutral, sCeil;
 
-    const FLType sFloor = FLType(chroma ? -0.5 : 0);
-    const FLType sNeutral = chroma ? FLType(0) : sFloor;
-    const FLType sCeil = FLType(chroma ? 0.5 : 1);
+    GetQuanPara(dFloor, dNeutral, dCeil, dfi->bitsPerSample, full, chroma);
+    GetQuanPara(sFloor, sNeutral, sCeil, 32, full, chroma);
 
     RangeConvert(dst, src, height, width, dst_stride, src_stride,
         dFloor, dNeutral, dCeil, sFloor, sNeutral, sCeil, clip);
 }
 
-template < typename T >
-void VSProcess::IntRGB2FloatY(FLType *dst,
-    const T *srcR, const T *srcG, const T *srcB,
+template < typename _Ty >
+void VSProcess::RGB2FloatY(FLType *dst,
+    const _Ty *srcR, const _Ty *srcG, const _Ty *srcB,
     PCType height, PCType width, PCType dst_stride, PCType src_stride,
-    ColorMatrix matrix)
+    ColorMatrix matrix, bool full)
 {
-    const FLType dFloor = FLType(0);
-    const FLType dCeil = FLType(1);
+    FLType dFloor, dCeil;
+    _Ty sFloor, sCeil;
 
-    const T sFloor = T(0);
-    const T sCeil = T((1 << bps) - 1);
+    GetQuanPara(dFloor, dCeil, 32, true);
+    GetQuanPara(sFloor, sCeil, fi->bitsPerSample, true);
 
     ConvertToY(dst, srcR, srcG, srcB,
         height, width, dst_stride, src_stride,
@@ -441,20 +454,17 @@ void VSProcess::IntRGB2FloatY(FLType *dst,
         matrix);
 }
 
-template < typename T >
-void VSProcess::IntRGB2FloatYUV(FLType *dstY, FLType *dstU, FLType *dstV,
-    const T *srcR, const T *srcG, const T *srcB,
+template < typename _Ty >
+void VSProcess::RGB2FloatYUV(FLType *dstY, FLType *dstU, FLType *dstV,
+    const _Ty *srcR, const _Ty *srcG, const _Ty *srcB,
     PCType height, PCType width, PCType dst_stride, PCType src_stride,
-    ColorMatrix matrix)
+    ColorMatrix matrix, bool full)
 {
-    const FLType dFloorY = FLType(0);
-    const FLType dCeilY = FLType(1);
-    const FLType dFloorC = FLType(-0.5);
-    const FLType dNeutralC = FLType(0);
-    const FLType dCeilC = FLType(0.5);
+    FLType dFloorY, dCeilY, dFloorC, dNeutralC, dCeilC;
+    _Ty sFloor, sCeil;
 
-    const T sFloor = T(0);
-    const T sCeil = T((1 << bps) - 1);
+    GetQuanPara(dFloorY, dCeilY, dFloorC, dNeutralC, dCeilC, 32, true);
+    GetQuanPara(sFloor, sCeil, fi->bitsPerSample, true);
 
     MatrixConvert_RGB2YUV(dstY, dstU, dstV, srcR, srcG, srcB,
         height, width, dst_stride, src_stride,
@@ -462,20 +472,17 @@ void VSProcess::IntRGB2FloatYUV(FLType *dstY, FLType *dstU, FLType *dstV,
         matrix);
 }
 
-template < typename T >
-void VSProcess::FloatYUV2IntRGB(T *dstR, T *dstG, T *dstB,
+template < typename _Ty >
+void VSProcess::FloatYUV2RGB(_Ty *dstR, _Ty *dstG, _Ty *dstB,
     const FLType *srcY, const FLType *srcU, const FLType *srcV,
     PCType height, PCType width, PCType dst_stride, PCType src_stride,
-    ColorMatrix matrix)
+    ColorMatrix matrix, bool full)
 {
-    const T dFloor = T(0);
-    const T dCeil = T((1 << bps) - 1);
+    _Ty dFloor, dCeil;
+    FLType sFloorY, sCeilY, sFloorC, sNeutralC, sCeilC;
 
-    const FLType sFloorY = FLType(0);
-    const FLType sCeilY = FLType(1);
-    const FLType sFloorC = FLType(-0.5);
-    const FLType sNeutralC = FLType(0);
-    const FLType sCeilC = FLType(0.5);
+    GetQuanPara(dFloor, dCeil, dfi->bitsPerSample, true);
+    GetQuanPara(sFloorY, sCeilY, sFloorC, sNeutralC, sCeilC, 32, true);
 
     MatrixConvert_YUV2RGB(dstR, dstG, dstB, srcY, srcU, srcV,
         height, width, dst_stride, src_stride,

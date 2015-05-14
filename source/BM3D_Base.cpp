@@ -135,9 +135,9 @@ int BM3D_Data_Base::arguments_process(const VSMap *in, VSMap *out)
         setError(out, "Invalid input clip, only constant format input supported");
         return 1;
     }
-    if (vi->format->sampleType != stInteger || (vi->format->bytesPerSample != 1 && vi->format->bytesPerSample != 2))
+    if (vi->format->sampleType == stFloat && vi->format->bitsPerSample != 32)
     {
-        setError(out, "Invalid input clip, only 8-16 bit int formats supported");
+        setError(out, "Invalid input clip, only 8-16 bit int or 32 bit float formats supported");
         return 1;
     }
 
@@ -160,19 +160,19 @@ int BM3D_Data_Base::arguments_process(const VSMap *in, VSMap *out)
             setError(out, "Invalid clip \"ref\", only constant format input supported");
             return 1;
         }
-        if (rvi->format->sampleType != stInteger || (rvi->format->bytesPerSample != 1 && rvi->format->bytesPerSample != 2))
+        if (rvi->format != vi->format)
         {
-            setError(out, "Invalid clip \"ref\", only 8-16 bit int formats supported");
+            setError(out, "input clip and clip \"ref\" must be of the format");
             return 1;
         }
         if (vi->width != rvi->width || vi->height != rvi->height)
         {
-            setError(out, "input clip and clip \"ref\" must be of the same size");
+            setError(out, "input clip and clip \"ref\" must be of the same width and height");
             return 1;
         }
-        if (vi->format->colorFamily != rvi->format->colorFamily)
+        if (vi->numFrames != rvi->numFrames)
         {
-            setError(out, "input clip and clip \"ref\" must be of the same color family");
+            setError(out, "input clip and clip \"ref\" must have the same number of frames");
             return 1;
         }
     }
@@ -325,7 +325,14 @@ int BM3D_Data_Base::arguments_process(const VSMap *in, VSMap *out)
     }
     else if (error || matrix == ColorMatrix::Unspecified)
     {
-        matrix = ColorMatrix_Default(vi->width, vi->height);
+        if (vi->format->sampleType == stFloat)
+        {
+            matrix = ColorMatrix::OPP;
+        }
+        else
+        {
+            matrix = ColorMatrix_Default(vi->width, vi->height);
+        }
     }
     else if (matrix != ColorMatrix::GBR && matrix != ColorMatrix::bt709
         && matrix != ColorMatrix::fcc && matrix != ColorMatrix::bt470bg && matrix != ColorMatrix::smpte170m

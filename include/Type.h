@@ -218,7 +218,32 @@ struct Pos
 
     bool operator>(const Pos &right) const
     {
+        if (y > right.y)
+        {
+            return true;
+        }
+        else if (y < right.y)
+        {
+            return false;
+        }
+        else if (x > right.x)
+        {
+            return true;
+        }
+        else
+        {
+            return false;
+        }
+    }
+
+    bool operator>=(const Pos &right) const
+    {
         return !(*this < right);
+    }
+
+    bool operator<=(const Pos &right) const
+    {
+        return !(*this > right);
     }
 
     friend std::ostream &operator<<(std::ostream &out, const Pos &src)

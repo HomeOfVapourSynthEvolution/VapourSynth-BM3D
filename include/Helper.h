@@ -112,23 +112,95 @@ void _Loop_VH(const PCType height, const PCType width, const PCType stride0, con
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 
-template < typename _Ty > inline
+template < typename _Ty >
+void _GetQuanPara(_Ty &Floor, _Ty &Ceil, int bps, bool full, const std::false_type &)
+{
+    if (full)
+    {
+        Floor = static_cast<_Ty>(0);
+        Ceil = static_cast<_Ty>((1 << bps) - 1);
+    }
+    else
+    {
+        Floor = static_cast<_Ty>(16 << (bps - 8));
+        Ceil = static_cast<_Ty>(235 << (bps - 8));
+    }
+}
+
+template < typename _Ty >
+void _GetQuanPara(_Ty &Floor, _Ty &Ceil, int bps, bool full, const std::true_type &)
+{
+    Floor = static_cast<_Ty>(0);
+    Ceil = static_cast<_Ty>(1);
+}
+
+template < typename _Ty >
+void GetQuanPara(_Ty &Floor, _Ty &Ceil, int bps, bool full)
+{
+    _GetQuanPara(Floor, Ceil, bps, full, _IsFloat<_Ty>());
+}
+
+
+template < typename _Ty >
+void _GetQuanPara(_Ty &Floor, _Ty &Neutral, _Ty &Ceil, int bps, bool full, bool chroma, const std::false_type &)
+{
+    if (full)
+    {
+        Floor = static_cast<_Ty>(0);
+        Neutral = chroma ? static_cast<_Ty>(1 << (bps - 1)) : Floor;
+        Ceil = static_cast<_Ty>((1 << bps) - 1);
+    }
+    else
+    {
+        Floor = static_cast<_Ty>(16 << (bps - 8));
+        Neutral = chroma ? static_cast<_Ty>(1 << (bps - 1)) : Floor;
+        Ceil = static_cast<_Ty>(chroma ? 240 << (bps - 8) : 235 << (bps - 8));
+    }
+}
+
+template < typename _Ty >
+void _GetQuanPara(_Ty &Floor, _Ty &Neutral, _Ty &Ceil, int bps, bool full, bool chroma, const std::true_type &)
+{
+    Floor = static_cast<_Ty>(chroma ? -0.5 : 0);
+    Neutral = chroma ? static_cast<_Ty>(0) : Floor;
+    Ceil = static_cast<_Ty>(chroma ? 0.5 : 1);
+}
+
+template < typename _Ty >
+void GetQuanPara(_Ty &Floor, _Ty &Neutral, _Ty &Ceil, int bps, bool full, bool chroma)
+{
+    _GetQuanPara(Floor, Neutral, Ceil, bps, full, chroma, _IsFloat<_Ty>());
+}
+
+
+template < typename _Ty >
+void GetQuanPara(_Ty &FloorY, _Ty &CeilY, _Ty &FloorC, _Ty &NeutralC, _Ty &CeilC, int bps, bool full)
+{
+    GetQuanPara(FloorY, CeilY, bps, full);
+    GetQuanPara(FloorC, NeutralC, CeilC, bps, full, true);
+}
+
+
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+
+template < typename _Ty >
 bool isChroma(_Ty Floor, _Ty Neutral)
 {
     return Floor < Neutral;
 }
 
-template < typename _Ty > inline
+template < typename _Ty >
 bool _IsPCChroma(_Ty Floor, _Ty Neutral, _Ty Ceil, const std::false_type &)
 {
     return Floor < Neutral && (Floor + Ceil) % 2 == 1;
 }
-template < typename _Ty > inline
+template < typename _Ty >
 bool _IsPCChroma(_Ty Floor, _Ty Neutral, _Ty Ceil, const std::true_type &)
 {
     return false;
 }
-template < typename _Ty > inline
+template < typename _Ty >
 bool isPCChroma(_Ty Floor, _Ty Neutral, _Ty Ceil)
 {
     return _IsPCChroma(Floor, Neutral, Ceil, _IsFloat<_Ty>());
@@ -346,17 +418,20 @@ private:
     const _Mydata &d;
 
 protected:
+    VSCore *core = nullptr;
     const VSAPI *vsapi = nullptr;
 
     const VSFrameRef *src = nullptr;
     const VSFormat *fi = nullptr;
     VSFrameRef *dst = nullptr;
+    const VSFormat *dfi = nullptr;
 
     bool skip = true;
 
     int PlaneCount;
-    int Bps;
-    int bps;
+    int Bps; // Bytes per sample
+    int bps; // bits per sample
+    int flt; // 0 - integer, 1 - half precision float, 2 - single precision float, 3 - double precision float
 
     PCType height;
     PCType width;
@@ -374,16 +449,27 @@ protected:
     PCType dst_pcount[VSMaxPlaneCount];
 
 private:
-    template < typename T >
-    void process_core() {}
+    template < typename _Ty >
+    void process_core();
+
+    template < typename _Ty >
+    void process_core_gray();
+
+    template < typename _Ty >
+    void process_core_yuv();
+
+    template < typename _Ty >
+    void process_core_rgb();
 
 protected:
-    virtual void process_core8() = 0;
-    virtual void process_core16() = 0;
+    virtual void process_core8() {};
+    virtual void process_core16() {};
+    virtual void process_coreH() {}
+    virtual void process_coreS() {}
 
 public:
-    _Myt(const _Mydata &_d, int n, VSFrameContext *frameCtx, VSCore *core, const VSAPI *_vsapi)
-        : d(_d), vsapi(_vsapi)
+    _Myt(const _Mydata &_d, int n, VSFrameContext *frameCtx, VSCore *_core, const VSAPI *_vsapi)
+        : d(_d), core(_core), vsapi(_vsapi)
     {
         src = vsapi->getFrameFilter(n, d.node, frameCtx);
         fi = vsapi->getFrameFormat(src);
@@ -391,6 +477,17 @@ public:
         PlaneCount = fi->numPlanes;
         Bps = fi->bytesPerSample;
         bps = fi->bitsPerSample;
+
+        if (fi->sampleType == stFloat)
+        {
+            if (bps == 16) flt = 1;
+            if (bps == 32) flt = 2;
+            if (bps == 64) flt = 3;
+        }
+        else
+        {
+            flt = 0;
+        }
 
         for (int i = 0; i < PlaneCount; ++i)
         {
@@ -404,28 +501,12 @@ public:
             stride = vsapi->getStride(src, 0) / Bps;
             pcount = height * stride;
 
-            int planes[VSMaxPlaneCount];
-            const VSFrameRef *cp_planes[VSMaxPlaneCount];
-
-            for (int i = 0; i < VSMaxPlaneCount; ++i)
-            {
-                planes[i] = i;
-                cp_planes[i] = d.process[i] ? nullptr : src;
-            }
-
-            dst = vsapi->newVideoFrame2(fi, width, height, cp_planes, planes, src, core);
-
             for (int i = 0; i < PlaneCount; ++i)
             {
                 src_height[i] = vsapi->getFrameHeight(src, i);
                 src_width[i] = vsapi->getFrameWidth(src, i);
-                src_stride[i] = vsapi->getStride(src, i) / Bps;
+                src_stride[i] = vsapi->getStride(src, i) / fi->bytesPerSample;
                 src_pcount[i] = src_height[i] * src_stride[i];
-
-                dst_height[i] = vsapi->getFrameHeight(dst, i);
-                dst_width[i] = vsapi->getFrameWidth(dst, i);
-                dst_stride[i] = vsapi->getStride(dst, i) / Bps;
-                dst_pcount[i] = dst_height[i] * dst_stride[i];
             }
         }
     }
@@ -441,8 +522,21 @@ public:
         {
             return src;
         }
+        else
+        {
+            NewFormat();
+            NewFrame();
+        }
         
-        if (Bps == 1)
+        if (flt == 1)
+        {
+            process_coreH();
+        }
+        else if (flt == 2)
+        {
+            process_coreS();
+        }
+        else if (Bps == 1)
         {
             process_core8();
         }
@@ -454,35 +548,84 @@ public:
         return dst;
     }
 
+    static const VSFormat *NewFormat(const _Mydata &d, const VSFormat *f, VSCore *core, const VSAPI *vsapi)
+    {
+        return vsapi->registerFormat(f->colorFamily, f->sampleType, f->bitsPerSample,
+            f->subSamplingW, f->subSamplingH, core);
+    }
+
+protected:
+    virtual void NewFormat()
+    {
+        dfi = NewFormat(d, fi, core, vsapi);
+    }
+
+    virtual void NewFrame()
+    {
+        _NewFrame(width, height, dfi == fi);
+    }
+
+    void _NewFrame(PCType _width, PCType _height, bool copy = true)
+    {
+        if (!skip)
+        {
+            if (copy)
+            {
+                int planes[VSMaxPlaneCount];
+                const VSFrameRef *cp_planes[VSMaxPlaneCount];
+
+                for (int i = 0; i < VSMaxPlaneCount; ++i)
+                {
+                    planes[i] = i;
+                    cp_planes[i] = !copy || d.process[i] ? nullptr : src;
+                }
+
+                dst = vsapi->newVideoFrame2(dfi, _width, _height, cp_planes, planes, src, core);
+            }
+            else
+            {
+                dst = vsapi->newVideoFrame(dfi, _width, _height, src, core);
+            }
+
+            for (int i = 0; i < PlaneCount; ++i)
+            {
+                dst_height[i] = vsapi->getFrameHeight(dst, i);
+                dst_width[i] = vsapi->getFrameWidth(dst, i);
+                dst_stride[i] = vsapi->getStride(dst, i) / dfi->bytesPerSample;
+                dst_pcount[i] = dst_height[i] * dst_stride[i];
+            }
+        }
+    }
+
 protected:
     // To call these template functions, it is required to include "Conversion.hpp"
-    template < typename T >
-    void Int2Float(FLType *dst, const T *src,
+    template < typename _Ty >
+    void Int2Float(FLType *dst, const _Ty *src,
         PCType height, PCType width, PCType dst_stride, PCType src_stride,
-        bool chroma = false, bool clip = false);
+        bool chroma = false, bool full = true, bool clip = false);
 
-    template < typename T >
-    void Float2Int(T *dst, const FLType *src,
+    template < typename _Ty >
+    void Float2Int(_Ty *dst, const FLType *src,
         PCType height, PCType width, PCType dst_stride, PCType src_stride,
-        bool chroma = false, bool clip = true);
+        bool chroma = false, bool full = true, bool clip = true);
 
-    template < typename T >
-    void IntRGB2FloatY(FLType *dst,
-        const T *srcR, const T *srcG, const T *srcB,
+    template < typename _Ty >
+    void RGB2FloatY(FLType *dst,
+        const _Ty *srcR, const _Ty *srcG, const _Ty *srcB,
         PCType height, PCType width, PCType dst_stride, PCType src_stride,
-        ColorMatrix matrix = ColorMatrix::OPP);
+        ColorMatrix matrix, bool full = true);
 
-    template < typename T >
-    void IntRGB2FloatYUV(FLType *dstY, FLType *dstU, FLType *dstV,
-        const T *srcR, const T *srcG, const T *srcB,
+    template < typename _Ty >
+    void RGB2FloatYUV(FLType *dstY, FLType *dstU, FLType *dstV,
+        const _Ty *srcR, const _Ty *srcG, const _Ty *srcB,
         PCType height, PCType width, PCType dst_stride, PCType src_stride,
-        ColorMatrix matrix = ColorMatrix::OPP);
+        ColorMatrix matrix, bool full = true);
 
-    template < typename T >
-    void FloatYUV2IntRGB(T *dstR, T *dstG, T *dstB,
+    template < typename _Ty >
+    void FloatYUV2RGB(_Ty *dstR, _Ty *dstG, _Ty *dstB,
         const FLType *srcY, const FLType *srcU, const FLType *srcV,
         PCType height, PCType width, PCType dst_stride, PCType src_stride,
-        ColorMatrix matrix = ColorMatrix::OPP);
+        ColorMatrix matrix, bool full = true);
 };
 
 

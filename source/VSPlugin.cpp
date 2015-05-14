@@ -17,7 +17,120 @@
 */
 
 
-#include "BM3D.h"
+#include "RGB2OPP.h"
+#include "OPP2RGB.h"
+#include "BM3D_Basic.h"
+#include "BM3D_Final.h"
+
+
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+// VapourSynth: RGB2OPP
+
+
+static void VS_CC RGB2OPP_Init(VSMap *in, VSMap *out, void **instanceData, VSNode *node, VSCore *core, const VSAPI *vsapi)
+{
+    RGB2OPP_Data *d = reinterpret_cast<RGB2OPP_Data *>(*instanceData);
+
+    VSVideoInfo dvi = *(d->vi);
+    dvi.format = RGB2OPP_Process::NewFormat(*d, d->vi->format, core, vsapi);
+
+    vsapi->setVideoInfo(&dvi, 1, node);
+}
+
+static const VSFrameRef *VS_CC RGB2OPP_GetFrame(int n, int activationReason, void **instanceData, void **frameData, VSFrameContext *frameCtx, VSCore *core, const VSAPI *vsapi)
+{
+    const RGB2OPP_Data *d = reinterpret_cast<RGB2OPP_Data *>(*instanceData);
+
+    if (activationReason == arInitial)
+    {
+        vsapi->requestFrameFilter(n, d->node, frameCtx);
+    }
+    else if (activationReason == arAllFramesReady)
+    {
+        RGB2OPP_Process p(*d, n, frameCtx, core, vsapi);
+
+        return p.process();
+    }
+
+    return nullptr;
+}
+
+static void VS_CC RGB2OPP_Free(void *instanceData, VSCore *core, const VSAPI *vsapi)
+{
+    RGB2OPP_Data *d = reinterpret_cast<RGB2OPP_Data *>(instanceData);
+
+    delete d;
+}
+
+
+static void VS_CC RGB2OPP_Create(const VSMap *in, VSMap *out, void *userData, VSCore *core, const VSAPI *vsapi)
+{
+    RGB2OPP_Data *d = new RGB2OPP_Data(vsapi);
+
+    if (d->arguments_process(in, out))
+    {
+        delete d;
+        return;
+    }
+
+    // Create filter
+    vsapi->createFilter(in, out, "RGB2OPP", RGB2OPP_Init, RGB2OPP_GetFrame, RGB2OPP_Free, fmParallel, 0, d, core);
+}
+
+
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+// VapourSynth: OPP2RGB
+
+
+static void VS_CC OPP2RGB_Init(VSMap *in, VSMap *out, void **instanceData, VSNode *node, VSCore *core, const VSAPI *vsapi)
+{
+    OPP2RGB_Data *d = reinterpret_cast<OPP2RGB_Data *>(*instanceData);
+
+    VSVideoInfo dvi = *(d->vi);
+    dvi.format = OPP2RGB_Process::NewFormat(*d, d->vi->format, core, vsapi);
+
+    vsapi->setVideoInfo(&dvi, 1, node);
+}
+
+static const VSFrameRef *VS_CC OPP2RGB_GetFrame(int n, int activationReason, void **instanceData, void **frameData, VSFrameContext *frameCtx, VSCore *core, const VSAPI *vsapi)
+{
+    const OPP2RGB_Data *d = reinterpret_cast<OPP2RGB_Data *>(*instanceData);
+
+    if (activationReason == arInitial)
+    {
+        vsapi->requestFrameFilter(n, d->node, frameCtx);
+    }
+    else if (activationReason == arAllFramesReady)
+    {
+        OPP2RGB_Process p(*d, n, frameCtx, core, vsapi);
+
+        return p.process();
+    }
+
+    return nullptr;
+}
+
+static void VS_CC OPP2RGB_Free(void *instanceData, VSCore *core, const VSAPI *vsapi)
+{
+    OPP2RGB_Data *d = reinterpret_cast<OPP2RGB_Data *>(instanceData);
+
+    delete d;
+}
+
+
+static void VS_CC OPP2RGB_Create(const VSMap *in, VSMap *out, void *userData, VSCore *core, const VSAPI *vsapi)
+{
+    OPP2RGB_Data *d = new OPP2RGB_Data(vsapi);
+
+    if (d->arguments_process(in, out))
+    {
+        delete d;
+        return;
+    }
+
+    // Create filter
+    vsapi->createFilter(in, out, "OPP2RGB", OPP2RGB_Init, OPP2RGB_GetFrame, OPP2RGB_Free, fmParallel, 0, d, core);
+}
 
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -135,6 +248,16 @@ VS_EXTERNAL_API(void) VapourSynthPluginInit(VSConfigPlugin configFunc, VSRegiste
     configFunc("com.vapoursynth.bm3d", "bm3d",
         "Implementation of BM3D denoising filter for VapourSynth.",
         VAPOURSYNTH_API_VERSION, 1, plugin);
+
+    registerFunc("RGB2OPP",
+        "input:clip;"
+        "sample:int:opt;",
+        RGB2OPP_Create, nullptr, plugin);
+
+    registerFunc("OPP2RGB",
+        "input:clip;"
+        "sample:int:opt;",
+        OPP2RGB_Create, nullptr, plugin);
 
     registerFunc("Basic",
         "input:clip;"

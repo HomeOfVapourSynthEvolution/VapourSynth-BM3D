@@ -137,6 +137,8 @@
     <ClInclude Include="..\include\Conversion.hpp" />
     <ClInclude Include="..\include\fftw3_helper.hpp" />
     <ClInclude Include="..\include\Helper.h" />
+    <ClInclude Include="..\include\OPP2RGB.h" />
+    <ClInclude Include="..\include\RGB2OPP.h" />
     <ClInclude Include="..\include\Specification.h" />
     <ClInclude Include="..\include\Type.h" />
   </ItemGroup>

@@ -21,10 +21,7 @@
 #define BM3D_BASE_H_
 
 
-#include "fftw3_helper.hpp"
-#include "Helper.h"
-#include "Conversion.hpp"
-#include "Block.h"
+#include "BM3D.h"
 
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -211,12 +208,28 @@ protected:
     int ref_pcount[VSMaxPlaneCount];
 
 private:
-    template < typename T >
+    template < typename _Ty >
     void process_core();
+
+    template < typename _Ty >
+    void process_core_gray();
+
+    template <>
+    void process_core_gray<FLType>();
+
+    template < typename _Ty >
+    void process_core_yuv();
+
+    template <>
+    void process_core_yuv<FLType>();
+
+    template < typename _Ty >
+    void process_core_rgb();
 
 protected:
     virtual void process_core8() override { process_core<uint8_t>(); }
     virtual void process_core16() override { process_core<uint16_t>(); }
+    virtual void process_coreS() override { process_core<float>(); }
 
 public:
     _Myt(const _Mydata &_d, int n, VSFrameContext *frameCtx, VSCore *core, const VSAPI *_vsapi)
@@ -239,7 +252,7 @@ public:
             {
                 ref_height[i] = vsapi->getFrameHeight(ref, i);
                 ref_width[i] = vsapi->getFrameWidth(ref, i);
-                ref_stride[i] = vsapi->getStride(ref, i) / Bps;
+                ref_stride[i] = vsapi->getStride(ref, i) / rfi->bytesPerSample;
                 ref_pcount[i] = ref_height[i] * ref_stride[i];
             }
         }
