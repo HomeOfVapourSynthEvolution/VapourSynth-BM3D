@@ -21,103 +21,6 @@
 
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-// Functions of class BM3D_Process_Base
-
-
-BM3D_FilterData::BM3D_FilterData(bool wiener, double sigma, PCType GroupSize, PCType BlockSize, double lambda)
-    : fp(GroupSize), bp(GroupSize), finalAMP(GroupSize), thrTable(wiener ? 0 : GroupSize),
-    wienerSigmaSqr(wiener ? GroupSize : 0)
-{
-    const unsigned int flags = FFTW_PATIENT;
-    const fftw::r2r_kind fkind = FFTW_REDFT01;
-    const fftw::r2r_kind bkind = FFTW_REDFT10;
-
-    FLType *temp = nullptr;
-
-    for (PCType i = 1; i <= GroupSize; ++i)
-    {
-        AlignedMalloc(temp, i * BlockSize * BlockSize);
-        fp[i - 1].r2r_3d(i, BlockSize, BlockSize, temp, temp, fkind, fkind, fkind, flags);
-        bp[i - 1].r2r_3d(i, BlockSize, BlockSize, temp, temp, bkind, bkind, bkind, flags);
-        AlignedFree(temp);
-
-        finalAMP[i - 1] = 2 * i * 2 * BlockSize * 2 * BlockSize;
-        double forwardAMP = sqrt(finalAMP[i - 1]);
-
-        if (wiener)
-        {
-            wienerSigmaSqr[i - 1] = static_cast<FLType>(sigma * forwardAMP * sigma * forwardAMP);
-        }
-        else
-        {
-            double thrBase = sigma * lambda * forwardAMP;
-            std::vector<double> thr(4);
-            thr[0] = thrBase;
-            thr[1] = thrBase;
-            thr[2] = thrBase / 2.;
-            thr[3] = 0;
-
-            thrTable[i - 1] = std::vector<FLType>(i * BlockSize * BlockSize);
-            auto thr_d = thrTable[i - 1].data();
-
-            for (PCType z = 0; z < i; ++z)
-            {
-                for (PCType y = 0; y < BlockSize; ++y)
-                {
-                    for (PCType x = 0; x < BlockSize; ++x, ++thr_d)
-                    {
-                        int flag = 0;
-                        double scale = 1;
-
-                        if (x == 0)
-                        {
-                            ++flag;
-                        }
-                        else if (x >= BlockSize / 2)
-                        {
-                            scale *= 1.07;
-                        }
-                        else if (x >= BlockSize / 4)
-                        {
-                            scale *= 1.01;
-                        }
-
-                        if (y == 0)
-                        {
-                            ++flag;
-                        }
-                        else if (y >= BlockSize / 2)
-                        {
-                            scale *= 1.07;
-                        }
-                        else if (y >= BlockSize / 4)
-                        {
-                            scale *= 1.01;
-                        }
-
-                        if (z == 0)
-                        {
-                            ++flag;
-                        }
-                        else if (z >= i / 2)
-                        {
-                            scale *= 1.07;
-                        }
-                        else if (z >= i / 4)
-                        {
-                            scale *= 1.01;
-                        }
-
-                        *thr_d = static_cast<FLType>(thr[flag] * scale);
-                    }
-                }
-            }
-        }
-    }
-}
-
-
-////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 // Functions of class BM3D_Data_Base
 
 
@@ -265,7 +168,7 @@ int BM3D_Data_Base::arguments_process(const VSMap *in, VSMap *out)
     }
     else if (para.GroupSize < 1 || para.GroupSize > 256)
     {
-        setError(out, "Invalid \"block_step\" assigned, must be an integer in [1, 256]");
+        setError(out, "Invalid \"group_size\" assigned, must be an integer in [1, 256]");
         return 1;
     }
 
@@ -300,7 +203,7 @@ int BM3D_Data_Base::arguments_process(const VSMap *in, VSMap *out)
 
     if (error)
     {
-        para.thMSE = para_default.thMSE;
+        para.thMSE_Default();
     }
     else if (para.thMSE <= 0)
     {
@@ -325,14 +228,7 @@ int BM3D_Data_Base::arguments_process(const VSMap *in, VSMap *out)
     }
     else if (error || matrix == ColorMatrix::Unspecified)
     {
-        if (vi->format->sampleType == stFloat)
-        {
-            matrix = ColorMatrix::OPP;
-        }
-        else
-        {
-            matrix = ColorMatrix_Default(vi->width, vi->height);
-        }
+        matrix = ColorMatrix_Default(vi->width, vi->height);
     }
     else if (matrix != ColorMatrix::GBR && matrix != ColorMatrix::bt709
         && matrix != ColorMatrix::fcc && matrix != ColorMatrix::bt470bg && matrix != ColorMatrix::smpte170m
@@ -402,17 +298,18 @@ void BM3D_Data_Base::init_filter_data()
 
 void BM3D_Process_Base::Kernel(FLType *dst, const FLType *src, const FLType *ref)
 {
-    PCType BlockPosRight = width - d.para.BlockSize;
-    PCType BlockPosBottom = height - d.para.BlockSize;
-
-    block_type refBlock(d.para.BlockSize, d.para.BlockSize, PosType(0, 0), false);
-
-    FLType *ResNum = dst, *ResDen;
+    FLType *ResNum = dst, *ResDen = nullptr;
 
     AlignedMalloc(ResDen, dst_pcount[0]);
 
-    memset(ResNum, 0, sizeof(FLType) * dst_pcount[0]);
-    memset(ResDen, 0, sizeof(FLType) * dst_pcount[0]);
+    LOOP_VH(dst_height[0], dst_width[0], dst_stride[0], [&](PCType i)
+    {
+        ResNum[i] = 0;
+        ResDen[i] = 0;
+    });
+
+    const PCType BlockPosBottom = height - d.para.BlockSize;
+    const PCType BlockPosRight = width - d.para.BlockSize;
 
     for (PCType j = 0;; j += d.para.BlockStep)
     {
@@ -438,22 +335,8 @@ void BM3D_Process_Base::Kernel(FLType *dst, const FLType *src, const FLType *ref
                 i = BlockPosRight;
             }
 
-            PosPairCode matchCode;
-
-            if (d.para.GroupSize == 1)
-            {
-                // Skip block matching if GroupSize is 1, and take the reference block as the only element in the group
-                matchCode = PosPairCode(1, PosPair(KeyType(0), PosType(j, i)));
-            }
-            else
-            {
-                // Get reference block from reference plane
-                refBlock.From(ref, ref_stride[0], PosType(j, i));
-
-                // Form a group by block matching between reference block and its neighborhood in reference plane
-                matchCode = refBlock.BlockMatchingMulti(ref, ref_height[0], ref_width[0], ref_stride[0], FLType(1),
-                    d.para.BMrange, d.para.BMstep, d.para.thMSE);
-            }
+            // Form a group by block matching between reference block and its spatial neighborhood in the reference plane
+            PosPairCode matchCode = BlockMatching(ref, j, i);
 
             // Get the filtered result through collaborative filtering and aggregation of matched blocks
             CollaborativeFilter(0, ResNum, ResDen, src, ref, matchCode);
@@ -474,25 +357,34 @@ void BM3D_Process_Base::Kernel(FLType *dstY, FLType *dstU, FLType *dstV,
     const FLType *srcY, const FLType *srcU, const FLType *srcV,
     const FLType *refY, const FLType *refU, const FLType *refV)
 {
-    PCType BlockPosRight = width - d.para.BlockSize;
-    PCType BlockPosBottom = height - d.para.BlockSize;
+    FLType *ResNumY = dstY, *ResDenY = nullptr;
+    FLType *ResNumU = dstU, *ResDenU = nullptr;
+    FLType *ResNumV = dstV, *ResDenV = nullptr;
 
-    block_type refBlock(d.para.BlockSize, d.para.BlockSize, PosType(0, 0), false);
+    if (d.process[0]) AlignedMalloc(ResDenY, dst_pcount[0]);
+    if (d.process[1]) AlignedMalloc(ResDenU, dst_pcount[1]);
+    if (d.process[2]) AlignedMalloc(ResDenV, dst_pcount[2]);
 
-    FLType *ResNumY = dstY, *ResDenY;
-    FLType *ResNumU = dstU, *ResDenU;
-    FLType *ResNumV = dstV, *ResDenV;
+    if (d.process[0]) LOOP_VH(dst_height[0], dst_width[0], dst_stride[0], [&](PCType i)
+    {
+        ResNumY[i] = 0;
+        ResDenY[i] = 0;
+    });
 
-    AlignedMalloc(ResDenY, dst_pcount[0]);
-    AlignedMalloc(ResDenU, dst_pcount[1]);
-    AlignedMalloc(ResDenV, dst_pcount[2]);
+    if (d.process[1]) LOOP_VH(dst_height[1], dst_width[1], dst_stride[1], [&](PCType i)
+    {
+        ResNumU[i] = 0;
+        ResDenU[i] = 0;
+    });
 
-    memset(ResNumY, 0, sizeof(FLType) * dst_pcount[0]);
-    memset(ResDenY, 0, sizeof(FLType) * dst_pcount[0]);
-    memset(ResNumU, 0, sizeof(FLType) * dst_pcount[1]);
-    memset(ResDenU, 0, sizeof(FLType) * dst_pcount[1]);
-    memset(ResNumV, 0, sizeof(FLType) * dst_pcount[2]);
-    memset(ResDenV, 0, sizeof(FLType) * dst_pcount[2]);
+    if (d.process[2]) LOOP_VH(dst_height[2], dst_width[2], dst_stride[2], [&](PCType i)
+    {
+        ResNumV[i] = 0;
+        ResDenV[i] = 0;
+    });
+
+    const PCType BlockPosBottom = height - d.para.BlockSize;
+    const PCType BlockPosRight = width - d.para.BlockSize;
 
     for (PCType j = 0;; j += d.para.BlockStep)
     {
@@ -518,22 +410,8 @@ void BM3D_Process_Base::Kernel(FLType *dstY, FLType *dstU, FLType *dstV,
                 i = BlockPosRight;
             }
 
-            PosPairCode matchCode;
-
-            if (d.para.GroupSize == 1)
-            {
-                // Skip block matching if GroupSize is 1, and take the reference block as the only element in the group
-                matchCode = PosPairCode(1, PosPair(KeyType(0), PosType(j, i)));
-            }
-            else
-            {
-                // Get reference block from reference plane
-                refBlock.From(refY, ref_stride[0], PosType(j, i));
-
-                // Form a group by block matching between reference block and its neighborhood in reference plane
-                matchCode = refBlock.BlockMatchingMulti(refY, ref_height[0], ref_width[0], ref_stride[0], FLType(1),
-                    d.para.BMrange, d.para.BMstep, d.para.thMSE);
-            }
+            // Form a group by block matching between reference block and its spatial neighborhood in the reference plane
+            PosPairCode matchCode = BlockMatching(refY, j, i);
 
             // Get the filtered result through collaborative filtering and aggregation of matched blocks
             if (d.process[0]) CollaborativeFilter(0, ResNumY, ResDenY, srcY, refY, matchCode);
@@ -558,9 +436,28 @@ void BM3D_Process_Base::Kernel(FLType *dstY, FLType *dstU, FLType *dstV,
         dstV[i] = ResNumV[i] / ResDenV[i];
     });
 
-    AlignedFree(ResDenY);
-    AlignedFree(ResDenU);
-    AlignedFree(ResDenV);
+    if (d.process[0]) AlignedFree(ResDenY);
+    if (d.process[1]) AlignedFree(ResDenU);
+    if (d.process[2]) AlignedFree(ResDenV);
+}
+
+
+BM3D_Process_Base::PosPairCode BM3D_Process_Base::BlockMatching(
+    const FLType *ref, PCType j, PCType i)
+{
+    // Skip block matching if GroupSize is 1, and take the reference block as the only element in the group
+    if (d.para.GroupSize == 1)
+    {
+        return PosPairCode(1, PosPair(KeyType(0), PosType(j, i)));
+    }
+    
+    // Get reference block from the reference plane
+    block_type refBlock(ref, ref_stride[0], d.para.BlockSize, d.para.BlockSize, PosType(j, i));
+
+    // Block matching
+    return refBlock.BlockMatchingMulti(ref,
+        ref_height[0], ref_width[0], ref_stride[0], FLType(1),
+        d.para.BMrange, d.para.BMstep, d.para.thMSE, 1);
 }
 
 

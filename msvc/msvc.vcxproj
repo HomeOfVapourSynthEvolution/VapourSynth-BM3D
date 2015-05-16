@@ -143,6 +143,7 @@
     <ClInclude Include="..\include\Type.h" />
   </ItemGroup>
   <ItemGroup>
+    <ClCompile Include="..\source\BM3D.cpp" />
     <ClCompile Include="..\source\BM3D_Base.cpp" />
     <ClCompile Include="..\source\BM3D_Basic.cpp" />
     <ClCompile Include="..\source\BM3D_Final.cpp" />

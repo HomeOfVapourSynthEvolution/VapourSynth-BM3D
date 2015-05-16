@@ -17,8 +17,8 @@
 */
 
 
-#ifndef _CONVERSION_HPP_
-#define _CONVERSION_HPP_
+#ifndef CONVERSION_HPP_
+#define CONVERSION_HPP_
 
 
 #include "Helper.h"

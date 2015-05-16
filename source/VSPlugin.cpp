@@ -24,7 +24,7 @@
 
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-// VapourSynth: RGB2OPP
+// VapourSynth: bm3d.RGB2OPP
 
 
 static void VS_CC RGB2OPP_Init(VSMap *in, VSMap *out, void **instanceData, VSNode *node, VSCore *core, const VSAPI *vsapi)
@@ -79,7 +79,7 @@ static void VS_CC RGB2OPP_Create(const VSMap *in, VSMap *out, void *userData, VS
 
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-// VapourSynth: OPP2RGB
+// VapourSynth: bm3d.OPP2RGB
 
 
 static void VS_CC OPP2RGB_Init(VSMap *in, VSMap *out, void **instanceData, VSNode *node, VSCore *core, const VSAPI *vsapi)
@@ -134,7 +134,7 @@ static void VS_CC OPP2RGB_Create(const VSMap *in, VSMap *out, void *userData, VS
 
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-// VapourSynth: BM3D_Basic
+// VapourSynth: bm3d.Basic
 
 
 static void VS_CC BM3D_Basic_Init(VSMap *in, VSMap *out, void **instanceData, VSNode *node, VSCore *core, const VSAPI *vsapi)
@@ -187,7 +187,7 @@ static void VS_CC BM3D_Basic_Create(const VSMap *in, VSMap *out, void *userData,
 
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-// VapourSynth: BM3D_Final
+// VapourSynth: bm3d.Final
 
 
 static void VS_CC BM3D_Final_Init(VSMap *in, VSMap *out, void **instanceData, VSNode *node, VSCore *core, const VSAPI *vsapi)

@@ -27,106 +27,35 @@
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 
-const struct BM3D_Para_Base
-{
-    std::string profile;
-    std::vector<double> sigma;
-    PCType BlockSize;
-    PCType BlockStep;
-    PCType GroupSize;
-    PCType BMrange;
-    PCType BMstep;
-    double thMSE;
-    double lambda;
-
-    BM3D_Para_Base(std::string _profile = "lc")
-        : profile(_profile), sigma({ 10.0, 10.0, 10.0 })
-    {
-        BMrange = 16;
-        BMstep = 1;
-
-        if (profile == "lc")
-        {
-            BMrange = 9;
-        }
-    }
-
-    virtual void thMSE_Default() {}
-} BM3D_Base_Default;
-
-
-////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-
-
-struct BM3D_FilterData
-{
-    typedef BM3D_FilterData _Myt;
-
-    typedef fftwh<FLType> fftw;
-
-    std::vector<fftw::plan> fp;
-    std::vector<fftw::plan> bp;
-    std::vector<double> finalAMP;
-    std::vector<std::vector<FLType>> thrTable;
-    std::vector<FLType> wienerSigmaSqr;
-
-    _Myt(bool wiener, double sigma, PCType GroupSize, PCType BlockSize, double lambda);
-
-    _Myt(const _Myt &right) = delete;
-
-    _Myt(_Myt &&right)
-        : fp(std::move(right.fp)), bp(std::move(right.bp)),
-        finalAMP(std::move(right.finalAMP)), thrTable(std::move(right.thrTable)),
-        wienerSigmaSqr(std::move(right.wienerSigmaSqr))
-    {}
-
-    _Myt &operator=(const _Myt &right) = delete;
-
-    _Myt &operator=(_Myt &&right)
-    {
-        fp = std::move(right.fp);
-        bp = std::move(right.bp);
-        finalAMP = std::move(right.finalAMP);
-        thrTable = std::move(right.thrTable);
-        wienerSigmaSqr = std::move(right.wienerSigmaSqr);
-
-        return *this;
-    }
-};
-
-
-////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-
-
 class BM3D_Data_Base
     : public VSData
 {
 public:
     typedef BM3D_Data_Base _Myt;
     typedef VSData _Mybase;
-    typedef BM3D_Para_Base _Mypara;
+    typedef BM3D_Para _Mypara;
 
 public:
     bool rdef = false;
     VSNodeRef *rnode = nullptr;
     const VSVideoInfo *rvi = nullptr;
 
-    _Mypara para_default;
-    _Mypara para;
-
     bool wiener;
     ColorMatrix matrix;
+
+    _Mypara para_default;
+    _Mypara para;
     std::vector<BM3D_FilterData> f;
 
 public:
-    _Myt(const VSAPI *_vsapi = nullptr, std::string _FunctionName = "Base", std::string _NameSpace = "bm3d",
-        const _Mypara &_para = BM3D_Base_Default, bool _wiener = false)
-        : _Mybase(_vsapi, _FunctionName, _NameSpace), para_default(_para), para(_para), wiener(_wiener), f()
+    explicit BM3D_Data_Base(bool _wiener,
+        const VSAPI *_vsapi = nullptr, std::string _FunctionName = "Base", std::string _NameSpace = "bm3d")
+        : _Mybase(_vsapi, _FunctionName, _NameSpace), wiener(_wiener), para_default(_wiener), para(_wiener), f()
     {}
 
-    _Myt(const _Myt &right) = delete;
+    BM3D_Data_Base(const _Myt &right) = delete;
 
-    _Myt(_Myt &&right)
+    BM3D_Data_Base(_Myt &&right)
         : _Mybase(std::move(right)),
         rdef(right.rdef), rnode(right.rnode), rvi(right.rvi),
         para_default(right.para_default), para(right.para),
@@ -143,8 +72,7 @@ public:
     {
         _Mybase::operator=(std::move(right));
 
-        if (rdef && rnode)
-            vsapi->freeNode(rnode);
+        if (rdef && rnode) vsapi->freeNode(rnode);
 
         rdef = right.rdef;
         rnode = right.rnode;
@@ -170,9 +98,9 @@ public:
     virtual int arguments_process(const VSMap *in, VSMap *out) override;
 
 protected:
-    virtual void get_default_para(std::string _profile = "lc")
+    void get_default_para(std::string _profile = "lc")
     {
-        para_default = _Mypara(_profile);
+        para_default = _Mypara(wiener, _profile);
     }
 
     void init_filter_data();
@@ -194,9 +122,9 @@ public:
     typedef block_type::KeyType KeyType;
     typedef block_type::PosType PosType;
     typedef block_type::PosPair PosPair;
-    typedef block_type::PosPairCode PosPairCode;
     typedef block_type::KeyCode KeyCode;
     typedef block_type::PosCode PosCode;
+    typedef block_type::PosPairCode PosPairCode;
 
 private:
     const _Mydata &d;
@@ -235,7 +163,7 @@ protected:
     virtual void process_coreS() override { process_core<float>(); }
 
 public:
-    _Myt(const _Mydata &_d, int n, VSFrameContext *frameCtx, VSCore *core, const VSAPI *_vsapi)
+    BM3D_Process_Base(const _Mydata &_d, int n, VSFrameContext *frameCtx, VSCore *core, const VSAPI *_vsapi)
         : _Mybase(_d, n, frameCtx, core, _vsapi), d(_d)
     {
         if (d.rdef)
@@ -273,6 +201,8 @@ public:
         const FLType *refY, const FLType *refU, const FLType *refV);
 
 protected:
+    PosPairCode BlockMatching(const FLType *ref, PCType j, PCType i);
+
     virtual void CollaborativeFilter(int plane,
         FLType *ResNum, FLType *ResDen,
         const FLType *src, const FLType *ref,

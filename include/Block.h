@@ -22,6 +22,7 @@
 
 
 #include <vector>
+#include <forward_list>
 #include <algorithm>
 #include "Type.h"
 
@@ -50,10 +51,10 @@ public:
 
     typedef dist_type KeyType;
     typedef Pos PosType;
-    typedef std::pair<KeyType, PosType> PosPair;
-    typedef std::vector<PosPair> PosPairCode;
+    typedef KeyPair<KeyType, PosType> PosPair;
     typedef std::vector<KeyType> KeyCode;
     typedef std::vector<PosType> PosCode;
+    typedef std::vector<PosPair> PosPairCode;
 
 private:
     PCType Height_ = 0;
@@ -327,6 +328,9 @@ public:
         }
     }
 
+    ////////////////////////////////////////////////////////////////
+    // Accumulate functions
+
     template < typename _Dt1 >
     void AddTo(_Dt1 *dst, PCType dst_stride) const
     {
@@ -393,9 +397,12 @@ public:
         }
     }
 
+    ////////////////////////////////////////////////////////////////
+    // Block matching functions
+
     template < typename _St1 >
-    PosType BlockMatching(const _St1 *src, PCType src_height, PCType src_width, PCType src_stride, _St1 src_range,
-        bool excludeCurPos = false, PCType range = 48, PCType step = 2, double thMSE = 10) const
+    PosPair BlockMatching(const _St1 *src, PCType src_height, PCType src_width, PCType src_stride, _St1 src_range,
+        PCType range, PCType step, double thMSE = 10, bool excludeCurPos = false) const
     {
         bool end = false;
         PosType pos;
@@ -409,6 +416,7 @@ public:
         const PCType b = SearchBoundary(src_height - Height(), range, step, true);
 
         double MSE2SSE = static_cast<double>(PixelCount()) * src_range * src_range / double(255 * 255);
+        double distMul = double(1) / MSE2SSE;
         dist_type thSSE = static_cast<dist_type>(thMSE * MSE2SSE);
 
         for (PCType j = t; j <= b; j += step)
@@ -458,12 +466,67 @@ public:
             }
         }
 
-        return pos;
+        return PosPair(static_cast<KeyType>(distMin * distMul), pos);
     }
 
     template < typename _St1 >
+    void BlockMatchingMulti(PosPairCode &match_code, const _St1 *src, PCType src_stride, _St1 src_range,
+        const PosCode &search_pos, double thMSE) const
+    {
+        double MSE2SSE = static_cast<double>(PixelCount()) * src_range * src_range / double(255 * 255);
+        double distMul = double(1) / MSE2SSE;
+        dist_type thSSE = static_cast<dist_type>(thMSE * MSE2SSE);
+
+        size_t index = match_code.size();
+        match_code.resize(match_code.size() + search_pos.size());
+
+        for (auto pos : search_pos)
+        {
+            dist_type dist = 0;
+
+            auto refp = data();
+            auto srcp = src + pos.y * src_stride + pos.x;
+
+            for (PCType y = 0; y < Height(); ++y)
+            {
+                PCType x = y * src_stride;
+
+                for (PCType upper = x + Width(); x < upper; ++x, ++refp)
+                {
+                    dist_type temp = static_cast<dist_type>(*refp) - static_cast<dist_type>(srcp[x]);
+                    dist += temp * temp;
+                }
+            }
+
+            if (dist <= thSSE)
+            {
+                match_code[index++] = PosPair(static_cast<KeyType>(dist * distMul), pos);
+            }
+        }
+
+        match_code.resize(index);
+    }
+
+    template < typename _St1 >
+    PosPairCode BlockMatchingMulti(const _St1 *src, PCType src_stride, _St1 src_range,
+        const PosCode &search_pos, double thMSE) const
+    {
+        PosPairCode match_code;
+
+        BlockMatchingMulti(match_code, src, src_stride, src_range, search_pos, thMSE);
+
+        std::sort(match_code.begin(), match_code.end());
+
+        return match_code;
+    }
+
+    // excludeCurPos:
+    //     0 - include current position in search positions
+    //     1 - exclude current position in search positions but take it as the first element in matched code
+    //     2 - exclude current position in search positions
+    template < typename _St1 >
     PosPairCode BlockMatchingMulti(const _St1 *src, PCType src_height, PCType src_width, PCType src_stride, _St1 src_range,
-        PCType range = 48, PCType step = 2, double thMSE = 400) const
+        PCType range, PCType step, double thMSE, int excludeCurPos = 1) const
     {
         range = range / step * step;
         const PCType l = SearchBoundary(PCType(0), range, step, false);
@@ -471,56 +534,37 @@ public:
         const PCType t = SearchBoundary(PCType(0), range, step, true);
         const PCType b = SearchBoundary(src_height - Height(), range, step, true);
 
-        double MSE2SSE = static_cast<double>(PixelCount()) * src_range * src_range / double(255 * 255);
-        double distMul = double(1) / MSE2SSE;
-        dist_type thSSE = static_cast<dist_type>(thMSE * MSE2SSE);
-
-        PosPairCode codes(((r - l) / step + 1) * ((b - t) / step + 1));
-        PCType index = 0;
-        codes[index++] = PosPair(static_cast<KeyType>(0), PosType(PosY(), PosX()));
+        PosCode search_pos(((r - l) / step + 1) * ((b - t) / step + 1));
+        size_t index = 0;
 
         for (PCType j = t; j <= b; j += step)
         {
             for (PCType i = l; i <= r; i += step)
             {
-                if (j == PosY() && i == PosX())
+                if (excludeCurPos > 0 && j == PosY() && i == PosX())
                 {
                     continue;
                 }
 
-                dist_type dist = 0;
-
-                auto refp = data();
-                auto srcp = src + j * src_stride + i;
-
-                for (PCType y = 0; y < Height(); ++y)
-                {
-                    PCType x = y * src_stride;
-
-                    for (PCType upper = x + Width(); x < upper; ++x, ++refp)
-                    {
-                        dist_type temp = static_cast<dist_type>(*refp) - static_cast<dist_type>(srcp[x]);
-                        dist += temp * temp;
-                    }
-                }
-
-                if (dist <= thSSE)
-                {
-                    codes[index++] = PosPair(static_cast<KeyType>(dist * distMul), PosType(j, i));
-                }
+                search_pos[index++] = PosType(j, i);
             }
         }
 
-        codes.resize(index);
-        std::sort(codes.begin(), codes.end());
+        PosPairCode match_code;
+        if (excludeCurPos == 1) match_code.push_back(PosPair(static_cast<KeyType>(0), PosType(PosY(), PosX())));
 
-        return codes;
+        BlockMatchingMulti(match_code, src, src_stride, src_range, search_pos, thMSE);
+
+        std::sort(match_code.begin(), match_code.end());
+
+        return match_code;
     }
 
-protected:
-    PCType SearchBoundary(PCType plane_boundary, PCType search_range, PCType search_step, bool vertical = false) const
+    ////////////////////////////////////////////////////////////////
+    // Search window helper functions
+
+    static PCType _SearchBoundary(PCType pos, PCType plane_boundary, PCType search_range, PCType search_step)
     {
-        const PCType pos = vertical ? PosY() : PosX();
         PCType search_boundary;
 
         search_range = search_range / search_step * search_step;
@@ -549,6 +593,46 @@ protected:
         }
 
         return search_boundary;
+    }
+
+    PCType SearchBoundary(PCType plane_boundary, PCType search_range, PCType search_step, bool vertical) const
+    {
+        return _SearchBoundary(vertical ? PosY() : PosX(), plane_boundary, search_range, search_step);
+    }
+
+    void AddSearchPos(PosCode &search_pos, size_t &index, PosType ref_pos, PCType src_height, PCType src_width,
+        PCType range, PCType step = 1) const
+    {
+        range = range / step * step;
+        const PCType l = _SearchBoundary(ref_pos.x, PCType(0), range, step);
+        const PCType r = _SearchBoundary(ref_pos.x, src_width - Width(), range, step);
+        const PCType t = _SearchBoundary(ref_pos.y, PCType(0), range, step);
+        const PCType b = _SearchBoundary(ref_pos.y, src_height - Height(), range, step);
+
+        for (PCType j = t; j <= b; j += step)
+        {
+            for (PCType i = l; i <= r; i += step)
+            {
+                search_pos[index++] = PosType(j, i);
+            }
+        }
+    }
+
+    PosCode GenSearchPos(const PosCode &ref_pos_code, PCType src_height, PCType src_width,
+        PCType range, PCType step = 1) const
+    {
+        PosCode search_pos(ref_pos_code.size() * (range * 2 + 1) * (range * 2 + 1));
+        size_t index = 0;
+
+        for (auto ref_pos : ref_pos_code)
+        {
+            AddSearchPos(search_pos, index, ref_pos, src_height, src_width, range, step);
+        }
+
+        search_pos.resize(index);
+        std::sort(search_pos.begin(), search_pos.end());
+        auto search_pos_nb = std::unique(search_pos.begin(), search_pos.end());
+        search_pos.erase(search_pos_nb, search_pos.end());
     }
 };
 
@@ -579,9 +663,9 @@ public:
     typedef typename block_type::KeyType KeyType;
     typedef typename block_type::PosType PosType;
     typedef typename block_type::PosPair PosPair;
-    typedef typename block_type::PosPairCode PosPairCode;
     typedef typename block_type::KeyCode KeyCode;
     typedef typename block_type::PosCode PosCode;
+    typedef typename block_type::PosPairCode PosPairCode;
 
 private:
     PCType GroupSize_ = 0;
@@ -840,6 +924,9 @@ public:
             }
         }
     }
+
+    ////////////////////////////////////////////////////////////////
+    // Accumulate functions
 
     template < typename _Dt1 >
     void AddTo(_Dt1 *dst, PCType dst_stride) const

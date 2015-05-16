@@ -27,70 +27,21 @@
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 
-const struct BM3D_Basic_Para
-    : public BM3D_Para_Base
-{
-    typedef BM3D_Basic_Para _Myt;
-    typedef BM3D_Para_Base _Mybase;
-
-    _Myt(std::string _profile = "lc")
-        : _Mybase(_profile)
-    {
-        BlockSize = 8;
-        BlockStep = 3;
-        GroupSize = 16;
-        lambda = 2.5;
-
-        if (profile == "lc")
-        {
-            BlockStep = 6;
-        }
-        else if (profile == "vn")
-        {
-            BlockStep = 4;
-            GroupSize = 32;
-            lambda = 2.6;
-        }
-        else if (profile == "high")
-        {
-            BlockStep = 2;
-        }
-
-        thMSE_Default();
-    }
-
-    virtual void thMSE_Default() override
-    {
-        thMSE = 400 + sigma[0] * 80;
-
-        if (profile == "vn")
-        {
-            thMSE = 1000 + sigma[0] * 150;
-        }
-    }
-} BM3D_Basic_Default;
-
-
-////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-
-
 class BM3D_Basic_Data
     : public BM3D_Data_Base
 {
 public:
     typedef BM3D_Basic_Data _Myt;
     typedef BM3D_Data_Base _Mybase;
-    typedef BM3D_Basic_Para _Mypara;
 
 public:
-    _Myt(const VSAPI *_vsapi = nullptr, std::string _FunctionName = "Basic", std::string _NameSpace = "bm3d",
-        const _Mypara &_para = BM3D_Basic_Default)
-        : _Mybase(_vsapi, _FunctionName, _NameSpace, _para, false)
+    BM3D_Basic_Data(const VSAPI *_vsapi = nullptr, std::string _FunctionName = "Basic", std::string _NameSpace = "bm3d")
+        : _Mybase(false, _vsapi, _FunctionName, _NameSpace)
     {}
 
-    _Myt(const _Myt &right) = delete;
+    BM3D_Basic_Data(const _Myt &right) = delete;
 
-    _Myt(_Myt &&right)
+    BM3D_Basic_Data(_Myt &&right)
         : _Mybase(std::move(right))
     {}
 
@@ -106,12 +57,6 @@ public:
     virtual ~BM3D_Basic_Data() override {}
 
     virtual int arguments_process(const VSMap *in, VSMap *out) override;
-
-protected:
-    virtual void get_default_para(std::string _profile = "lc") override
-    {
-        para_default = _Mypara(_profile);
-    }
 };
 
 
@@ -130,7 +75,7 @@ private:
     const _Mydata &d;
 
 public:
-    _Myt(const _Mydata &_d, int n, VSFrameContext *frameCtx, VSCore *core, const VSAPI *_vsapi)
+    BM3D_Basic_Process(const _Mydata &_d, int n, VSFrameContext *frameCtx, VSCore *core, const VSAPI *_vsapi)
         : _Mybase(_d, n, frameCtx, core, _vsapi), d(_d)
     {}
 

@@ -179,8 +179,14 @@ _Ty TypeMax(const _Ty &)
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 
+struct Pos;
+struct Pos3;
+
+
 struct Pos
 {
+    typedef Pos _Myt;
+
     PCType y = 0;
     PCType x = 0;
 
@@ -188,12 +194,21 @@ struct Pos
         : y(_y), x(_x)
     {}
 
-    bool operator==(const Pos &right) const
+    explicit Pos(Pos3 &_pos3);
+
+    _Myt &operator=(const Pos3 &right);
+
+    bool operator==(const _Myt &right) const
     {
         return y == right.y && x == right.x;
     }
 
-    bool operator<(const Pos &right) const
+    bool operator!=(const _Myt &right) const
+    {
+        return y != right.y || x != right.x;
+    }
+
+    bool operator<(const _Myt &right) const
     {
         if (y < right.y)
         {
@@ -213,7 +228,7 @@ struct Pos
         }
     }
 
-    bool operator>(const Pos &right) const
+    bool operator>(const _Myt &right) const
     {
         if (y > right.y)
         {
@@ -233,21 +248,219 @@ struct Pos
         }
     }
 
-    bool operator>=(const Pos &right) const
+    bool operator>=(const _Myt &right) const
     {
         return !(*this < right);
     }
 
-    bool operator<=(const Pos &right) const
+    bool operator<=(const _Myt &right) const
     {
         return !(*this > right);
     }
 
-    friend std::ostream &operator<<(std::ostream &out, const Pos &src)
+    friend std::ostream &operator<<(std::ostream &out, const _Myt &src)
     {
         out << "(" << src.y << ", " << src.x << ")";
 
         return out;
+    }
+};
+
+
+struct Pos3
+{
+    typedef Pos3 _Myt;
+
+    PCType z = 0;
+    PCType y = 0;
+    PCType x = 0;
+
+    explicit Pos3(PCType _z = 0, PCType _y = 0, PCType _x = 0)
+        : z(_z), y(_y), x(_x)
+    {}
+
+    explicit Pos3(Pos &_pos2, PCType _z = 0);
+
+    _Myt &operator=(const Pos &right);
+
+    bool operator==(const _Myt &right) const
+    {
+        return z == right.z && y == right.y && x == right.x;
+    }
+
+    bool operator!=(const _Myt &right) const
+    {
+        return z != right.z || y != right.y || x != right.x;
+    }
+
+    bool operator<(const _Myt &right) const
+    {
+        if (z < right.z)
+        {
+            return true;
+        }
+        else if (z > right.z)
+        {
+            return false;
+        }
+        else if (y < right.y)
+        {
+            return true;
+        }
+        else if (y > right.y)
+        {
+            return false;
+        }
+        else if (x < right.x)
+        {
+            return true;
+        }
+        else
+        {
+            return false;
+        }
+    }
+
+    bool operator>(const _Myt &right) const
+    {
+        if (z > right.z)
+        {
+            return true;
+        }
+        else if (z < right.z)
+        {
+            return false;
+        }
+        else if (y > right.y)
+        {
+            return true;
+        }
+        else if (y < right.y)
+        {
+            return false;
+        }
+        else if (x > right.x)
+        {
+            return true;
+        }
+        else
+        {
+            return false;
+        }
+    }
+
+    bool operator>=(const _Myt &right) const
+    {
+        return !(*this < right);
+    }
+
+    bool operator<=(const _Myt &right) const
+    {
+        return !(*this > right);
+    }
+
+    friend std::ostream &operator<<(std::ostream &out, const _Myt &src)
+    {
+        out << "(" << src.z << ", " << src.y << ", " << src.x << ")";
+
+        return out;
+    }
+};
+
+
+inline Pos::Pos(Pos3 &_pos3)
+    : y(_pos3.y), x(_pos3.x)
+{}
+
+inline Pos &Pos::operator=(const Pos3 &right)
+{
+    y = right.y;
+    x = right.x;
+    return *this;
+}
+
+
+inline Pos3::Pos3(Pos &_pos2, PCType _z)
+    : z(_z), y(_pos2.y), x(_pos2.x)
+{}
+
+inline Pos3 &Pos3::operator=(const Pos &right)
+{
+    y = right.y;
+    x = right.x;
+    return *this;
+}
+
+
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+
+template < typename _Ty1, typename _Ty2 >
+struct KeyPair
+    : public std::pair<_Ty1, _Ty2>
+{
+    typedef KeyPair<_Ty1, _Ty2> _Myt;
+    typedef std::pair<_Ty1, _Ty2> _Mybase;
+
+    typedef _Ty1 KeyType;
+    typedef _Ty2 ValType;
+
+    KeyPair()
+        : _Mybase()
+    {}
+
+    KeyPair(const _Ty1& _Val1, const _Ty2& _Val2)
+        : _Mybase(_Val1, _Val2)
+    {}
+
+    KeyPair(const _Myt &_Right)
+        : _Mybase(_Right)
+    {}
+
+    KeyPair(_Myt &&_Right)
+        : _Mybase(_Right)
+    {}
+
+    _Myt &operator=(const _Myt &_Right)
+    {
+        _Mybase::operator=(_Right);
+        return *this;
+    }
+
+    _Myt &operator=(_Myt &&_Right)
+    {
+        _Mybase::operator=(_Right);
+        return *this;
+    }
+
+    bool operator==(const _Myt &_Right)
+    {
+        return first == _Right.first;
+    }
+
+    bool operator!=(const _Myt &_Right)
+    {
+        return first != _Right.first;
+    }
+
+    bool operator<(const _Myt &_Right)
+    {
+        return first < _Right.first;
+    }
+
+    bool operator>(const _Myt &_Right)
+    {
+        return first > _Right.first;
+    }
+
+    bool operator<=(const _Myt &_Right)
+    {
+        return first <= _Right.first;
+    }
+
+    bool operator>=(const _Myt &_Right)
+    {
+        return first >= _Right.first;
     }
 };
 

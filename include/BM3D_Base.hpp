@@ -49,17 +49,16 @@ void BM3D_Process_Base::process_core()
 template < typename _Ty >
 void BM3D_Process_Base::process_core_gray()
 {
+    FLType *dstYd = nullptr, *srcYd = nullptr, *refYd = nullptr;
+
     // Get write/read pointer
     auto dstY = reinterpret_cast<_Ty *>(vsapi->getWritePtr(dst, 0));
     auto srcY = reinterpret_cast<const _Ty *>(vsapi->getReadPtr(src, 0));
     auto refY = reinterpret_cast<const _Ty *>(vsapi->getReadPtr(ref, 0));
 
-    FLType *dstYd = nullptr, *srcYd = nullptr, *refYd = nullptr;
-
     // Allocate memory for floating point Y data
     AlignedMalloc(dstYd, dst_pcount[0]);
     AlignedMalloc(srcYd, src_pcount[0]);
-
     if (d.rdef) AlignedMalloc(refYd, ref_pcount[0]);
     else refYd = srcYd;
 
@@ -95,6 +94,10 @@ void BM3D_Process_Base::process_core_gray<FLType>()
 template < typename _Ty >
 void BM3D_Process_Base::process_core_yuv()
 {
+    FLType *dstYd = nullptr, *dstUd = nullptr, *dstVd = nullptr;
+    FLType *srcYd = nullptr, *srcUd = nullptr, *srcVd = nullptr;
+    FLType *refYd = nullptr, *refUd = nullptr, *refVd = nullptr;
+
     // Get write/read pointer
     auto dstY = reinterpret_cast<_Ty *>(vsapi->getWritePtr(dst, 0));
     auto dstU = reinterpret_cast<_Ty *>(vsapi->getWritePtr(dst, 1));
@@ -107,10 +110,6 @@ void BM3D_Process_Base::process_core_yuv()
     auto refY = reinterpret_cast<const _Ty *>(vsapi->getReadPtr(ref, 0));
     auto refU = reinterpret_cast<const _Ty *>(vsapi->getReadPtr(ref, 1));
     auto refV = reinterpret_cast<const _Ty *>(vsapi->getReadPtr(ref, 2));
-
-    FLType *dstYd = nullptr, *dstUd = nullptr, *dstVd = nullptr;
-    FLType *srcYd = nullptr, *srcUd = nullptr, *srcVd = nullptr;
-    FLType *refYd = nullptr, *refUd = nullptr, *refVd = nullptr;
 
     // Allocate memory for floating point YUV data
     AlignedMalloc(dstYd, dst_pcount[0]);
@@ -136,14 +135,14 @@ void BM3D_Process_Base::process_core_yuv()
 
     // Convert src and ref from integer YUV data to floating point YUV data
     Int2Float(srcYd, srcY, src_height[0], src_width[0], src_stride[0], src_stride[0], false, true, false);
-    Int2Float(srcUd, srcU, src_height[1], src_width[1], src_stride[1], src_stride[1], false, true, false);
-    Int2Float(srcVd, srcV, src_height[2], src_width[2], src_stride[2], src_stride[2], false, true, false);
+    Int2Float(srcUd, srcU, src_height[1], src_width[1], src_stride[1], src_stride[1], true, true, false);
+    Int2Float(srcVd, srcV, src_height[2], src_width[2], src_stride[2], src_stride[2], true, true, false);
 
     if (d.rdef)
     {
         Int2Float(refYd, refY, ref_height[0], ref_width[0], ref_stride[0], ref_stride[0], false, true, false);
-        if (d.wiener) Int2Float(refUd, refU, ref_height[1], ref_width[1], ref_stride[1], ref_stride[1], false, true, false);
-        if (d.wiener) Int2Float(refVd, refV, ref_height[2], ref_width[2], ref_stride[2], ref_stride[2], false, true, false);
+        if (d.wiener) Int2Float(refUd, refU, ref_height[1], ref_width[1], ref_stride[1], ref_stride[1], true, true, false);
+        if (d.wiener) Int2Float(refVd, refV, ref_height[2], ref_width[2], ref_stride[2], ref_stride[2], true, true, false);
     }
 
     // Execute kernel
@@ -151,8 +150,8 @@ void BM3D_Process_Base::process_core_yuv()
 
     // Convert dst from floating point YUV data to integer YUV data
     Float2Int(dstY, dstYd, dst_height[0], dst_width[0], dst_stride[0], dst_stride[0], false, true, true);
-    Float2Int(dstU, dstUd, dst_height[1], dst_width[1], dst_stride[1], dst_stride[1], false, true, true);
-    Float2Int(dstV, dstVd, dst_height[2], dst_width[2], dst_stride[2], dst_stride[2], false, true, true);
+    Float2Int(dstU, dstUd, dst_height[1], dst_width[1], dst_stride[1], dst_stride[1], true, true, true);
+    Float2Int(dstV, dstVd, dst_height[2], dst_width[2], dst_stride[2], dst_stride[2], true, true, true);
 
     // Free memory for floating point YUV data
     AlignedFree(dstYd);
@@ -195,6 +194,10 @@ void BM3D_Process_Base::process_core_yuv<FLType>()
 template < typename _Ty >
 void BM3D_Process_Base::process_core_rgb()
 {
+    FLType *dstYd = nullptr, *dstUd = nullptr, *dstVd = nullptr;
+    FLType *srcYd = nullptr, *srcUd = nullptr, *srcVd = nullptr;
+    FLType *refYd = nullptr, *refUd = nullptr, *refVd = nullptr;
+
     // Get write/read pointer
     auto dstR = reinterpret_cast<_Ty *>(vsapi->getWritePtr(dst, 0));
     auto dstG = reinterpret_cast<_Ty *>(vsapi->getWritePtr(dst, 1));
@@ -207,10 +210,6 @@ void BM3D_Process_Base::process_core_rgb()
     auto refR = reinterpret_cast<const _Ty *>(vsapi->getReadPtr(ref, 0));
     auto refG = reinterpret_cast<const _Ty *>(vsapi->getReadPtr(ref, 1));
     auto refB = reinterpret_cast<const _Ty *>(vsapi->getReadPtr(ref, 2));
-
-    FLType *dstYd = nullptr, *dstUd = nullptr, *dstVd = nullptr;
-    FLType *srcYd = nullptr, *srcUd = nullptr, *srcVd = nullptr;
-    FLType *refYd = nullptr, *refUd = nullptr, *refVd = nullptr;
 
     // Allocate memory for floating point YUV data
     AlignedMalloc(dstYd, dst_pcount[0]);

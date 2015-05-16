@@ -354,7 +354,7 @@ protected:
     }
 
 public:
-    _Myt(const VSAPI *_vsapi = nullptr, std::string _FunctionName = "", std::string _NameSpace = "")
+    VSData(const VSAPI *_vsapi = nullptr, std::string _FunctionName = "", std::string _NameSpace = "")
         : NameSpace(_NameSpace), FunctionName(_FunctionName), vsapi(_vsapi)
     {
         for (int i = 0; i < VSMaxPlaneCount; ++i)
@@ -363,9 +363,9 @@ public:
         }
     }
 
-    _Myt(const _Myt &right) = delete;
+    VSData(const _Myt &right) = delete;
 
-    _Myt(_Myt &&right)
+    VSData(_Myt &&right)
         : vsapi(right.vsapi), node(right.node), vi(right.vi)
     {
         for (int i = 0; i < VSMaxPlaneCount; ++i)
@@ -382,8 +382,7 @@ public:
 
     _Myt &operator=(_Myt &&right)
     {
-        if (node)
-            vsapi->freeNode(node);
+        if (node) vsapi->freeNode(node);
 
         vsapi = right.vsapi;
         node = right.node;
@@ -473,7 +472,7 @@ protected:
     virtual void process_coreS() {}
 
 public:
-    _Myt(const _Mydata &_d, int n, VSFrameContext *frameCtx, VSCore *_core, const VSAPI *_vsapi)
+    VSProcess(const _Mydata &_d, int n, VSFrameContext *frameCtx, VSCore *_core, const VSAPI *_vsapi)
         : d(_d), core(_core), vsapi(_vsapi)
     {
         src = vsapi->getFrameFilter(n, d.node, frameCtx);
