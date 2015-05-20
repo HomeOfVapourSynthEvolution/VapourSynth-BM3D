@@ -65,7 +65,7 @@ int BM3D_Data_Base::arguments_process(const VSMap *in, VSMap *out)
         }
         if (rvi->format != vi->format)
         {
-            setError(out, "input clip and clip \"ref\" must be of the format");
+            setError(out, "input clip and clip \"ref\" must be of the same format");
             return 1;
         }
         if (vi->width != rvi->width || vi->height != rvi->height)
