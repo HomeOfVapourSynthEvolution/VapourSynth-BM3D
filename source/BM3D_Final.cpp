@@ -31,7 +31,7 @@ int BM3D_Final_Data::arguments_process(const VSMap *in, VSMap *out)
         return 1;
     }
 
-    // Initilize filter data for empirical Wiener filtering
+    // Initialize filter data for empirical Wiener filtering
     init_filter_data();
 
     return 0;
@@ -45,9 +45,9 @@ int BM3D_Final_Data::arguments_process(const VSMap *in, VSMap *out)
 void BM3D_Final_Process::CollaborativeFilter(int plane,
     FLType *ResNum, FLType *ResDen,
     const FLType *src, const FLType *ref,
-    const PosPairCode &posPairCode)
+    const PosPairCode &code)
 {
-    PCType GroupSize = static_cast<PCType>(posPairCode.size());
+    PCType GroupSize = static_cast<PCType>(code.size());
     // When para.GroupSize > 0, limit GroupSize up to para.GroupSize
     if (d.para.GroupSize > 0 && GroupSize > d.para.GroupSize)
     {
@@ -55,8 +55,8 @@ void BM3D_Final_Process::CollaborativeFilter(int plane,
     }
 
     // Construct source group and reference group guided by matched pos code
-    BlockGroup<FLType, FLType> srcGroup(src, src_stride[plane], posPairCode, GroupSize, d.para.BlockSize, d.para.BlockSize);
-    BlockGroup<FLType, FLType> refGroup(ref, ref_stride[plane], posPairCode, GroupSize, d.para.BlockSize, d.para.BlockSize);
+    block_group srcGroup(src, src_stride[plane], code, GroupSize, d.para.BlockSize, d.para.BlockSize);
+    block_group refGroup(ref, ref_stride[plane], code, GroupSize, d.para.BlockSize, d.para.BlockSize);
 
     // Initialize L2-norm of Wiener coefficients
     FLType L2Wiener = 0;

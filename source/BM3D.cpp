@@ -21,7 +21,7 @@
 
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-// Functions of class BM3D_Para
+// Functions of struct BM3D_Para
 
 
 BM3D_Para::BM3D_Para(bool _wiener, std::string _profile)
@@ -103,7 +103,7 @@ void BM3D_Para::thMSE_Default()
 
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-// Functions of class BM3D_FilterData
+// Functions of struct BM3D_FilterData
 
 
 BM3D_FilterData::BM3D_FilterData(bool wiener, double sigma, PCType GroupSize, PCType BlockSize, double lambda)

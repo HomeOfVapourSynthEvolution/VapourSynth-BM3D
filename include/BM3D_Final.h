@@ -75,8 +75,8 @@ private:
     const _Mydata &d;
 
 public:
-    BM3D_Final_Process(const _Mydata &_d, int n, VSFrameContext *frameCtx, VSCore *core, const VSAPI *_vsapi)
-        : _Mybase(_d, n, frameCtx, core, _vsapi), d(_d)
+    BM3D_Final_Process(const _Mydata &_d, int _n, VSFrameContext *_frameCtx, VSCore *_core, const VSAPI *_vsapi)
+        : _Mybase(_d, _n, _frameCtx, _core, _vsapi), d(_d)
     {}
 
     virtual ~BM3D_Final_Process() override {}
@@ -85,7 +85,7 @@ protected:
     virtual void CollaborativeFilter(int plane,
         FLType *ResNum, FLType *ResDen,
         const FLType *src, const FLType *ref,
-        const PosPairCode &posPairCode) override;
+        const PosPairCode &code) override;
 };
 
 

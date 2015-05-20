@@ -141,12 +141,22 @@
     <ClInclude Include="..\include\RGB2OPP.h" />
     <ClInclude Include="..\include\Specification.h" />
     <ClInclude Include="..\include\Type.h" />
+    <ClInclude Include="..\include\VAggregate.h" />
+    <ClInclude Include="..\include\VAggregate.hpp" />
+    <ClInclude Include="..\include\VBM3D_Base.h" />
+    <ClInclude Include="..\include\VBM3D_Base.hpp" />
+    <ClInclude Include="..\include\VBM3D_Basic.h" />
+    <ClInclude Include="..\include\VBM3D_Final.h" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="..\source\BM3D.cpp" />
     <ClCompile Include="..\source\BM3D_Base.cpp" />
     <ClCompile Include="..\source\BM3D_Basic.cpp" />
     <ClCompile Include="..\source\BM3D_Final.cpp" />
+    <ClCompile Include="..\source\VAggregate.cpp" />
+    <ClCompile Include="..\source\VBM3D_Base.cpp" />
+    <ClCompile Include="..\source\VBM3D_Basic.cpp" />
+    <ClCompile Include="..\source\VBM3D_Final.cpp" />
     <ClCompile Include="..\source\VSPlugin.cpp" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />

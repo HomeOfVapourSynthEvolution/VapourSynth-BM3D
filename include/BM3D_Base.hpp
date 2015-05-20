@@ -21,6 +21,9 @@
 #define BM3D_BASE_HPP_
 
 
+#include "BM3D_Base.h"
+
+
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 // Template functions of class BM3D_Process_Base
 
@@ -112,19 +115,19 @@ void BM3D_Process_Base::process_core_yuv()
     auto refV = reinterpret_cast<const _Ty *>(vsapi->getReadPtr(ref, 2));
 
     // Allocate memory for floating point YUV data
-    AlignedMalloc(dstYd, dst_pcount[0]);
-    AlignedMalloc(dstUd, dst_pcount[1]);
-    AlignedMalloc(dstVd, dst_pcount[2]);
+    if (d.process[0]) AlignedMalloc(dstYd, dst_pcount[0]);
+    if (d.process[1]) AlignedMalloc(dstUd, dst_pcount[1]);
+    if (d.process[2]) AlignedMalloc(dstVd, dst_pcount[2]);
 
-    AlignedMalloc(srcYd, src_pcount[0]);
-    AlignedMalloc(srcUd, src_pcount[1]);
-    AlignedMalloc(srcVd, src_pcount[2]);
+    if (d.process[0] || !d.rdef) AlignedMalloc(srcYd, src_pcount[0]);
+    if (d.process[1]) AlignedMalloc(srcUd, src_pcount[1]);
+    if (d.process[2]) AlignedMalloc(srcVd, src_pcount[2]);
 
     if (d.rdef)
     {
         AlignedMalloc(refYd, ref_pcount[0]);
-        if (d.wiener) AlignedMalloc(refUd, ref_pcount[1]);
-        if (d.wiener) AlignedMalloc(refVd, ref_pcount[2]);
+        if (d.wiener && d.process[1]) AlignedMalloc(refUd, ref_pcount[1]);
+        if (d.wiener && d.process[2]) AlignedMalloc(refVd, ref_pcount[2]);
     }
     else
     {
@@ -134,39 +137,39 @@ void BM3D_Process_Base::process_core_yuv()
     }
 
     // Convert src and ref from integer YUV data to floating point YUV data
-    Int2Float(srcYd, srcY, src_height[0], src_width[0], src_stride[0], src_stride[0], false, true, false);
-    Int2Float(srcUd, srcU, src_height[1], src_width[1], src_stride[1], src_stride[1], true, true, false);
-    Int2Float(srcVd, srcV, src_height[2], src_width[2], src_stride[2], src_stride[2], true, true, false);
+    if (d.process[0] || !d.rdef) Int2Float(srcYd, srcY, src_height[0], src_width[0], src_stride[0], src_stride[0], false, true, false);
+    if (d.process[1]) Int2Float(srcUd, srcU, src_height[1], src_width[1], src_stride[1], src_stride[1], true, true, false);
+    if (d.process[2]) Int2Float(srcVd, srcV, src_height[2], src_width[2], src_stride[2], src_stride[2], true, true, false);
 
     if (d.rdef)
     {
         Int2Float(refYd, refY, ref_height[0], ref_width[0], ref_stride[0], ref_stride[0], false, true, false);
-        if (d.wiener) Int2Float(refUd, refU, ref_height[1], ref_width[1], ref_stride[1], ref_stride[1], true, true, false);
-        if (d.wiener) Int2Float(refVd, refV, ref_height[2], ref_width[2], ref_stride[2], ref_stride[2], true, true, false);
+        if (d.wiener && d.process[1]) Int2Float(refUd, refU, ref_height[1], ref_width[1], ref_stride[1], ref_stride[1], true, true, false);
+        if (d.wiener && d.process[2]) Int2Float(refVd, refV, ref_height[2], ref_width[2], ref_stride[2], ref_stride[2], true, true, false);
     }
 
     // Execute kernel
     Kernel(dstYd, dstUd, dstVd, srcYd, srcUd, srcVd, refYd, refUd, refVd);
 
     // Convert dst from floating point YUV data to integer YUV data
-    Float2Int(dstY, dstYd, dst_height[0], dst_width[0], dst_stride[0], dst_stride[0], false, true, true);
-    Float2Int(dstU, dstUd, dst_height[1], dst_width[1], dst_stride[1], dst_stride[1], true, true, true);
-    Float2Int(dstV, dstVd, dst_height[2], dst_width[2], dst_stride[2], dst_stride[2], true, true, true);
+    if (d.process[0]) Float2Int(dstY, dstYd, dst_height[0], dst_width[0], dst_stride[0], dst_stride[0], false, true, true);
+    if (d.process[1]) Float2Int(dstU, dstUd, dst_height[1], dst_width[1], dst_stride[1], dst_stride[1], true, true, true);
+    if (d.process[2]) Float2Int(dstV, dstVd, dst_height[2], dst_width[2], dst_stride[2], dst_stride[2], true, true, true);
 
     // Free memory for floating point YUV data
-    AlignedFree(dstYd);
-    AlignedFree(dstUd);
-    AlignedFree(dstVd);
+    if (d.process[0]) AlignedFree(dstYd);
+    if (d.process[1]) AlignedFree(dstUd);
+    if (d.process[2]) AlignedFree(dstVd);
 
-    AlignedFree(srcYd);
-    AlignedFree(srcUd);
-    AlignedFree(srcVd);
+    if (d.process[0] || !d.rdef) AlignedFree(srcYd);
+    if (d.process[1]) AlignedFree(srcUd);
+    if (d.process[2]) AlignedFree(srcVd);
 
     if (d.rdef)
     {
         AlignedFree(refYd);
-        if (d.wiener) AlignedFree(refUd);
-        if (d.wiener) AlignedFree(refVd);
+        if (d.wiener && d.process[1]) AlignedFree(refUd);
+        if (d.wiener && d.process[2]) AlignedFree(refVd);
     }
 }
 

@@ -17,31 +17,31 @@
 */
 
 
-#ifndef BM3D_BASIC_H_
-#define BM3D_BASIC_H_
+#ifndef VBM3D_FINAL_H_
+#define VBM3D_FINAL_H_
 
 
-#include "BM3D_Base.h"
+#include "VBM3D_Base.h"
 
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 
-class BM3D_Basic_Data
-    : public BM3D_Data_Base
+class VBM3D_Final_Data
+    : public VBM3D_Data_Base
 {
 public:
-    typedef BM3D_Basic_Data _Myt;
-    typedef BM3D_Data_Base _Mybase;
+    typedef VBM3D_Final_Data _Myt;
+    typedef VBM3D_Data_Base _Mybase;
 
 public:
-    BM3D_Basic_Data(const VSAPI *_vsapi = nullptr, std::string _FunctionName = "Basic", std::string _NameSpace = "bm3d")
-        : _Mybase(false, _vsapi, _FunctionName, _NameSpace)
+    VBM3D_Final_Data(const VSAPI *_vsapi = nullptr, std::string _FunctionName = "VFinal", std::string _NameSpace = "bm3d")
+        : _Mybase(true, _vsapi, _FunctionName, _NameSpace)
     {}
 
-    BM3D_Basic_Data(const _Myt &right) = delete;
+    VBM3D_Final_Data(const _Myt &right) = delete;
 
-    BM3D_Basic_Data(_Myt &&right)
+    VBM3D_Final_Data(_Myt &&right)
         : _Mybase(std::move(right))
     {}
 
@@ -54,7 +54,7 @@ public:
         return *this;
     }
 
-    virtual ~BM3D_Basic_Data() override {}
+    virtual ~VBM3D_Final_Data() override {}
 
     virtual int arguments_process(const VSMap *in, VSMap *out) override;
 };
@@ -63,29 +63,29 @@ public:
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 
-class BM3D_Basic_Process
-    : public BM3D_Process_Base
+class VBM3D_Final_Process
+    : public VBM3D_Process_Base
 {
 public:
-    typedef BM3D_Basic_Process _Myt;
-    typedef BM3D_Process_Base _Mybase;
-    typedef BM3D_Basic_Data _Mydata;
+    typedef VBM3D_Final_Process _Myt;
+    typedef VBM3D_Process_Base _Mybase;
+    typedef VBM3D_Final_Data _Mydata;
 
 private:
     const _Mydata &d;
 
 public:
-    BM3D_Basic_Process(const _Mydata &_d, int _n, VSFrameContext *_frameCtx, VSCore *_core, const VSAPI *_vsapi)
+    VBM3D_Final_Process(const _Mydata &_d, int _n, VSFrameContext *_frameCtx, VSCore *_core, const VSAPI *_vsapi)
         : _Mybase(_d, _n, _frameCtx, _core, _vsapi), d(_d)
     {}
 
-    virtual ~BM3D_Basic_Process() override {}
+    virtual ~VBM3D_Final_Process() override {}
 
 protected:
     virtual void CollaborativeFilter(int plane,
-        FLType *ResNum, FLType *ResDen,
-        const FLType *src, const FLType *ref,
-        const PosPairCode &code) override;
+        std::vector<FLType *> &ResNum, std::vector<FLType *> &ResDen,
+        std::vector<const FLType *> &src, std::vector<const FLType *> &ref,
+        const Pos3PairCode &code) override;
 };
 
 

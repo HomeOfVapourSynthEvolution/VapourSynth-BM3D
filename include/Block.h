@@ -22,7 +22,6 @@
 
 
 #include <vector>
-#include <forward_list>
 #include <algorithm>
 #include "Type.h"
 
@@ -112,9 +111,9 @@ public:
         InitValue(Init, Value);
     }
 
-    // Constructor from Plane-like classes and PosType
+    // Constructor from plane pointer and PosType
     template < typename _St1 >
-    explicit Block(const _St1 *src, PCType src_stride, PCType _Height, PCType _Width, PosType pos)
+    Block(const _St1 *src, PCType src_stride, PCType _Height, PCType _Width, PosType pos)
         : Block(_Height, _Width, pos, false)
     {
         From(src, src_stride);
@@ -241,6 +240,9 @@ public:
         return out;
     }
 
+    ////////////////////////////////////////////////////////////////
+    // Initialization functions
+
     void InitValue(bool Init = true, value_type Value = 0)
     {
         if (Init)
@@ -251,6 +253,9 @@ public:
             });
         }
     }
+
+    ////////////////////////////////////////////////////////////////
+    // Read/Store functions
 
     template < typename _St1 >
     void From(const _St1 *src, PCType src_stride)
@@ -276,6 +281,26 @@ public:
 
         From(src, src_stride);
     }
+
+    template < typename _Dt1 >
+    void To(_Dt1 *dst, PCType dst_stride) const
+    {
+        auto srcp = data();
+        auto dstp = dst + PosY() * dst_stride + PosX();
+
+        for (PCType y = 0; y < Height(); ++y)
+        {
+            PCType x = y * dst_stride;
+
+            for (PCType upper = x + Width(); x < upper; ++x, ++srcp)
+            {
+                dstp[x] = static_cast<_Dt1>(*srcp);
+            }
+        }
+    }
+
+    ////////////////////////////////////////////////////////////////
+    // Accumulate functions
 
     template < typename _St1 >
     void AddFrom(const _St1 *src, PCType src_stride, PosType pos)
@@ -310,26 +335,6 @@ public:
             }
         }
     }
-
-    template < typename _Dt1 >
-    void To(_Dt1 *dst, PCType dst_stride) const
-    {
-        auto srcp = data();
-        auto dstp = dst + PosY() * dst_stride + PosX();
-
-        for (PCType y = 0; y < Height(); ++y)
-        {
-            PCType x = y * dst_stride;
-
-            for (PCType upper = x + Width(); x < upper; ++x, ++srcp)
-            {
-                dstp[x] = static_cast<_Dt1>(*srcp);
-            }
-        }
-    }
-
-    ////////////////////////////////////////////////////////////////
-    // Accumulate functions
 
     template < typename _Dt1 >
     void AddTo(_Dt1 *dst, PCType dst_stride) const
@@ -478,7 +483,7 @@ public:
         dist_type thSSE = static_cast<dist_type>(thMSE * MSE2SSE);
 
         size_t index = match_code.size();
-        match_code.resize(match_code.size() + search_pos.size());
+        match_code.resize(index + search_pos.size());
 
         for (auto pos : search_pos)
         {
@@ -498,7 +503,8 @@ public:
                 }
             }
 
-            if (dist <= thSSE)
+            // Only match similar blocks but not identical blocks
+            if (dist <= thSSE && dist != 0)
             {
                 match_code[index++] = PosPair(static_cast<KeyType>(dist * distMul), pos);
             }
@@ -509,13 +515,24 @@ public:
 
     template < typename _St1 >
     PosPairCode BlockMatchingMulti(const _St1 *src, PCType src_stride, _St1 src_range,
-        const PosCode &search_pos, double thMSE) const
+        const PosCode &search_pos, double thMSE, size_t match_size = 0, bool sorted = true) const
     {
         PosPairCode match_code;
 
         BlockMatchingMulti(match_code, src, src_stride, src_range, search_pos, thMSE);
 
-        std::sort(match_code.begin(), match_code.end());
+        // When match_size > 0, it's the upper limit of the number of matched blocks
+        if (match_size > 0 && match_code.size() > match_size)
+        {
+            // Always sorted when size of match code is larger than match_size,
+            // since std::partial_sort is faster than std::nth_element
+            std::partial_sort(match_code.begin(), match_code.begin() + match_size, match_code.end());
+            match_code.resize(match_size);
+        }
+        else if (sorted)
+        {
+            std::stable_sort(match_code.begin(), match_code.end());
+        }
 
         return match_code;
     }
@@ -526,7 +543,7 @@ public:
     //     2 - exclude current position in search positions
     template < typename _St1 >
     PosPairCode BlockMatchingMulti(const _St1 *src, PCType src_height, PCType src_width, PCType src_stride, _St1 src_range,
-        PCType range, PCType step, double thMSE, int excludeCurPos = 1) const
+        PCType range, PCType step, double thMSE, int excludeCurPos = 1, size_t match_size = 0, bool sorted = true) const
     {
         range = range / step * step;
         const PCType l = SearchBoundary(PCType(0), range, step, false);
@@ -555,7 +572,18 @@ public:
 
         BlockMatchingMulti(match_code, src, src_stride, src_range, search_pos, thMSE);
 
-        std::sort(match_code.begin(), match_code.end());
+        // When match_size > 0, it's the upper limit of the number of matched blocks
+        if (match_size > 0 && match_code.size() > match_size)
+        {
+            // Always sorted when size of match code is larger than match_size,
+            // since std::partial_sort is faster than std::nth_element
+            std::partial_sort(match_code.begin(), match_code.begin() + match_size, match_code.end());
+            match_code.resize(match_size);
+        }
+        else if (sorted)
+        {
+            std::stable_sort(match_code.begin(), match_code.end());
+        }
 
         return match_code;
     }
@@ -618,21 +646,44 @@ public:
         }
     }
 
+    PosCode MergeSearchPos(const PosCode &src_search_pos, PosType ref_pos, PCType src_height, PCType src_width,
+        PCType range, PCType step = 1) const
+    {
+        range = range / step * step;
+        
+        PosCode new_search_pos((range / step * 2 + 1) * (range / step * 2 + 1));
+        size_t index = 0;
+        AddSearchPos(new_search_pos, index, ref_pos, src_height, src_width, range, step);
+
+        if (src_search_pos.size() > 0)
+        {
+            PosCode merge_search_pos(src_search_pos.size() + index);
+            std::merge(src_search_pos.begin(), src_search_pos.end(),
+                new_search_pos.begin(), new_search_pos.begin() + index, merge_search_pos.begin());
+
+            return merge_search_pos;
+        }
+        else
+        {
+            new_search_pos.resize(index);
+            return new_search_pos;
+        }
+    }
+
     PosCode GenSearchPos(const PosCode &ref_pos_code, PCType src_height, PCType src_width,
         PCType range, PCType step = 1) const
     {
-        PosCode search_pos(ref_pos_code.size() * (range * 2 + 1) * (range * 2 + 1));
-        size_t index = 0;
+        PosCode search_pos;
 
         for (auto ref_pos : ref_pos_code)
         {
-            AddSearchPos(search_pos, index, ref_pos, src_height, src_width, range, step);
+            search_pos = MergeSearchPos(search_pos, ref_pos, src_height, src_width, range, step);
         }
 
-        search_pos.resize(index);
-        std::sort(search_pos.begin(), search_pos.end());
         auto search_pos_nb = std::unique(search_pos.begin(), search_pos.end());
         search_pos.erase(search_pos_nb, search_pos.end());
+
+        return search_pos;
     }
 };
 
@@ -667,13 +718,19 @@ public:
     typedef typename block_type::PosCode PosCode;
     typedef typename block_type::PosPairCode PosPairCode;
 
+    typedef Pos3 Pos3Type;
+    typedef KeyPair<KeyType, Pos3Type> Pos3Pair;
+    typedef std::vector<Pos3Type> Pos3Code;
+    typedef std::vector<Pos3Pair> Pos3PairCode;
+
 private:
     PCType GroupSize_ = 0;
     PCType Height_ = 0;
     PCType Width_ = 0;
     PCType PixelCount_ = 0;
-    KeyCode keyCode_;
+    bool isPos3_ = false;
     PosCode posCode_;
+    Pos3Code pos3Code_;
     pointer Data_ = nullptr;
 
 public:
@@ -717,24 +774,35 @@ public:
     // Default constructor
     BlockGroup() {}
 
-    explicit BlockGroup(PCType _GroupSize, PCType _Height, PCType _Width, bool Init = true, value_type Value = 0)
-        : GroupSize_(_GroupSize), Height_(_Height), Width_(_Width), PixelCount_(GroupSize_ * Height_ * Width_)
+    BlockGroup(PCType _GroupSize, PCType _Height, PCType _Width,
+        bool _isPos3 = false, bool Init = true, value_type Value = 0)
+        : GroupSize_(_GroupSize), Height_(_Height), Width_(_Width),
+        PixelCount_(GroupSize_ * Height_ * Width_),
+        isPos3_(_isPos3)
     {
         AlignedMalloc(Data_, size());
 
         InitValue(Init, Value);
     }
 
-    // Constructor from Plane-like classes and PosPairCode
+    // Constructor from plane pointer and PosPairCode
     template < typename _St1 >
-    BlockGroup(const _St1 *src, PCType src_stride, const PosPairCode &posPairCode, PCType _GroupSize = -1, PCType _Height = 16, PCType _Width = 16)
+    BlockGroup(const _St1 *src, PCType src_stride, const PosPairCode &code,
+        PCType _GroupSize = -1, PCType _Height = 16, PCType _Width = 16)
         : Height_(_Height), Width_(_Width)
     {
-        FromPosPairCode(posPairCode, _GroupSize);
+        FromCode(code, _GroupSize);
 
-        PixelCount_ = GroupSize_ * Height_ * Width_;
+        From(src, src_stride);
+    }
 
-        AlignedMalloc(Data_, size());
+    // Constructor from plane pointer and Pos3PairCode
+    template < typename _St1 >
+    BlockGroup(std::vector<const _St1 *> src, PCType src_stride, const Pos3PairCode &code,
+        PCType _GroupSize = -1, PCType _Height = 16, PCType _Width = 16)
+        : Height_(_Height), Width_(_Width)
+    {
+        FromCode(code, _GroupSize);
 
         From(src, src_stride);
     }
@@ -742,7 +810,7 @@ public:
     // Copy constructor
     BlockGroup(const _Myt &src)
         : GroupSize_(src.GroupSize_), Height_(src.Height_), Width_(src.Width_), PixelCount_(src.PixelCount_),
-        keyCode_(src.keyCode_), posCode_(src.posCode_)
+        isPos3_(src.isPos3_), posCode_(src.posCode_), pos3Code_(src.pos3Code_)
     {
         AlignedMalloc(Data_, size());
 
@@ -752,7 +820,7 @@ public:
     // Move constructor
     BlockGroup(_Myt &&src)
         : GroupSize_(src.GroupSize_), Height_(src.Height_), Width_(src.Width_), PixelCount_(src.PixelCount_),
-        keyCode_(std::move(src.keyCode_)), posCode_(std::move(src.posCode_))
+        isPos3_(src.isPos3_), posCode_(std::move(src.posCode_)), pos3Code_(std::move(src.pos3Code_))
     {
         Data_ = src.Data_;
 
@@ -781,8 +849,9 @@ public:
         Height_ = src.Height_;
         Width_ = src.Width_;
         PixelCount_ = src.PixelCount_;
-        keyCode_ = src.keyCode_;
+        isPos3_ = src.isPos3_;
         posCode_ = src.posCode_;
+        pos3Code_ = src.pos3Code_;
 
         memcpy(Data_, src.Data_, sizeof(value_type) * size());
 
@@ -801,8 +870,9 @@ public:
         Height_ = src.Height_;
         Width_ = src.Width_;
         PixelCount_ = src.PixelCount_;
-        keyCode_ = std::move(src.keyCode_);
+        isPos3_ = src.isPos3_;
         posCode_ = std::move(src.posCode_);
+        pos3Code_ = std::move(src.pos3Code_);
 
         AlignedFree(Data_);
         Data_ = src.Data_;
@@ -836,17 +906,21 @@ public:
     PCType Width() const { return Width_; }
     PCType Stride() const { return Width_; }
     PCType PixelCount() const { return PixelCount_; }
-    const KeyCode &GetKeyCode() const { return keyCode_; }
+    bool IsPos3() const { return isPos3_; }
     const PosCode &GetPosCode() const { return posCode_; }
-    KeyType GetKey(PCType i) const { return keyCode_[i]; }
+    const Pos3Code &GetPos3Code() const { return pos3Code_; }
     PosType GetPos(PCType i) const { return posCode_[i]; }
+    Pos3Type GetPos3(PCType i) const { return pos3Code_[i]; }
+
+    ////////////////////////////////////////////////////////////////
+    // Initialization functions
 
     void InitValue(bool Init = true, value_type Value = 0)
     {
         if (Init)
         {
-            keyCode_.resize(GroupSize(), 0);
-            posCode_.resize(GroupSize(), PosType(0, 0));
+            if (IsPos3()) posCode_.resize(GroupSize(), PosType(0, 0));
+            else pos3Code_.resize(GroupSize(), Pos3Type(0, 0, 0));
 
             for_each([&](value_type &x)
             {
@@ -855,31 +929,59 @@ public:
         }
         else
         {
-            keyCode_.resize(GroupSize());
-            posCode_.resize(GroupSize());
+            if (IsPos3()) posCode_.resize(GroupSize());
+            else pos3Code_.resize(GroupSize());
         }
     }
 
-    void FromPosPairCode(const PosPairCode &src, PCType _GroupSize = -1)
+    void FromCode(const PosPairCode &code, PCType _GroupSize = -1)
     {
         if (_GroupSize < 0)
         {
-            GroupSize_ = static_cast<PCType>(src.size());
+            GroupSize_ = static_cast<PCType>(code.size());
         }
         else
         {
-            GroupSize_ = static_cast<PCType>(Min(src.size(), static_cast<size_type>(_GroupSize)));
+            GroupSize_ = static_cast<PCType>(Min(code.size(), static_cast<size_type>(_GroupSize)));
         }
 
-        keyCode_.resize(GroupSize());
+        PixelCount_ = GroupSize_ * Height_ * Width_;
+
+        AlignedMalloc(Data_, size());
+
         posCode_.resize(GroupSize());
 
         for (int i = 0; i < GroupSize(); ++i)
         {
-            keyCode_[i] = src[i].first;
-            posCode_[i] = src[i].second;
+            posCode_[i] = code[i].second;
         }
     }
+
+    void FromCode(const Pos3PairCode &code, PCType _GroupSize = -1)
+    {
+        if (_GroupSize < 0)
+        {
+            GroupSize_ = static_cast<PCType>(code.size());
+        }
+        else
+        {
+            GroupSize_ = static_cast<PCType>(Min(code.size(), static_cast<size_type>(_GroupSize)));
+        }
+
+        PixelCount_ = GroupSize_ * Height_ * Width_;
+
+        AlignedMalloc(Data_, size());
+
+        pos3Code_.resize(GroupSize());
+
+        for (int i = 0; i < GroupSize(); ++i)
+        {
+            pos3Code_[i] = code[i].second;
+        }
+    }
+
+    ////////////////////////////////////////////////////////////////
+    // Read/Store functions
 
     template < typename _St1 >
     _Myt &From(const _St1 *src, PCType src_stride)
@@ -904,6 +1006,29 @@ public:
         return *this;
     }
 
+    template < typename _St1 >
+    _Myt &From(std::vector<const _St1 *> src, PCType src_stride)
+    {
+        auto dstp = data();
+
+        for (PCType z = 0; z < GroupSize(); ++z)
+        {
+            auto srcp = src[GetPos3(z).z] + GetPos3(z).y * src_stride + GetPos3(z).x;
+
+            for (PCType y = 0; y < Height(); ++y)
+            {
+                PCType x = y * src_stride;
+
+                for (PCType upper = x + Width(); x < upper; ++x, ++dstp)
+                {
+                    *dstp = static_cast<value_type>(srcp[x]);
+                }
+            }
+        }
+
+        return *this;
+    }
+
     template < typename _Dt1 >
     void To(_Dt1 *dst, PCType dst_stride) const
     {
@@ -912,6 +1037,27 @@ public:
         for (PCType z = 0; z < GroupSize(); ++z)
         {
             auto dstp = dst + GetPos(z).y * dst_stride + GetPos(z).x;
+
+            for (PCType y = 0; y < Height(); ++y)
+            {
+                PCType x = y * dst_stride;
+
+                for (PCType upper = x + Width(); x < upper; ++x, ++srcp)
+                {
+                    dstp[x] = static_cast<_Dt1>(*srcp);
+                }
+            }
+        }
+    }
+
+    template < typename _Dt1 >
+    void To(std::vector<_Dt1 *> dst, PCType dst_stride) const
+    {
+        auto srcp = data();
+
+        for (PCType z = 0; z < GroupSize(); ++z)
+        {
+            auto dstp = dst[GetPos3(z).z] + GetPos3(z).y * dst_stride + GetPos3(z).x;
 
             for (PCType y = 0; y < Height(); ++y)
             {
@@ -971,6 +1117,48 @@ public:
     }
 
     template < typename _Dt1 >
+    void AddTo(std::vector<_Dt1 *> dst, PCType dst_stride) const
+    {
+        auto srcp = data();
+
+        for (PCType z = 0; z < GroupSize(); ++z)
+        {
+            auto dstp = dst[GetPos3(z).z] + GetPos3(z).y * dst_stride + GetPos3(z).x;
+
+            for (PCType y = 0; y < Height(); ++y)
+            {
+                PCType x = y * dst_stride;
+
+                for (PCType upper = x + Width(); x < upper; ++x, ++srcp)
+                {
+                    dstp[x] += static_cast<_Dt1>(*srcp);
+                }
+            }
+        }
+    }
+
+    template < typename _Dt1, typename _Gt1 >
+    void AddTo(std::vector<_Dt1 *> dst, PCType dst_stride, _Gt1 gain) const
+    {
+        auto srcp = data();
+
+        for (PCType z = 0; z < GroupSize(); ++z)
+        {
+            auto dstp = dst[GetPos3(z).z] + GetPos3(z).y * dst_stride + GetPos3(z).x;
+
+            for (PCType y = 0; y < Height(); ++y)
+            {
+                PCType x = y * dst_stride;
+
+                for (PCType upper = x + Width(); x < upper; ++x, ++srcp)
+                {
+                    dstp[x] += static_cast<_Dt1>(*srcp * gain);
+                }
+            }
+        }
+    }
+
+    template < typename _Dt1 >
     void CountTo(_Dt1 *dst, PCType dst_stride) const
     {
         for (PCType z = 0; z < GroupSize(); ++z)
@@ -995,6 +1183,44 @@ public:
         for (PCType z = 0; z < GroupSize(); ++z)
         {
             auto dstp = dst + GetPos(z).y * dst_stride + GetPos(z).x;
+
+            for (PCType y = 0; y < Height(); ++y)
+            {
+                PCType x = y * dst_stride;
+
+                for (PCType upper = x + Width(); x < upper; ++x)
+                {
+                    dstp[x] += value;
+                }
+            }
+        }
+    }
+
+    template < typename _Dt1 >
+    void CountTo(std::vector<_Dt1 *> dst, PCType dst_stride) const
+    {
+        for (PCType z = 0; z < GroupSize(); ++z)
+        {
+            auto dstp = dst[GetPos3(z).z] + GetPos3(z).y * dst_stride + GetPos3(z).x;
+
+            for (PCType y = 0; y < Height(); ++y)
+            {
+                PCType x = y * dst_stride;
+
+                for (PCType upper = x + Width(); x < upper; ++x)
+                {
+                    ++dstp[x];
+                }
+            }
+        }
+    }
+
+    template < typename _Dt1 >
+    void CountTo(std::vector<_Dt1 *> dst, PCType dst_stride, _Dt1 value) const
+    {
+        for (PCType z = 0; z < GroupSize(); ++z)
+        {
+            auto dstp = dst[GetPos3(z).z] + GetPos3(z).y * dst_stride + GetPos3(z).x;
 
             for (PCType y = 0; y < Height(); ++y)
             {

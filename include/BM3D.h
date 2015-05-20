@@ -64,6 +64,8 @@ struct BM3D_FilterData
     std::vector<std::vector<FLType>> thrTable;
     std::vector<FLType> wienerSigmaSqr;
 
+    BM3D_FilterData() {}
+
     BM3D_FilterData(bool wiener, double sigma, PCType GroupSize, PCType BlockSize, double lambda);
 
     BM3D_FilterData(const _Myt &right) = delete;

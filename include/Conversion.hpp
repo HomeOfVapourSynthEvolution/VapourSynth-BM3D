@@ -445,8 +445,8 @@ void VSProcess::RGB2FloatY(FLType *dst,
     FLType dFloor, dCeil;
     _Ty sFloor, sCeil;
 
-    GetQuanPara(dFloor, dCeil, 32, true);
-    GetQuanPara(sFloor, sCeil, fi->bitsPerSample, true);
+    GetQuanPara(dFloor, dCeil, 32, full);
+    GetQuanPara(sFloor, sCeil, fi->bitsPerSample, full);
 
     ConvertToY(dst, srcR, srcG, srcB,
         height, width, dst_stride, src_stride,
@@ -463,8 +463,8 @@ void VSProcess::RGB2FloatYUV(FLType *dstY, FLType *dstU, FLType *dstV,
     FLType dFloorY, dCeilY, dFloorC, dNeutralC, dCeilC;
     _Ty sFloor, sCeil;
 
-    GetQuanPara(dFloorY, dCeilY, dFloorC, dNeutralC, dCeilC, 32, true);
-    GetQuanPara(sFloor, sCeil, fi->bitsPerSample, true);
+    GetQuanPara(dFloorY, dCeilY, dFloorC, dNeutralC, dCeilC, 32, full);
+    GetQuanPara(sFloor, sCeil, fi->bitsPerSample, full);
 
     MatrixConvert_RGB2YUV(dstY, dstU, dstV, srcR, srcG, srcB,
         height, width, dst_stride, src_stride,
@@ -481,8 +481,8 @@ void VSProcess::FloatYUV2RGB(_Ty *dstR, _Ty *dstG, _Ty *dstB,
     _Ty dFloor, dCeil;
     FLType sFloorY, sCeilY, sFloorC, sNeutralC, sCeilC;
 
-    GetQuanPara(dFloor, dCeil, dfi->bitsPerSample, true);
-    GetQuanPara(sFloorY, sCeilY, sFloorC, sNeutralC, sCeilC, 32, true);
+    GetQuanPara(dFloor, dCeil, dfi->bitsPerSample, full);
+    GetQuanPara(sFloorY, sCeilY, sFloorC, sNeutralC, sCeilC, 32, full);
 
     MatrixConvert_YUV2RGB(dstR, dstG, dstB, srcY, srcU, srcV,
         height, width, dst_stride, src_stride,

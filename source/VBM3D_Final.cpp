@@ -17,36 +17,21 @@
 */
 
 
-#include "BM3D_Basic.h"
+#include "VBM3D_Final.h"
 
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-// Functions of class BM3D_Basic_Data
+// Functions of class VBM3D_Final_Data
 
 
-int BM3D_Basic_Data::arguments_process(const VSMap *in, VSMap *out)
+int VBM3D_Final_Data::arguments_process(const VSMap *in, VSMap *out)
 {
     if (_Mybase::arguments_process(in, out))
     {
         return 1;
     }
 
-    int error;
-
-    // lambda - float
-    para.lambda = vsapi->propGetFloat(in, "lambda", 0, &error);
-
-    if (error)
-    {
-        para.lambda = para_default.lambda;
-    }
-    else if (para.lambda <= 0)
-    {
-        setError(out, "Invalid \"lambda\" assigned, must be a positive floating point number");
-        return 1;
-    }
-
-    // Initialize filter data for hard-threshold filtering
+    // Initialize filter data for empirical Wiener filtering
     init_filter_data();
 
     return 0;
@@ -54,13 +39,13 @@ int BM3D_Basic_Data::arguments_process(const VSMap *in, VSMap *out)
 
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-// Functions of class BM3D_Basic_Process
+// Functions of class VBM3D_Final_Process
 
 
-void BM3D_Basic_Process::CollaborativeFilter(int plane,
-    FLType *ResNum, FLType *ResDen,
-    const FLType *src, const FLType *ref,
-    const PosPairCode &code)
+void VBM3D_Final_Process::CollaborativeFilter(int plane,
+    std::vector<FLType *> &ResNum, std::vector<FLType *> &ResDen,
+    std::vector<const FLType *> &src, std::vector<const FLType *> &ref,
+    const Pos3PairCode &code)
 {
     PCType GroupSize = static_cast<PCType>(code.size());
     // When para.GroupSize > 0, limit GroupSize up to para.GroupSize
@@ -69,26 +54,26 @@ void BM3D_Basic_Process::CollaborativeFilter(int plane,
         GroupSize = d.para.GroupSize;
     }
 
-    // Construct source group guided by matched pos code
+    // Construct source group and reference group guided by matched pos code
     block_group srcGroup(src, src_stride[plane], code, GroupSize, d.para.BlockSize, d.para.BlockSize);
+    block_group refGroup(ref, ref_stride[plane], code, GroupSize, d.para.BlockSize, d.para.BlockSize);
 
-    // Initialize retianed coefficients of hard threshold filtering
-    int retainedCoefs = 0;
+    // Initialize L2-norm of Wiener coefficients
+    FLType L2Wiener = 0;
 
-    // Apply forward 3D transform to the source group
+    // Apply forward 3D transform to the source group and the reference group
     d.f[plane].fp[GroupSize - 1].execute_r2r(srcGroup.data(), srcGroup.data());
+    d.f[plane].fp[GroupSize - 1].execute_r2r(refGroup.data(), refGroup.data());
 
-    // Apply hard threshold filtering to the source group
-    Block_For_each(srcGroup, d.f[plane].thrTable[GroupSize - 1], [&](FLType &x, FLType y)
+    // Apply empirical Wiener filtering to the source group guided by the reference group
+    const FLType sigmaSquare = d.f[plane].wienerSigmaSqr[GroupSize - 1];
+
+    Block_For_each(srcGroup, refGroup, [&](FLType &x, FLType y)
     {
-        if (Abs(x) <= y)
-        {
-            x = 0;
-        }
-        else
-        {
-            ++retainedCoefs;
-        }
+        FLType ySquare = y * y;
+        FLType wienerCoef = ySquare / (ySquare + sigmaSquare);
+        x *= wienerCoef;
+        L2Wiener += wienerCoef * wienerCoef;
     });
 
     // Apply backward 3D transform to the filtered group
@@ -96,11 +81,11 @@ void BM3D_Basic_Process::CollaborativeFilter(int plane,
 
     // Calculate weight for the filtered group
     // Also include the normalization factor to compensate for the amplification introduced in 3D transform
-    FLType denWeight = retainedCoefs < 1 ? 1 : FLType(1) / static_cast<FLType>(retainedCoefs);
+    FLType denWeight = L2Wiener <= 0 ? 1 : FLType(1) / L2Wiener;
     FLType numWeight = static_cast<FLType>(denWeight / d.f[plane].finalAMP[GroupSize - 1]);
 
-    // Store the weighted filtered group to the numerator part of the basic estimation
-    // Store the weight to the denominator part of the basic estimation
+    // Store the weighted filtered group to the numerator part of the final estimation
+    // Store the weight to the denominator part of the final estimation
     srcGroup.AddTo(ResNum, dst_stride[plane], numWeight);
     srcGroup.CountTo(ResDen, dst_stride[plane], denWeight);
 }

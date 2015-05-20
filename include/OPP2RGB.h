@@ -43,7 +43,7 @@ public:
         : _Mybase(_vsapi, _FunctionName, _NameSpace)
     {}
 
-    virtual int arguments_process(const VSMap *in, VSMap *out)
+    virtual int arguments_process(const VSMap *in, VSMap *out) override
     {
         int error;
 
@@ -141,10 +141,11 @@ protected:
     }
 
 public:
-    OPP2RGB_Process(const _Mydata &_d, int n, VSFrameContext *frameCtx, VSCore *core, const VSAPI *_vsapi)
-        : _Mybase(_d, n, frameCtx, core, _vsapi), d(_d)
+    OPP2RGB_Process(const _Mydata &_d, int _n, VSFrameContext *_frameCtx, VSCore *_core, const VSAPI *_vsapi)
+        : _Mybase(_d, _n, _frameCtx, _core, _vsapi), d(_d)
     {}
 
+    // Always output RGB48 or RGBS
     static const VSFormat *NewFormat(const _Mydata &d, const VSFormat *f, VSCore *core, const VSAPI *vsapi)
     {
         return vsapi->registerFormat(cmRGB, d.sample, d.sample == 1 ? 32 : 16, 0, 0, core);
@@ -154,6 +155,16 @@ protected:
     virtual void NewFormat() override
     {
         dfi = NewFormat(d, fi, core, vsapi);
+    }
+
+    virtual void NewFrame() override
+    {
+        _NewFrame(width, height, false);
+
+        // Set output frame properties
+        VSMap *dst_map = vsapi->getFramePropsRW(dst);
+
+        vsapi->propDeleteKey(dst_map, "BM3D_OPP");
     }
 };
 

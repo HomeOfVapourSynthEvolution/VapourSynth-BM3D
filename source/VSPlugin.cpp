@@ -21,6 +21,9 @@
 #include "OPP2RGB.h"
 #include "BM3D_Basic.h"
 #include "BM3D_Final.h"
+#include "VBM3D_Basic.h"
+#include "VBM3D_Final.h"
+#include "VAggregate.h"
 
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -240,6 +243,200 @@ static void VS_CC BM3D_Final_Create(const VSMap *in, VSMap *out, void *userData,
 
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+// VapourSynth: bm3d.VBasic
+
+
+static void VS_CC VBM3D_Basic_Init(VSMap *in, VSMap *out, void **instanceData, VSNode *node, VSCore *core, const VSAPI *vsapi)
+{
+    VBM3D_Basic_Data *d = reinterpret_cast<VBM3D_Basic_Data *>(*instanceData);
+
+    VSVideoInfo dvi = *(d->vi);
+    dvi.format = VBM3D_Basic_Process::NewFormat(*d, d->vi->format, core, vsapi);
+    dvi.height = d->vi->height * (d->para.radius * 2 + 1) * 2;
+
+    vsapi->setVideoInfo(&dvi, 1, node);
+}
+
+static const VSFrameRef *VS_CC VBM3D_Basic_GetFrame(int n, int activationReason, void **instanceData, void **frameData, VSFrameContext *frameCtx, VSCore *core, const VSAPI *vsapi)
+{
+    const VBM3D_Basic_Data *d = reinterpret_cast<VBM3D_Basic_Data *>(*instanceData);
+
+    if (activationReason == arInitial)
+    {
+        const int total_frames = d->vi->numFrames;
+        const int radius = d->para.radius;
+        const int b_offset = -Min(n - 0, radius);
+        const int f_offset = Min(total_frames - 1 - n, radius);
+
+        for (int o = b_offset; o <= f_offset; ++o)
+        {
+            vsapi->requestFrameFilter(n + o, d->node, frameCtx);
+            if (d->rdef) vsapi->requestFrameFilter(n + o, d->rnode, frameCtx);
+        }
+    }
+    else if (activationReason == arAllFramesReady)
+    {
+        VBM3D_Basic_Process p(*d, n, frameCtx, core, vsapi);
+
+        return p.process();
+    }
+
+    return nullptr;
+}
+
+static void VS_CC VBM3D_Basic_Free(void *instanceData, VSCore *core, const VSAPI *vsapi)
+{
+    VBM3D_Basic_Data *d = reinterpret_cast<VBM3D_Basic_Data *>(instanceData);
+
+    delete d;
+}
+
+
+static void VS_CC VBM3D_Basic_Create(const VSMap *in, VSMap *out, void *userData, VSCore *core, const VSAPI *vsapi)
+{
+    VBM3D_Basic_Data *d = new VBM3D_Basic_Data(vsapi);
+
+    if (d->arguments_process(in, out))
+    {
+        delete d;
+        return;
+    }
+
+    // Create filter
+    vsapi->createFilter(in, out, "VBasic", VBM3D_Basic_Init, VBM3D_Basic_GetFrame, VBM3D_Basic_Free, fmParallel, 0, d, core);
+}
+
+
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+// VapourSynth: bm3d.VFinal
+
+
+static void VS_CC VBM3D_Final_Init(VSMap *in, VSMap *out, void **instanceData, VSNode *node, VSCore *core, const VSAPI *vsapi)
+{
+    VBM3D_Final_Data *d = reinterpret_cast<VBM3D_Final_Data *>(*instanceData);
+
+    VSVideoInfo dvi = *(d->vi);
+    dvi.format = VBM3D_Final_Process::NewFormat(*d, d->vi->format, core, vsapi);
+    dvi.height = d->vi->height * (d->para.radius * 2 + 1) * 2;
+
+    vsapi->setVideoInfo(&dvi, 1, node);
+}
+
+static const VSFrameRef *VS_CC VBM3D_Final_GetFrame(int n, int activationReason, void **instanceData, void **frameData, VSFrameContext *frameCtx, VSCore *core, const VSAPI *vsapi)
+{
+    const VBM3D_Final_Data *d = reinterpret_cast<VBM3D_Final_Data *>(*instanceData);
+
+    if (activationReason == arInitial)
+    {
+        const int total_frames = d->vi->numFrames;
+        const int radius = d->para.radius;
+        const int b_offset = -Min(n - 0, radius);
+        const int f_offset = Min(total_frames - 1 - n, radius);
+
+        for (int o = b_offset; o <= f_offset; ++o)
+        {
+            vsapi->requestFrameFilter(n + o, d->node, frameCtx);
+            if (d->rdef) vsapi->requestFrameFilter(n + o, d->rnode, frameCtx);
+        }
+    }
+    else if (activationReason == arAllFramesReady)
+    {
+        VBM3D_Final_Process p(*d, n, frameCtx, core, vsapi);
+
+        return p.process();
+    }
+
+    return nullptr;
+}
+
+static void VS_CC VBM3D_Final_Free(void *instanceData, VSCore *core, const VSAPI *vsapi)
+{
+    VBM3D_Final_Data *d = reinterpret_cast<VBM3D_Final_Data *>(instanceData);
+
+    delete d;
+}
+
+
+static void VS_CC VBM3D_Final_Create(const VSMap *in, VSMap *out, void *userData, VSCore *core, const VSAPI *vsapi)
+{
+    VBM3D_Final_Data *d = new VBM3D_Final_Data(vsapi);
+
+    if (d->arguments_process(in, out))
+    {
+        delete d;
+        return;
+    }
+
+    // Create filter
+    vsapi->createFilter(in, out, "VFinal", VBM3D_Final_Init, VBM3D_Final_GetFrame, VBM3D_Final_Free, fmParallel, 0, d, core);
+}
+
+
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+// VapourSynth: bm3d.VAggregate
+
+
+static void VS_CC VAggregate_Init(VSMap *in, VSMap *out, void **instanceData, VSNode *node, VSCore *core, const VSAPI *vsapi)
+{
+    VAggregate_Data *d = reinterpret_cast<VAggregate_Data *>(*instanceData);
+
+    VSVideoInfo dvi = *(d->vi);
+    dvi.format = VAggregate_Process::NewFormat(*d, d->vi->format, core, vsapi);
+    dvi.height = d->vi->height / (d->radius * 2 + 1) / 2;
+
+    vsapi->setVideoInfo(&dvi, 1, node);
+}
+
+static const VSFrameRef *VS_CC VAggregate_GetFrame(int n, int activationReason, void **instanceData, void **frameData, VSFrameContext *frameCtx, VSCore *core, const VSAPI *vsapi)
+{
+    const VAggregate_Data *d = reinterpret_cast<VAggregate_Data *>(*instanceData);
+
+    if (activationReason == arInitial)
+    {
+        const int total_frames = d->vi->numFrames;
+        const int radius = d->radius;
+        const int b_offset = -Min(n - 0, radius);
+        const int f_offset = Min(total_frames - 1 - n, radius);
+
+        for (int o = b_offset; o <= f_offset; ++o)
+        {
+            vsapi->requestFrameFilter(n + o, d->node, frameCtx);
+        }
+    }
+    else if (activationReason == arAllFramesReady)
+    {
+        VAggregate_Process p(*d, n, frameCtx, core, vsapi);
+
+        return p.process();
+    }
+
+    return nullptr;
+}
+
+static void VS_CC VAggregate_Free(void *instanceData, VSCore *core, const VSAPI *vsapi)
+{
+    VAggregate_Data *d = reinterpret_cast<VAggregate_Data *>(instanceData);
+
+    delete d;
+}
+
+
+static void VS_CC VAggregate_Create(const VSMap *in, VSMap *out, void *userData, VSCore *core, const VSAPI *vsapi)
+{
+    VAggregate_Data *d = new VAggregate_Data(vsapi);
+
+    if (d->arguments_process(in, out))
+    {
+        delete d;
+        return;
+    }
+
+    // Create filter
+    vsapi->createFilter(in, out, "VAggregate", VAggregate_Init, VAggregate_GetFrame, VAggregate_Free, fmParallel, 0, d, core);
+}
+
+
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 // VapourSynth: plugin initialization
 
 
@@ -287,6 +484,50 @@ VS_EXTERNAL_API(void) VapourSynthPluginInit(VSConfigPlugin configFunc, VSRegiste
         "th_mse:float:opt;"
         "matrix:int:opt;",
         BM3D_Final_Create, nullptr, plugin);
+
+    registerFunc("VBasic",
+        "input:clip;"
+        "ref:clip:opt;"
+        "profile:data:opt;"
+        "sigma:float[]:opt;"
+        "radius:int:opt;"
+        "block_size:int:opt;"
+        "block_step:int:opt;"
+        "group_size:int:opt;"
+        "bm_range:int:opt;"
+        "bm_step:int:opt;"
+        "ps_num:int:opt;"
+        "ps_range:int:opt;"
+        "ps_step:int:opt;"
+        "th_mse:float:opt;"
+        "lambda:float:opt;"
+        "matrix:int:opt;",
+        VBM3D_Basic_Create, nullptr, plugin);
+
+    registerFunc("VFinal",
+        "input:clip;"
+        "ref:clip;"
+        "profile:data:opt;"
+        "sigma:float[]:opt;"
+        "radius:int:opt;"
+        "block_size:int:opt;"
+        "block_step:int:opt;"
+        "group_size:int:opt;"
+        "bm_range:int:opt;"
+        "bm_step:int:opt;"
+        "ps_num:int:opt;"
+        "ps_range:int:opt;"
+        "ps_step:int:opt;"
+        "th_mse:float:opt;"
+        "lambda:float:opt;"
+        "matrix:int:opt;",
+        VBM3D_Final_Create, nullptr, plugin);
+
+    registerFunc("VAggregate",
+        "input:clip;"
+        "radius:int:opt;"
+        "sample:int:opt;",
+        VAggregate_Create, nullptr, plugin);
 }
 
 

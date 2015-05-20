@@ -422,6 +422,8 @@ private:
     const _Mydata &d;
 
 protected:
+    int n = 0;
+    VSFrameContext *frameCtx = nullptr;
     VSCore *core = nullptr;
     const VSAPI *vsapi = nullptr;
 
@@ -472,8 +474,8 @@ protected:
     virtual void process_coreS() {}
 
 public:
-    VSProcess(const _Mydata &_d, int n, VSFrameContext *frameCtx, VSCore *_core, const VSAPI *_vsapi)
-        : d(_d), core(_core), vsapi(_vsapi)
+    VSProcess(const _Mydata &_d, int _n, VSFrameContext *_frameCtx, VSCore *_core, const VSAPI *_vsapi)
+        : d(_d), n(_n), frameCtx(_frameCtx), core(_core), vsapi(_vsapi)
     {
         src = vsapi->getFrameFilter(n, d.node, frameCtx);
         fi = vsapi->getFrameFormat(src);
@@ -531,7 +533,7 @@ public:
             NewFormat();
             NewFrame();
         }
-        
+
         if (flt == 1)
         {
             process_coreH();
@@ -581,7 +583,7 @@ protected:
                 for (int i = 0; i < VSMaxPlaneCount; ++i)
                 {
                     planes[i] = i;
-                    cp_planes[i] = !copy || d.process[i] ? nullptr : src;
+                    cp_planes[i] = d.process[i] ? nullptr : src;
                 }
 
                 dst = vsapi->newVideoFrame2(dfi, _width, _height, cp_planes, planes, src, core);

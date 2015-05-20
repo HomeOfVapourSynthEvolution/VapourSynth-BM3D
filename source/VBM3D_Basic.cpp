@@ -17,14 +17,14 @@
 */
 
 
-#include "BM3D_Basic.h"
+#include "VBM3D_Basic.h"
 
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-// Functions of class BM3D_Basic_Data
+// Functions of class VBM3D_Basic_Data
 
 
-int BM3D_Basic_Data::arguments_process(const VSMap *in, VSMap *out)
+int VBM3D_Basic_Data::arguments_process(const VSMap *in, VSMap *out)
 {
     if (_Mybase::arguments_process(in, out))
     {
@@ -54,13 +54,13 @@ int BM3D_Basic_Data::arguments_process(const VSMap *in, VSMap *out)
 
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-// Functions of class BM3D_Basic_Process
+// Functions of class VBM3D_Basic_Process
 
 
-void BM3D_Basic_Process::CollaborativeFilter(int plane,
-    FLType *ResNum, FLType *ResDen,
-    const FLType *src, const FLType *ref,
-    const PosPairCode &code)
+void VBM3D_Basic_Process::CollaborativeFilter(int plane,
+    std::vector<FLType *> &ResNum, std::vector<FLType *> &ResDen,
+    std::vector<const FLType *> &src, std::vector<const FLType *> &ref,
+    const Pos3PairCode &code)
 {
     PCType GroupSize = static_cast<PCType>(code.size());
     // When para.GroupSize > 0, limit GroupSize up to para.GroupSize
