@@ -1288,7 +1288,7 @@ void Block_Transform(_Dt1 &dst, const _St1 &src, _Fn1 &&_Func)
 
     for (auto upper = dstp + dst.size(); dstp != upper; ++dstp, ++srcp)
     {
-        *datap = _Func(*datap);
+        *dstp = _Func(*srcp);
     }
 }
 

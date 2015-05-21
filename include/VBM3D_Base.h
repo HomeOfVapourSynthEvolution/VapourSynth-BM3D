@@ -27,7 +27,7 @@
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 
-const struct VBM3D_Para
+struct VBM3D_Para
     : public BM3D_Para
 {
     typedef VBM3D_Para _Myt;
@@ -180,14 +180,8 @@ private:
     template < typename _Ty >
     void process_core_gray();
 
-    template <>
-    void process_core_gray<FLType>();
-
     template < typename _Ty >
     void process_core_yuv();
-
-    template <>
-    void process_core_yuv<FLType>();
 
     template < typename _Ty >
     void process_core_rgb();

@@ -82,7 +82,7 @@ void BM3D_Process_Base::process_core_gray()
 }
 
 template <>
-void BM3D_Process_Base::process_core_gray<FLType>()
+inline void BM3D_Process_Base::process_core_gray<FLType>()
 {
     // Get write/read pointer
     auto dstY = reinterpret_cast<FLType *>(vsapi->getWritePtr(dst, 0));
@@ -174,7 +174,7 @@ void BM3D_Process_Base::process_core_yuv()
 }
 
 template <>
-void BM3D_Process_Base::process_core_yuv<FLType>()
+inline void BM3D_Process_Base::process_core_yuv<FLType>()
 {
     // Get write/read pointer
     auto dstY = reinterpret_cast<FLType *>(vsapi->getWritePtr(dst, 0));

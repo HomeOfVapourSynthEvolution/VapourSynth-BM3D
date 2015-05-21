@@ -96,7 +96,7 @@ void VBM3D_Process_Base::process_core_gray()
 }
 
 template <>
-void VBM3D_Process_Base::process_core_gray<FLType>()
+inline void VBM3D_Process_Base::process_core_gray<FLType>()
 {
     std::vector<FLType *> dstYv;
     std::vector<const FLType *> srcYv;
@@ -229,7 +229,7 @@ void VBM3D_Process_Base::process_core_yuv()
 }
 
 template <>
-void VBM3D_Process_Base::process_core_yuv<FLType>()
+inline void VBM3D_Process_Base::process_core_yuv<FLType>()
 {
     std::vector<FLType *> dstYv;
     std::vector<FLType *> dstUv;
