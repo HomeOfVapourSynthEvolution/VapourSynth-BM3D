@@ -467,7 +467,7 @@ VS_EXTERNAL_API(void) VapourSynthPluginInit(VSConfigPlugin configFunc, VSRegiste
         "bm_range:int:opt;"
         "bm_step:int:opt;"
         "th_mse:float:opt;"
-        "lambda:float:opt;"
+        "hard_thr:float:opt;"
         "matrix:int:opt;",
         BM3D_Basic_Create, nullptr, plugin);
 
@@ -500,7 +500,7 @@ VS_EXTERNAL_API(void) VapourSynthPluginInit(VSConfigPlugin configFunc, VSRegiste
         "ps_range:int:opt;"
         "ps_step:int:opt;"
         "th_mse:float:opt;"
-        "lambda:float:opt;"
+        "hard_thr:float:opt;"
         "matrix:int:opt;",
         VBM3D_Basic_Create, nullptr, plugin);
 
@@ -519,7 +519,6 @@ VS_EXTERNAL_API(void) VapourSynthPluginInit(VSConfigPlugin configFunc, VSRegiste
         "ps_range:int:opt;"
         "ps_step:int:opt;"
         "th_mse:float:opt;"
-        "lambda:float:opt;"
         "matrix:int:opt;",
         VBM3D_Final_Create, nullptr, plugin);
 

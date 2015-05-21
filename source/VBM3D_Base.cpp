@@ -25,7 +25,7 @@
 
 
 VBM3D_Para::VBM3D_Para(bool _wiener, std::string _profile)
-    : BM3D_Para(_wiener, _profile)
+    : _Mybase(_wiener, _profile)
 {
     radius = 1;
     PSrange = 6;

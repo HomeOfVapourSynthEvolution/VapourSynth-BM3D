@@ -35,7 +35,7 @@ BM3D_Para::BM3D_Para(bool _wiener, std::string _profile)
     if (!wiener)
     {
         GroupSize = 16;
-        lambda = 2.5;
+        lambda = 2.2;
     }
     else
     {
@@ -48,11 +48,11 @@ BM3D_Para::BM3D_Para(bool _wiener, std::string _profile)
 
         if (!wiener)
         {
-            BlockStep = 6;
+            BlockStep = 8;
         }
         else
         {
-            BlockStep = 5;
+            BlockStep = 7;
             GroupSize = 16;
         }
     }
@@ -62,7 +62,7 @@ BM3D_Para::BM3D_Para(bool _wiener, std::string _profile)
         {
             BlockStep = 4;
             GroupSize = 32;
-            lambda = 2.6;
+            lambda = 2.3;
         }
         else
         {
@@ -136,7 +136,7 @@ BM3D_FilterData::BM3D_FilterData(bool wiener, double sigma, PCType GroupSize, PC
             std::vector<double> thr(4);
             thr[0] = thrBase;
             thr[1] = thrBase;
-            thr[2] = thrBase / 2.;
+            thr[2] = thrBase / double(2);
             thr[3] = 0;
 
             thrTable[i - 1] = std::vector<FLType>(i * BlockSize * BlockSize);
@@ -155,39 +155,55 @@ BM3D_FilterData::BM3D_FilterData(bool wiener, double sigma, PCType GroupSize, PC
                         {
                             ++flag;
                         }
-                        else if (x >= BlockSize / 2)
+                        else if (x < BlockSize / 4)
                         {
-                            scale *= 1.07;
+                            scale *= 1.00;
                         }
-                        else if (x >= BlockSize / 4)
+                        else if (x < BlockSize / 2)
                         {
                             scale *= 1.01;
+                        }
+                        else
+                        {
+                            scale *= 1.07;
                         }
 
                         if (y == 0)
                         {
                             ++flag;
                         }
-                        else if (y >= BlockSize / 2)
+                        else if (y < BlockSize / 4)
                         {
-                            scale *= 1.07;
+                            scale *= 1.00;
                         }
-                        else if (y >= BlockSize / 4)
+                        else if (y < BlockSize / 2)
                         {
                             scale *= 1.01;
+                        }
+                        else
+                        {
+                            scale *= 1.07;
                         }
 
                         if (z == 0)
                         {
                             ++flag;
                         }
-                        else if (z >= i / 2)
+                        else if (z < i / 8)
+                        {
+                            scale *= 1.01;
+                        }
+                        else if (z < i / 4)
                         {
                             scale *= 1.07;
                         }
-                        else if (z >= i / 4)
+                        else if (z < i / 2)
                         {
-                            scale *= 1.01;
+                            scale *= 1.16;
+                        }
+                        else
+                        {
+                            scale *= 1.40;
                         }
 
                         *thr_d = static_cast<FLType>(thr[flag] * scale);

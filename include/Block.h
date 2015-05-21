@@ -1253,6 +1253,13 @@ void Block_For_each(_St1 &data, _Fn1 &&_Func)
 template < typename _St1, typename _St2, typename _Fn1 > inline
 void Block_For_each(_St1 &left, _St2 &right, _Fn1 &&_Func)
 {
+    const char *FunctionName = "Block_For_each";
+    if (left.size() != right.size())
+    {
+        std::cerr << FunctionName << ": size() of left and right must be the same.\n";
+        exit(EXIT_FAILURE);
+    }
+
     auto leftp = left.data();
     auto rightp = right.data();
 
@@ -1277,9 +1284,9 @@ template < typename _Dt1, typename _St1, typename _Fn1 > inline
 void Block_Transform(_Dt1 &dst, const _St1 &src, _Fn1 &&_Func)
 {
     const char *FunctionName = "Block_Transform";
-    if (dst.Width() != src.Width() || dst.Height() != src.Height() || dst.size() != src.size())
+    if (dst.size() != src.size())
     {
-        std::cerr << FunctionName << ": Width(), Height() and size() of dst and src must be the same.\n";
+        std::cerr << FunctionName << ": size() of dst and src must be the same.\n";
         exit(EXIT_FAILURE);
     }
 
@@ -1288,7 +1295,7 @@ void Block_Transform(_Dt1 &dst, const _St1 &src, _Fn1 &&_Func)
 
     for (auto upper = dstp + dst.size(); dstp != upper; ++dstp, ++srcp)
     {
-        *datap = _Func(*datap);
+        *dstp = _Func(*srcp);
     }
 }
 

@@ -33,8 +33,8 @@ int BM3D_Basic_Data::arguments_process(const VSMap *in, VSMap *out)
 
     int error;
 
-    // lambda - float
-    para.lambda = vsapi->propGetFloat(in, "lambda", 0, &error);
+    // hard_thr - float
+    para.lambda = vsapi->propGetFloat(in, "hard_thr", 0, &error);
 
     if (error)
     {
@@ -42,7 +42,7 @@ int BM3D_Basic_Data::arguments_process(const VSMap *in, VSMap *out)
     }
     else if (para.lambda <= 0)
     {
-        setError(out, "Invalid \"lambda\" assigned, must be a positive floating point number");
+        setError(out, "Invalid \"hard_thr\" assigned, must be a positive floating point number");
         return 1;
     }
 
