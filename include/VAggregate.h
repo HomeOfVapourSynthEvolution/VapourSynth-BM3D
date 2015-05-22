@@ -83,14 +83,8 @@ private:
     template < typename _Dt1 >
     void process_core_gray();
 
-    template <>
-    void process_core_gray<FLType>();
-
     template < typename _Dt1 >
     void process_core_yuv();
-
-    template <>
-    void process_core_yuv<FLType>();
 
 protected:
     virtual void process_coreS() override

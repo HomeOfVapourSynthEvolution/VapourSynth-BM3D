@@ -435,32 +435,32 @@ struct KeyPair
 
     bool operator==(const _Myt &_Right)
     {
-        return first == _Right.first;
+        return this->first == _Right.first;
     }
 
     bool operator!=(const _Myt &_Right)
     {
-        return first != _Right.first;
+        return this->first != _Right.first;
     }
 
     bool operator<(const _Myt &_Right)
     {
-        return first < _Right.first;
+        return this->first < _Right.first;
     }
 
     bool operator>(const _Myt &_Right)
     {
-        return first > _Right.first;
+        return this->first > _Right.first;
     }
 
     bool operator<=(const _Myt &_Right)
     {
-        return first <= _Right.first;
+        return this->first <= _Right.first;
     }
 
     bool operator>=(const _Myt &_Right)
     {
-        return first >= _Right.first;
+        return this->first >= _Right.first;
     }
 };
 

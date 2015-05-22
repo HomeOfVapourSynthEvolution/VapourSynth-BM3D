@@ -79,7 +79,7 @@ void VAggregate_Process::process_core_gray()
 }
 
 template <>
-void VAggregate_Process::process_core_gray<FLType>()
+inline void VAggregate_Process::process_core_gray<FLType>()
 {
     std::vector<const FLType *> ResNumY, ResDenY;
 
@@ -152,7 +152,7 @@ void VAggregate_Process::process_core_yuv()
 }
 
 template <>
-void VAggregate_Process::process_core_yuv<FLType>()
+inline void VAggregate_Process::process_core_yuv<FLType>()
 {
     std::vector<const FLType *> ResNumY, ResDenY;
     std::vector<const FLType *> ResNumU, ResDenU;
