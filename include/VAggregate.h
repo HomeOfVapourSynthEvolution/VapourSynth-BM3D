@@ -74,6 +74,8 @@ protected:
 
     int process_plane[VSMaxPlaneCount];
 
+    bool full = true;
+
 private:
     template < typename _Dt1 >
     void process_core();
@@ -151,15 +153,22 @@ protected:
 
         if (error)
         {
-            vsapi->setFilterError("bm3d.VAggregate - warning: "
+            vsapi->setFilterError("bm3d.VAggregate - error: "
                 "No frame property \"BM3D_V_radius\" exists in the input frame. "
                 "Make sure you call bm3d.VAggregate next to bm3d.VBasic or bm3d.VFinal. ", frameCtx);
         }
         else if (d.radius != p_radius)
         {
-            vsapi->setFilterError("bm3d.VAggregate - warning: "
-                "The assigned \"radius\" is not equal to the frame property \"BM3D_V_radius\" "
-                "which indicates the radius used in previous filter bm3d.VBasic or bm3d.VFinal. ", frameCtx);
+            std::string msg, temp;
+            std::stringstream ss;
+
+            msg += "bm3d.VAggregate - error: Mismatch between argument \"radius=";
+            msg += GetStr(d.radius);
+            msg += "\" and the input frame property \"BM3D_V_radius=";
+            msg += GetStr(p_radius);
+            msg += "\" which indicates the radius used in previous filter (bm3d.VBasic or bm3d.VFinal).";
+
+            vsapi->setFilterError(msg.c_str(), frameCtx);
         }
 
         int m = vsapi->propNumElements(src_map, "BM3D_V_process");
@@ -167,7 +176,7 @@ protected:
 
         if (error || m != VSMaxPlaneCount)
         {
-            vsapi->setFilterError("bm3d.VAggregate - warning: "
+            vsapi->setFilterError("bm3d.VAggregate - error: "
                 "No valid frame property \"BM3D_V_process\" exists in the input frame. "
                 "Make sure you call bm3d.VAggregate next to bm3d.VBasic or bm3d.VFinal. ", frameCtx);
         }
@@ -177,6 +186,26 @@ protected:
             {
                 process_plane[i] = int64ToIntS(p_process[i]);
             }
+        }
+
+        // Determine OPP input
+        int64_t BM3D_OPP = vsapi->propGetInt(src_map, "BM3D_OPP", 0, &error);
+
+        if (error)
+        {
+            BM3D_OPP = 0;
+        }
+
+        // Determine color range of Gray/YUV/YCoCg input
+        int64_t _ColorRange = vsapi->propGetInt(src_map, "_ColorRange", 0, &error);
+
+        if (error || BM3D_OPP == 1)
+        {
+            full = true;
+        }
+        else
+        {
+            full = _ColorRange != 1;
         }
 
         // The output frame is of original frame size (same as input frame of VBasic or VFinal)

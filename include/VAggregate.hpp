@@ -72,7 +72,7 @@ void VAggregate_Process::process_core_gray()
     Kernel(dstYd, ResNumY, ResDenY);
 
     // Convert dst from floating point Y data to integer Y data
-    Float2Int(dstY, dstYd, dst_height[0], dst_width[0], dst_stride[0], dst_stride[0], false, true, true);
+    Float2Int(dstY, dstYd, dst_height[0], dst_width[0], dst_stride[0], dst_stride[0], false, full, !isFloat(_Dt1));
 
     // Free memory for floating point YUV data
     AlignedFree(dstYd);
@@ -141,9 +141,9 @@ void VAggregate_Process::process_core_yuv()
     Kernel(dstYd, dstUd, dstVd, ResNumY, ResDenY, ResNumU, ResDenU, ResNumV, ResDenV);
 
     // Convert dst from floating point YUV data to integer YUV data
-    if (process_plane[0]) Float2Int(dstY, dstYd, dst_height[0], dst_width[0], dst_stride[0], dst_stride[0], false, true, true);
-    if (process_plane[1]) Float2Int(dstU, dstUd, dst_height[1], dst_width[1], dst_stride[1], dst_stride[1], true, true, true);
-    if (process_plane[2]) Float2Int(dstV, dstVd, dst_height[2], dst_width[2], dst_stride[2], dst_stride[2], true, true, true);
+    if (process_plane[0]) Float2Int(dstY, dstYd, dst_height[0], dst_width[0], dst_stride[0], dst_stride[0], false, full, !isFloat(_Dt1));
+    if (process_plane[1]) Float2Int(dstU, dstUd, dst_height[1], dst_width[1], dst_stride[1], dst_stride[1], true, full, !isFloat(_Dt1));
+    if (process_plane[2]) Float2Int(dstV, dstVd, dst_height[2], dst_width[2], dst_stride[2], dst_stride[2], true, full, !isFloat(_Dt1));
 
     // Free memory for floating point YUV data
     if (process_plane[0]) AlignedFree(dstYd);

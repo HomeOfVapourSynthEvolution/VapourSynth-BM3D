@@ -91,10 +91,11 @@ int BM3D_Data_Base::arguments_process(const VSMap *in, VSMap *out)
     {
         para.profile = profile;
     }
-    
-    if (para.profile != "lc" && para.profile != "np" && para.profile != "vn" && para.profile != "high")
+
+    if (para.profile != "fast" && para.profile != "lc" && para.profile != "np"
+        && para.profile != "high" && para.profile != "vn")
     {
-        setError(out, "Unrecognized \"profile\" specified, should be \"lc\", \"np\", \"vn\" or \"high\"\n");
+        setError(out, "Unrecognized \"profile\" specified, should be \"fast\", \"lc\", \"np\", \"high\" or \"vn\"\n");
         return 1;
     }
 
@@ -106,6 +107,8 @@ int BM3D_Data_Base::arguments_process(const VSMap *in, VSMap *out)
     if (m > 0)
     {
         int i;
+
+        if (m > 3) m = 3;
 
         for (i = 0; i < m; ++i)
         {
@@ -441,8 +444,9 @@ void BM3D_Process_Base::Kernel(FLType *dstY, FLType *dstU, FLType *dstV,
 BM3D_Process_Base::PosPairCode BM3D_Process_Base::BlockMatching(
     const FLType *ref, PCType j, PCType i)
 {
-    // Skip block matching if GroupSize is 1, and take the reference block as the only element in the group
-    if (d.para.GroupSize == 1)
+    // Skip block matching if GroupSize is 1 or thMSE is not positive,
+    // and take the reference block as the only element in the group
+    if (d.para.GroupSize == 1 || d.para.thMSE <= 0)
     {
         return PosPairCode(1, PosPair(KeyType(0), PosType(j, i)));
     }

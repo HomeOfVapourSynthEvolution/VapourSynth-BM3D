@@ -23,12 +23,25 @@
 
 #include <iostream>
 #include <string>
+#include <sstream>
 #include <vector>
 #include <cmath>
 #include <vapoursynth/VapourSynth.h>
 #include <vapoursynth/VSHelper.h>
 #include "Type.h"
 #include "Specification.h"
+
+
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+
+template < typename _Ty >
+std::string GetStr(const _Ty &src)
+{
+    std::stringstream ss;
+    ss << src;
+    return ss.str();
+}
 
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -619,19 +632,19 @@ protected:
     void RGB2FloatY(FLType *dst,
         const _Ty *srcR, const _Ty *srcG, const _Ty *srcB,
         PCType height, PCType width, PCType dst_stride, PCType src_stride,
-        ColorMatrix matrix, bool full = true);
+        ColorMatrix matrix, bool full = true, bool clip = false);
 
     template < typename _Ty >
     void RGB2FloatYUV(FLType *dstY, FLType *dstU, FLType *dstV,
         const _Ty *srcR, const _Ty *srcG, const _Ty *srcB,
         PCType height, PCType width, PCType dst_stride, PCType src_stride,
-        ColorMatrix matrix, bool full = true);
+        ColorMatrix matrix, bool full = true, bool clip = false);
 
     template < typename _Ty >
     void FloatYUV2RGB(_Ty *dstR, _Ty *dstG, _Ty *dstB,
         const FLType *srcY, const FLType *srcU, const FLType *srcV,
         PCType height, PCType width, PCType dst_stride, PCType src_stride,
-        ColorMatrix matrix, bool full = true);
+        ColorMatrix matrix, bool full = true, bool clip = true);
 };
 
 

@@ -99,7 +99,7 @@ public:
     virtual int arguments_process(const VSMap *in, VSMap *out) override;
 
 protected:
-    void get_default_para(std::string _profile = "lc")
+    void get_default_para(std::string _profile = "fast")
     {
         para_default = _Mypara(wiener, _profile);
     }
@@ -140,6 +140,8 @@ protected:
     PCType ref_width[VSMaxPlaneCount];
     PCType ref_stride[VSMaxPlaneCount];
     PCType ref_pcount[VSMaxPlaneCount];
+
+    bool full = true;
 
 private:
     template < typename _Ty >
@@ -204,13 +206,30 @@ protected:
         int error;
         const VSMap *src_map = vsapi->getFramePropsRO(src);
 
+        // Determine OPP input
         int64_t BM3D_OPP = vsapi->propGetInt(src_map, "BM3D_OPP", 0, &error);
-
-        if (!error && BM3D_OPP == 1 && fi->colorFamily == cmYUV && d.matrix != ColorMatrix::OPP)
+        
+        if (error)
         {
-            vsapi->setFilterError("bm3d.Basic/bm3d.Final - warning: "
+            BM3D_OPP = 0;
+        }
+        else if (BM3D_OPP == 1 && fi->colorFamily != cmRGB && d.matrix != ColorMatrix::OPP)
+        {
+            vsapi->setFilterError("bm3d.Basic/bm3d.Final - error: "
                 "There's a frame property \"BM3D_OPP=1\" indicating opponent color space input. "
                 "You should specify \"matrix=100\" in the filter's argument.", frameCtx);
+        }
+
+        // Determine color range of Gray/YUV/YCoCg input
+        int64_t _ColorRange = vsapi->propGetInt(src_map, "_ColorRange", 0, &error);
+
+        if (error || BM3D_OPP == 1)
+        {
+            full = true;
+        }
+        else
+        {
+            full = _ColorRange != 1;
         }
 
         // The output frame

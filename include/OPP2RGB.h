@@ -193,7 +193,7 @@ void OPP2RGB_Process::process_core()
     GetQuanPara(sFloorY, sCeilY, sFloorC, sNeutralC, sCeilC, fi->bitsPerSample, true);
 
     MatrixConvert_YUV2RGB(dstR, dstG, dstB, srcY, srcU, srcV, height, width, dst_stride[0], src_stride[0],
-        dFloor, dCeil, sFloorY, sCeilY, sFloorC, sNeutralC, sCeilC, ColorMatrix::OPP);
+        dFloor, dCeil, sFloorY, sCeilY, sFloorC, sNeutralC, sCeilC, ColorMatrix::OPP, !isFloat(_Dt1));
 }
 
 

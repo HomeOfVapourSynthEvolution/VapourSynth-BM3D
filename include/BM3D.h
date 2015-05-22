@@ -43,7 +43,7 @@ struct BM3D_Para
     double thMSE;
     double lambda;
 
-    explicit BM3D_Para(bool _wiener, std::string _profile = "lc");
+    explicit BM3D_Para(bool _wiener, std::string _profile = "fast");
 
     void thMSE_Default();
 };

@@ -27,41 +27,67 @@
 VBM3D_Para::VBM3D_Para(bool _wiener, std::string _profile)
     : _Mybase(_wiener, _profile)
 {
-    radius = 1;
-    PSrange = 6;
+    radius = 3;
+    GroupSize = 8;
+    BMrange = 12;
+    PSnum = 2;
     PSstep = 1;
 
     if (!wiener)
     {
-        PSnum = 8;
+        PSrange = 5;
     }
     else
     {
-        PSnum = 12;
+        PSrange = 6;
     }
 
-    if (profile == "lc")
+    if (profile == "fast")
     {
+        radius = 1;
+        BMrange = 7;
+
         if (!wiener)
         {
-            PSrange = 3;
-            PSnum = 6;
+            PSrange = 4;
         }
         else
         {
+            PSrange = 5;
+        }
+    }
+    else if (profile == "lc")
+    {
+        radius = 2;
+        BMrange = 9;
+
+        if (!wiener)
+        {
             PSrange = 4;
-            PSnum = 8;
+        }
+        else
+        {
+            PSrange = 5;
+        }
+    }
+    else if (profile == "high")
+    {
+        radius = 4;
+        BMrange = 16;
+
+        if (!wiener)
+        {
+            PSrange = 7;
+        }
+        else
+        {
+            PSrange = 8;
         }
     }
     else if (profile == "vn")
     {
-        radius = 2;
-    }
-    else if (profile == "high")
-    {
-        radius = 2;
-        PSnum = 16;
-        PSrange = 9;
+        radius = 4;
+        GroupSize = 16;
     }
 }
 
@@ -138,9 +164,10 @@ int VBM3D_Data_Base::arguments_process(const VSMap *in, VSMap *out)
         para.profile = profile;
     }
 
-    if (para.profile != "lc" && para.profile != "np" && para.profile != "vn" && para.profile != "high")
+    if (para.profile != "fast" && para.profile != "lc" && para.profile != "np"
+        && para.profile != "high" && para.profile != "vn")
     {
-        setError(out, "Unrecognized \"profile\" specified, should be \"lc\", \"np\", \"vn\" or \"high\"\n");
+        setError(out, "Unrecognized \"profile\" specified, should be \"fast\", \"lc\", \"np\", \"high\" or \"vn\"\n");
         return 1;
     }
 
@@ -152,6 +179,8 @@ int VBM3D_Data_Base::arguments_process(const VSMap *in, VSMap *out)
     if (m > 0)
     {
         int i;
+
+        if (m > 3) m = 3;
 
         for (i = 0; i < m; ++i)
         {
@@ -529,8 +558,9 @@ void VBM3D_Process_Base::Kernel(std::vector<FLType *> &dstY, std::vector<FLType 
 VBM3D_Process_Base::Pos3PairCode VBM3D_Process_Base::BlockMatching(
     std::vector<const FLType *> &ref, PCType j, PCType i)
 {
-    // Skip block matching if GroupSize is 1, and take the reference block as the only element in the group
-    if (d.para.GroupSize == 1)
+    // Skip block matching if GroupSize is 1 or thMSE is not positive,
+    // and take the reference block as the only element in the group
+    if (d.para.GroupSize == 1 || d.para.thMSE <= 0)
     {
         return Pos3PairCode(1, Pos3Pair(KeyType(0), Pos3Type(cur, j, i)));
     }

@@ -74,8 +74,8 @@ void VBM3D_Process_Base::process_core_gray()
         else refYd[i] = srcYd[i];
 
         // Convert src and ref from integer Y data to floating point Y data
-        Int2Float(srcYd[i], srcY, src_height[0], src_width[0], src_stride[0], src_stride[0], false, true, false);
-        if (d.rdef) Int2Float(refYd[i], refY, ref_height[0], ref_width[0], ref_stride[0], ref_stride[0], false, true, false);
+        Int2Float(srcYd[i], srcY, src_height[0], src_width[0], src_stride[0], src_stride[0], false, full, false);
+        if (d.rdef) Int2Float(refYd[i], refY, ref_height[0], ref_width[0], ref_stride[0], ref_stride[0], false, full, false);
 
         // Store pointer to floating point Y data into corresponding frame of the vector
         dstYv.push_back(dstY + dst_pcount[0] * (i * 2));
@@ -180,15 +180,15 @@ void VBM3D_Process_Base::process_core_yuv()
         }
 
         // Convert src and ref from integer YUV data to floating point YUV data
-        if (d.process[0] || !d.rdef) Int2Float(srcYd[i], srcY, src_height[0], src_width[0], src_stride[0], src_stride[0], false, true, false);
-        if (d.process[1]) Int2Float(srcUd[i], srcU, src_height[1], src_width[1], src_stride[1], src_stride[1], true, true, false);
-        if (d.process[2]) Int2Float(srcVd[i], srcV, src_height[2], src_width[2], src_stride[2], src_stride[2], true, true, false);
+        if (d.process[0] || !d.rdef) Int2Float(srcYd[i], srcY, src_height[0], src_width[0], src_stride[0], src_stride[0], false, full, false);
+        if (d.process[1]) Int2Float(srcUd[i], srcU, src_height[1], src_width[1], src_stride[1], src_stride[1], true, full, false);
+        if (d.process[2]) Int2Float(srcVd[i], srcV, src_height[2], src_width[2], src_stride[2], src_stride[2], true, full, false);
 
         if (d.rdef)
         {
-            Int2Float(refYd[i], refY, ref_height[0], ref_width[0], ref_stride[0], ref_stride[0], false, true, false);
-            if (d.wiener && d.process[1]) Int2Float(refUd[i], refU, ref_height[1], ref_width[1], ref_stride[1], ref_stride[1], true, true, false);
-            if (d.wiener && d.process[2]) Int2Float(refVd[i], refV, ref_height[2], ref_width[2], ref_stride[2], ref_stride[2], true, true, false);
+            Int2Float(refYd[i], refY, ref_height[0], ref_width[0], ref_stride[0], ref_stride[0], false, full, false);
+            if (d.wiener && d.process[1]) Int2Float(refUd[i], refU, ref_height[1], ref_width[1], ref_stride[1], ref_stride[1], true, full, false);
+            if (d.wiener && d.process[2]) Int2Float(refVd[i], refV, ref_height[2], ref_width[2], ref_stride[2], ref_stride[2], true, full, false);
         }
 
         // Store pointer to floating point YUV data into corresponding frame in the vector
@@ -343,7 +343,7 @@ void VBM3D_Process_Base::process_core_rgb()
         // Convert src and ref from RGB data to floating point YUV data
         RGB2FloatYUV(srcYd[i], srcUd[i], srcVd[i], srcR, srcG, srcB,
             src_height[0], src_width[0], src_stride[0], src_stride[0],
-            ColorMatrix::OPP, true);
+            ColorMatrix::OPP, true, false);
 
         if (d.rdef)
         {
@@ -351,13 +351,13 @@ void VBM3D_Process_Base::process_core_rgb()
             {
                 RGB2FloatYUV(refYd[i], refUd[i], refVd[i], refR, refG, refB,
                     ref_height[0], ref_width[0], ref_stride[0], ref_stride[0],
-                    ColorMatrix::OPP, true);
+                    ColorMatrix::OPP, true, false);
             }
             else
             {
                 RGB2FloatY(refYd[i], refR, refG, refB,
                     ref_height[0], ref_width[0], ref_stride[0], ref_stride[0],
-                    ColorMatrix::OPP, true);
+                    ColorMatrix::OPP, true, false);
             }
         }
 

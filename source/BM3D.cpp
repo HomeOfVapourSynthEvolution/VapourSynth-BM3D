@@ -28,21 +28,22 @@ BM3D_Para::BM3D_Para(bool _wiener, std::string _profile)
     : wiener(_wiener), profile(_profile), sigma({ 10.0, 10.0, 10.0 })
 {
     BlockSize = 8;
-    BlockStep = 3;
     BMrange = 16;
     BMstep = 1;
 
     if (!wiener)
     {
+        BlockStep = 4;
         GroupSize = 16;
         lambda = 2.2;
     }
     else
     {
+        BlockStep = 3;
         GroupSize = 32;
     }
 
-    if (profile == "lc")
+    if (profile == "fast")
     {
         BMrange = 9;
 
@@ -54,6 +55,31 @@ BM3D_Para::BM3D_Para(bool _wiener, std::string _profile)
         {
             BlockStep = 7;
             GroupSize = 16;
+        }
+    }
+    else if (profile == "lc")
+    {
+        BMrange = 9;
+
+        if (!wiener)
+        {
+            BlockStep = 6;
+        }
+        else
+        {
+            BlockStep = 5;
+            GroupSize = 16;
+        }
+    }
+    else if (profile == "high")
+    {
+        if (!wiener)
+        {
+            BlockStep = 3;
+        }
+        else
+        {
+            BlockStep = 2;
         }
     }
     else if (profile == "vn")
@@ -69,10 +95,6 @@ BM3D_Para::BM3D_Para(bool _wiener, std::string _profile)
             BlockSize = 11;
             BlockStep = 6;
         }
-    }
-    else if (profile == "high")
-    {
-        BlockStep = 2;
     }
 
     thMSE_Default();

@@ -66,14 +66,14 @@ void BM3D_Process_Base::process_core_gray()
     else refYd = srcYd;
 
     // Convert src and ref from integer Y data to floating point Y data
-    Int2Float(srcYd, srcY, src_height[0], src_width[0], src_stride[0], src_stride[0], false, true, false);
-    if (d.rdef) Int2Float(refYd, refY, ref_height[0], ref_width[0], ref_stride[0], ref_stride[0], false, true, false);
+    Int2Float(srcYd, srcY, src_height[0], src_width[0], src_stride[0], src_stride[0], false, full, false);
+    if (d.rdef) Int2Float(refYd, refY, ref_height[0], ref_width[0], ref_stride[0], ref_stride[0], false, full, false);
 
     // Execute kernel
     Kernel(dstYd, srcYd, refYd);
 
     // Convert dst from floating point Y data to integer Y data
-    Float2Int(dstY, dstYd, dst_height[0], dst_width[0], dst_stride[0], dst_stride[0], false, true, true);
+    Float2Int(dstY, dstYd, dst_height[0], dst_width[0], dst_stride[0], dst_stride[0], false, full, !isFloat(_Ty));
 
     // Free memory for floating point Y data
     AlignedFree(dstYd);
@@ -137,24 +137,24 @@ void BM3D_Process_Base::process_core_yuv()
     }
 
     // Convert src and ref from integer YUV data to floating point YUV data
-    if (d.process[0] || !d.rdef) Int2Float(srcYd, srcY, src_height[0], src_width[0], src_stride[0], src_stride[0], false, true, false);
-    if (d.process[1]) Int2Float(srcUd, srcU, src_height[1], src_width[1], src_stride[1], src_stride[1], true, true, false);
-    if (d.process[2]) Int2Float(srcVd, srcV, src_height[2], src_width[2], src_stride[2], src_stride[2], true, true, false);
+    if (d.process[0] || !d.rdef) Int2Float(srcYd, srcY, src_height[0], src_width[0], src_stride[0], src_stride[0], false, full, false);
+    if (d.process[1]) Int2Float(srcUd, srcU, src_height[1], src_width[1], src_stride[1], src_stride[1], true, full, false);
+    if (d.process[2]) Int2Float(srcVd, srcV, src_height[2], src_width[2], src_stride[2], src_stride[2], true, full, false);
 
     if (d.rdef)
     {
-        Int2Float(refYd, refY, ref_height[0], ref_width[0], ref_stride[0], ref_stride[0], false, true, false);
-        if (d.wiener && d.process[1]) Int2Float(refUd, refU, ref_height[1], ref_width[1], ref_stride[1], ref_stride[1], true, true, false);
-        if (d.wiener && d.process[2]) Int2Float(refVd, refV, ref_height[2], ref_width[2], ref_stride[2], ref_stride[2], true, true, false);
+        Int2Float(refYd, refY, ref_height[0], ref_width[0], ref_stride[0], ref_stride[0], false, full, false);
+        if (d.wiener && d.process[1]) Int2Float(refUd, refU, ref_height[1], ref_width[1], ref_stride[1], ref_stride[1], true, full, false);
+        if (d.wiener && d.process[2]) Int2Float(refVd, refV, ref_height[2], ref_width[2], ref_stride[2], ref_stride[2], true, full, false);
     }
 
     // Execute kernel
     Kernel(dstYd, dstUd, dstVd, srcYd, srcUd, srcVd, refYd, refUd, refVd);
 
     // Convert dst from floating point YUV data to integer YUV data
-    if (d.process[0]) Float2Int(dstY, dstYd, dst_height[0], dst_width[0], dst_stride[0], dst_stride[0], false, true, true);
-    if (d.process[1]) Float2Int(dstU, dstUd, dst_height[1], dst_width[1], dst_stride[1], dst_stride[1], true, true, true);
-    if (d.process[2]) Float2Int(dstV, dstVd, dst_height[2], dst_width[2], dst_stride[2], dst_stride[2], true, true, true);
+    if (d.process[0]) Float2Int(dstY, dstYd, dst_height[0], dst_width[0], dst_stride[0], dst_stride[0], false, full, !isFloat(_Ty));
+    if (d.process[1]) Float2Int(dstU, dstUd, dst_height[1], dst_width[1], dst_stride[1], dst_stride[1], true, full, !isFloat(_Ty));
+    if (d.process[2]) Float2Int(dstV, dstVd, dst_height[2], dst_width[2], dst_stride[2], dst_stride[2], true, full, !isFloat(_Ty));
 
     // Free memory for floating point YUV data
     if (d.process[0]) AlignedFree(dstYd);
@@ -239,7 +239,7 @@ void BM3D_Process_Base::process_core_rgb()
     // Convert src and ref from RGB data to floating point YUV data
     RGB2FloatYUV(srcYd, srcUd, srcVd, srcR, srcG, srcB,
         src_height[0], src_width[0], src_stride[0], src_stride[0],
-        ColorMatrix::OPP, true);
+        ColorMatrix::OPP, true, false);
 
     if (d.rdef)
     {
@@ -247,13 +247,13 @@ void BM3D_Process_Base::process_core_rgb()
         {
             RGB2FloatYUV(refYd, refUd, refVd, refR, refG, refB,
                 ref_height[0], ref_width[0], ref_stride[0], ref_stride[0],
-                ColorMatrix::OPP, true);
+                ColorMatrix::OPP, true, false);
         }
         else
         {
             RGB2FloatY(refYd, refR, refG, refB,
                 ref_height[0], ref_width[0], ref_stride[0], ref_stride[0],
-                ColorMatrix::OPP, true);
+                ColorMatrix::OPP, true, false);
         }
     }
 
@@ -263,7 +263,7 @@ void BM3D_Process_Base::process_core_rgb()
     // Convert dst from floating point YUV data to RGB data
     FloatYUV2RGB(dstR, dstG, dstB, dstYd, dstUd, dstVd,
         dst_height[0], dst_width[0], dst_stride[0], dst_stride[0],
-        ColorMatrix::OPP, true);
+        ColorMatrix::OPP, true, !isFloat(_Ty));
 
     // Free memory for floating point YUV data
     AlignedFree(dstYd);
