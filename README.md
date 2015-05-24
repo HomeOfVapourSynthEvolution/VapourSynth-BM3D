@@ -36,11 +36,11 @@ sub sampling: when chroma is processed, no sub-sampling is supported, only YUV44
 
 ### Helper Functions
 
+#### RGB color space to opponent color space.
+
 ```python
 bm3d.RGB2OPP(clip input[, int sample=0])
 ```
-
-Convert input clip from RGB color space to opponent color space.
 
 - input:<br />
     The input clip, must be of RGB color family.<br />
@@ -50,9 +50,11 @@ Convert input clip from RGB color space to opponent color space.
   - 0 - 16 bit integer output (default)
   - 1 - 32 bit float output
 
-bm3d.OPP2RGB(clip input[, int sample=0])
+#### opponent color space to RGB color space.
 
-Convert input clip from opponent color space to RGB color space.
+```python
+bm3d.OPP2RGB(clip input[, int sample=0])
+```
 
 - input:<br />
     The input clip, must be of YUV color family.<br />
@@ -66,7 +68,7 @@ Convert input clip from opponent color space to RGB color space.
 
 BM3D is a spatial domain denoising (image denoising) filter.
 
-#### Basic estimate of BM3D denoising filter.
+#### basic estimate of BM3D denoising filter
 
 The input clip is processed in 3-step stages, For each reference block:<br />
   - Grouping. Use block-matching within the noisy image to find locations of blocks similar to the reference one (alternatively, if clip "ref" is assigned, then the block-matching will be applied on the reference clip). Then form a groups by stacking together the matched blocks in noisy image.
@@ -156,9 +158,9 @@ bm3d.Basic(clip input[, clip ref=input, string profile="fast", float[] sigma=[10
       - 10 - bt2020c
       - 100 - OPP, opponent color space converted by bm3d.RGB2OPP, always set when color family is RGB
 
-#### Final estimate of BM3D denoising filter.
+#### final estimate of BM3D denoising filter
 
-It takes the basic estimate as a reference clip.
+It takes the basic estimate as a reference.
 
 The input clip is processed in 3-step stages, For each reference block:<br />
   - Grouping. Use block-matching within the basic estimate to find locations of blocks similar to the reference one. Then form two groups, one from the noisy image and one from the basic estimate.
@@ -205,7 +207,7 @@ The output clip is an intermediate processed buffer. It is of 32 bit float forma
 
 Due to the float format and multiple times height of the output clip, as well as the multiple frames requested by each function, those frame cache leads to very high memory consumption of this V-BM3D implementation.
 
-#### Basic estimate of V-BM3D denoising filter.
+#### basic estimate of V-BM3D denoising filter
 
 ```python
 bm3d.VBasic(clip input[, clip ref=input, string profile="fast", float[] sigma=[10,10,10], int radius, int block_size, int block_step, int group_size, int bm_range, int bm_step, int ps_num, int ps_range, int ps_step, float th_mse, float hard_thr, int matrix=2])
@@ -221,7 +223,7 @@ bm3d.VBasic(clip input[, clip ref=input, string profile="fast", float[] sigma=[1
     The temporal radius for denoising, valid range [1, 16].<br />
     For each processed frame, (radius * 2 + 1) frames will be requested, and the filtering result will be returned to these frames by bm3d.VAggregate.<br />
     Increasing radius only increases tiny computational cost in block-matching and aggregation, and will not affect collaborative filtering, but the memory consumption can grow quadratically.<br />
-    Thus, feel free to use large radius if your RAM is large enough :D
+    Thus, feel free to use large radius as long as your RAM is large enough :D
 
 - ps_num:<br />
     The number of matched locations used for predictive search, valid range [1, group_size].<br />
@@ -234,7 +236,7 @@ bm3d.VBasic(clip input[, clip ref=input, string profile="fast", float[] sigma=[1
     Step between two search locations for predictive-search block-matching, valid range [1, ps_range].<br />
     The maximum number of predictive-search locations for each reference block in a frame is (ps_range / ps_step * 2 + 1) ^ 2 * ps_num.
 
-#### Final estimate of V-BM3D denoising filter.
+#### final estimate of V-BM3D denoising filter
 
 ```python
 bm3d.VFinal(clip input, clip ref[, string profile="fast", float[] sigma=[10,10,10], int radius, int block_size, int block_step, int group_size, int bm_range, int bm_step, int ps_num, int ps_range, int ps_step, float th_mse, int matrix=2])
@@ -249,7 +251,7 @@ bm3d.VFinal(clip input, clip ref[, string profile="fast", float[] sigma=[10,10,1
 - radius, ps_num, ps_range, ps_step:<br />
     Same as those in bm3d.VBasic.
 
-#### Aggregation of V-BM3D denoising filter.
+#### aggregation of V-BM3D denoising filter
 
 *If your input clip of bm3d.VBasic or bm3d.VFinal is of RGB color family, you will need to manually call bm3d.OPP2RGB after bm3d.VAggregate to convert it back to RGB.*
 
@@ -271,41 +273,41 @@ bm3d.VAggregate(clip input[, int radius=1, int sample=0])
 
 ```
 bm3d.Basic / bm3d.Final / bm3d.VBasic / bm3d.VFinal
----------------------------------------------------------------------------
-| Profile | block_size | block_step | group_size  | bm_range    | bm_step |
----------------------------------------------------------------------------
-| "fast"  | 8/8/8/8    | 8/7/8/7    | 16/16/8/8   | 9/9/7/7     | 1/1/1/1 |
-| "lc"    | 8/8/8/8    | 6/5/6/5    | 16/16/8/8   | 9/9/9/9     | 1/1/1/1 |
-| "np"    | 8/8/8/8    | 4/3/4/3    | 16/32/8/8   | 16/16/12/12 | 1/1/1/1 |
-| "high"  | 8/8/8/8    | 3/2/3/2    | 16/32/8/8   | 16/16/16/16 | 1/1/1/1 |
-| "vn"    | 8/11/8/11  | 4/6/4/6    | 32/32/16/16 | 16/16/12/12 | 1/1/1/1 |
----------------------------------------------------------------------------
+----------------------------------------------------------------------------
+| profile || block_size | block_step | group_size  | bm_range    | bm_step |
+----------------------------------------------------------------------------
+| "fast"  || 8/8/8/8    | 8/7/8/7    | 16/16/8/8   | 9/9/7/7     | 1/1/1/1 |
+| "lc"    || 8/8/8/8    | 6/5/6/5    | 16/16/8/8   | 9/9/9/9     | 1/1/1/1 |
+| "np"    || 8/8/8/8    | 4/3/4/3    | 16/32/8/8   | 16/16/12/12 | 1/1/1/1 |
+| "high"  || 8/8/8/8    | 3/2/3/2    | 16/32/8/8   | 16/16/16/16 | 1/1/1/1 |
+| "vn"    || 8/11/8/11  | 4/6/4/6    | 32/32/16/16 | 16/16/12/12 | 1/1/1/1 |
+----------------------------------------------------------------------------
 ```
 
 ```
 bm3d.VBasic / bm3d.VFinal
+---------------------------------------------------
+| profile || radius | ps_num | ps_range | ps_step |
 --------------------------------------------------
-| Profile | radius | ps_num | ps_range | ps_step |
---------------------------------------------------
-| "fast"  | 1/1    | 2/2    | 4/5      | 1/1/1/1 |
-| "lc"    | 2/2    | 2/2    | 4/5      | 1/1/1/1 |
-| "np"    | 3/3    | 2/2    | 5/6      | 1/1/1/1 |
-| "high"  | 4/4    | 2/2    | 7/8      | 1/1/1/1 |
-| "vn"    | 4/4    | 2/2    | 5/6      | 1/1/1/1 |
---------------------------------------------------
+| "fast"  || 1/1    | 2/2    | 4/5      | 1/1/1/1 |
+| "lc"    || 2/2    | 2/2    | 4/5      | 1/1/1/1 |
+| "np"    || 3/3    | 2/2    | 5/6      | 1/1/1/1 |
+| "high"  || 4/4    | 2/2    | 7/8      | 1/1/1/1 |
+| "vn"    || 4/4    | 2/2    | 5/6      | 1/1/1/1 |
+---------------------------------------------------
 ```
 
 ```
 bm3d.Basic & bm3d.VBasic / bm3d.Final & bm3d.VFinal
--------------------------------------------------------------
-| Profile | th_mse                              | hard_thr  |
--------------------------------------------------------------
-| "fast"  | sigma[0]*80+400   / sigma[0]*10+200 | 2.2 / NUL |
-| "lc"    | sigma[0]*80+400   / sigma[0]*10+200 | 2.2 / NUL |
-| "np"    | sigma[0]*80+400   / sigma[0]*10+200 | 2.2 / NUL |
-| "high"  | sigma[0]*80+400   / sigma[0]*10+200 | 2.2 / NUL |
-| "vn"    | sigma[0]*150+1000 / sigma[0]*40+400 | 2.3 / NUL |
--------------------------------------------------------------
+--------------------------------------------------------------
+| profile || th_mse                              | hard_thr  |
+--------------------------------------------------------------
+| "fast"  || sigma[0]*80+400   / sigma[0]*10+200 | 2.2 / NUL |
+| "lc"    || sigma[0]*80+400   / sigma[0]*10+200 | 2.2 / NUL |
+| "np"    || sigma[0]*80+400   / sigma[0]*10+200 | 2.2 / NUL |
+| "high"  || sigma[0]*80+400   / sigma[0]*10+200 | 2.2 / NUL |
+| "vn"    || sigma[0]*150+1000 / sigma[0]*40+400 | 2.3 / NUL |
+--------------------------------------------------------------
 ```
 
 ## Example
@@ -313,17 +315,20 @@ bm3d.Basic & bm3d.VBasic / bm3d.Final & bm3d.VFinal
 ### BM3D Example
 
 - basic estimate only, specify different sigma for Y,U,V planes
+
 ```python
 flt = core.bm3d.Basic(src, sigma=[10,6,8])
 ```
 
 - basic estimate + final estimate, sigma=10 for Y and sigma=7 for U,V
+
 ```python
 ref = core.bm3d.Basic(src, sigma=[10,7])
 flt = core.bm3d.Final(src, ref, sigma=[10,7])
 ```
 
 - additional pre-filtered clip as the reference for block-matching of basic estimate, sigma=10 for Y,U,V
+
 ```python
 pre = haf.sbr(src, 3)
 ref = core.bm3d.Basic(src, pre, sigma=10)
@@ -331,6 +336,7 @@ flt = core.bm3d.Final(src, ref, sigma=10)
 ```
 
 - apply the RGB<->OPP conversions separately
+
 ```python
 src = core.bm3d.RGB2OPP(src) # The output is of 16bit opponent color space
 ref = core.bm3d.Basic(src, matrix=100) # Specify the matrix of opponent color space
@@ -341,6 +347,7 @@ flt = core.bm3d.OPP2RGB(flt) # The output is of 16bit RGB color space
 ### V-BM3D Example
 
 - basic estimate + final estimate
+
 ```python
 src = core.bm3d.RGB2OPP(src)
 ref = core.bm3d.VBasic(src, radius=1, matrix=100).bm3d.VAggregate(radius=1)
@@ -349,6 +356,7 @@ flt = core.bm3d.OPP2RGB(flt)
 ```
 
 - use bm3d.Basic instead of bm3d.VBasic, faster, less memory consumption
+
 ```python
 src = core.bm3d.RGB2OPP(src)
 ref = core.bm3d.Basic(src, matrix=100)
@@ -356,7 +364,9 @@ flt = core.bm3d.VFinal(src, ref, radius=1, matrix=100).bm3d.VAggregate(radius=1)
 flt = core.bm3d.OPP2RGB(flt)
 ```
 
-- Employ custom denoising filter as basic estimate, refined with V-BM3D final estimate. May compensate the shortages of both denoising filters: SMDegrain is effective at spatial-temporal smoothing but can lead to blending and detail loss, V-BM3D preserves details well but is not very effective for large noise pattern (such as heavy grain).
+- Employ custom denoising filter as basic estimate, refined with V-BM3D final estimate.<br />
+    May compensate the shortages of both denoising filters: SMDegrain is effective at spatial-temporal smoothing but can lead to blending and detail loss, V-BM3D preserves details well but is not very effective for large noise pattern (such as heavy grain).
+
 ```python
 src = core.bm3d.RGB2OPP(src)
 ref = haf.SMDegrain(src)
