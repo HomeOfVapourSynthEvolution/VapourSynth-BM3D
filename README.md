@@ -66,18 +66,18 @@ Convert input clip from opponent color space to RGB color space.
 
 BM3D is a spatial domain denoising (image denoising) filter.
 
----
-
-```python
-bm3d.Basic(clip input[, clip ref=input, string profile="fast", float[] sigma=[10,10,10], int block_size, int block_step, int group_size, int bm_range, int bm_step, float th_mse, float hard_thr, int matrix=2])
-```
-
-Basic estimate of BM3D denoising filter.
+#### Basic estimate of BM3D denoising filter.
 
 The input clip is processed in 3-step stages, For each reference block:<br />
   - Grouping. Use block-matching within the noisy image to find locations of blocks similar to the reference one (alternatively, if clip "ref" is assigned, then the block-matching will be applied on the reference clip). Then form a groups by stacking together the matched blocks in noisy image.
   - Collaborative hard-thresholding. Apply a 3D transform to the formed group. Attenuate the noise by hard-thresholding of the transform coefficients. Invert the 3D transform to produce estimates of all grouped blocks.
   - Aggregation. Compute a basic estimate by aggregating the obtained block-wise estimates in each group using a weighted average.
+
+This basic estimate produces a decent estimate of the noise-free image, as a reference for final estimate.
+
+```python
+bm3d.Basic(clip input[, clip ref=input, string profile="fast", float[] sigma=[10,10,10], int block_size, int block_step, int group_size, int bm_range, int bm_step, float th_mse, float hard_thr, int matrix=2])
+```
 
 - input:<br />
     The input clip, the clip to be filtered with collaborative hard-thresholding.<br />
@@ -141,6 +141,8 @@ The input clip is processed in 3-step stages, For each reference block:<br />
 - matrix:<br />
     Matrix coefficients for Gray, YUV or YCoCg input, default 2.<br />
     Since the YUV color space is unnormalized, the actual sigma used inside BM3D will be normalized according to the matrix coefficients. This is important! It can significantly affect the final results.<br />
+    This normalization only plays a part when initializing the filter, thus I cannot employ the frame properties such as "_Matrix" for it.<br />
+    In case matrix is not properly set for BM3D with OPP input, bm3d.RGB2OPP attachs a property "BM3D_OPP=1" to its output frame. If this property is presented but matrix is not set to 100, the GetFrame function of BM3D will return an error message.<br />
     The number is as specified in ISO/IEC 14496-10, with an additional one for OPP.<br />
       - 0 - GBR
       - 1 - bt709
@@ -153,23 +155,21 @@ The input clip is processed in 3-step stages, For each reference block:<br />
       - 9 - bt2020nc
       - 10 - bt2020c
       - 100 - OPP, opponent color space converted by bm3d.RGB2OPP, always set when color family is RGB
-    This normalization only plays a part when initializing the filter, thus I cannot employ the frame properties such as "_Matrix" for it.<br />
-    In case matrix is not properly set for BM3D with OPP input, bm3d.RGB2OPP attachs a property "BM3D_OPP=1" to its output frame. If this property is presented but matrix is not set to 100, the GetFrame function of BM3D will return an error message.
 
----
+#### Final estimate of BM3D denoising filter.
 
-```python
-bm3d.Final(clip input, clip ref[, string profile="fast", float[] sigma=[10,10,10], int block_size, int block_step, int group_size, int bm_range, int bm_step, float th_mse, int matrix=2])
-```
-
-Final estimate of BM3D denoising filter. It takes the basic estimate as a reference clip.
+It takes the basic estimate as a reference clip.
 
 The input clip is processed in 3-step stages, For each reference block:<br />
   - Grouping. Use block-matching within the basic estimate to find locations of blocks similar to the reference one. Then form two groups, one from the noisy image and one from the basic estimate.
   - Collaborative Wiener filtering. Apply a 3D transform on both groups. Perform empirical Wiener filtering on the noisy one guided by the basic estimate.
   - Aggregation. Compute a final estimate by aggregating the obtained block-wise estimates in each group using a weighted average.
 
-This final estimate is mainly a refinement. It can significantly improve the denoising quality, keeping more details and fine structures that were removed in basic estimate.
+This final estimate can be realized as a refinement. It can significantly improve the denoising quality, keeping more details and fine structures that were removed in basic estimate.
+
+```python
+bm3d.Final(clip input, clip ref[, string profile="fast", float[] sigma=[10,10,10], int block_size, int block_step, int group_size, int bm_range, int bm_step, float th_mse, int matrix=2])
+```
 
 - input:<br />
     The input clip, the clip to be filtered.<br />
@@ -205,13 +205,11 @@ The output clip is an intermediate processed buffer. It is of 32 bit float forma
 
 Due to the float format and multiple times height of the output clip, as well as the multiple frames requested by each function, those frame cache leads to very high memory consumption of this V-BM3D implementation.
 
----
+#### Basic estimate of V-BM3D denoising filter.
 
 ```python
 bm3d.VBasic(clip input[, clip ref=input, string profile="fast", float[] sigma=[10,10,10], int radius, int block_size, int block_step, int group_size, int bm_range, int bm_step, int ps_num, int ps_range, int ps_step, float th_mse, float hard_thr, int matrix=2])
 ```
-
-Basic estimate of V-BM3D denoising filter.
 
 - input, ref:<br />
     Same as those in bm3d.Basic.
@@ -236,13 +234,11 @@ Basic estimate of V-BM3D denoising filter.
     Step between two search locations for predictive-search block-matching, valid range [1, ps_range].<br />
     The maximum number of predictive-search locations for each reference block in a frame is (ps_range / ps_step * 2 + 1) ^ 2 * ps_num.
 
----
+#### Final estimate of V-BM3D denoising filter.
 
 ```python
 bm3d.VFinal(clip input, clip ref[, string profile="fast", float[] sigma=[10,10,10], int radius, int block_size, int block_step, int group_size, int bm_range, int bm_step, int ps_num, int ps_range, int ps_step, float th_mse, int matrix=2])
 ```
-
-Final estimate of V-BM3D denoising filter.
 
 - input, ref:<br />
     Same as those in bm3d.Final.
@@ -253,13 +249,13 @@ Final estimate of V-BM3D denoising filter.
 - radius, ps_num, ps_range, ps_step:<br />
     Same as those in bm3d.VBasic.
 
+#### Aggregation of V-BM3D denoising filter.
+
+*If your input clip of bm3d.VBasic or bm3d.VFinal is of RGB color family, you will need to manually call bm3d.OPP2RGB after bm3d.VAggregate to convert it back to RGB.*
+
 ```python
 bm3d.VAggregate(clip input[, int radius=1, int sample=0])
 ```
-
-Aggregation function for bm3d.VBasic or bm3d.VFinal.
-
-*If your input clip of bm3d.VBasic or bm3d.VFinal is of RGB color family, you will need to manually call bm3d.OPP2RGB after bm3d.VAggregate to convert it back to RGB.*
 
 - input:<br />
     The clip output by bm3d.VBasic or bm3d.VFinal.
@@ -327,19 +323,19 @@ ref = core.bm3d.Basic(src, sigma=[10,7])
 flt = core.bm3d.Final(src, ref, sigma=[10,7])
 ```
 
-- additional pre-filtered clip as the reference of block-matching for basic estimate, sigma=10 for Y,U,V
+- additional pre-filtered clip as the reference for block-matching of basic estimate, sigma=10 for Y,U,V
 ```python
 pre = haf.sbr(src, 3)
 ref = core.bm3d.Basic(src, pre, sigma=10)
 flt = core.bm3d.Final(src, ref, sigma=10)
 ```
 
-- do the RGB<->OPP conversion separately
+- apply the RGB<->OPP conversions separately
 ```python
-src = core.bm3d.RGB2OPP(src) # The output is 16bit opponent color space
+src = core.bm3d.RGB2OPP(src) # The output is of 16bit opponent color space
 ref = core.bm3d.Basic(src, matrix=100) # Specify the matrix of opponent color space
 flt = core.bm3d.Final(src, ref, matrix=100) # Specify the matrix of opponent color space
-flt = core.bm3d.OPP2RGB(flt) # The output is 16bit RGB color space
+flt = core.bm3d.OPP2RGB(flt) # The output is of 16bit RGB color space
 ```
 
 ### V-BM3D Example
