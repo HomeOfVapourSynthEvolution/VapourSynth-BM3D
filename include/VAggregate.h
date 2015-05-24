@@ -124,6 +124,17 @@ public:
         }
     }
 
+    virtual ~VAggregate_Process() override
+    {
+        for (int i = 0; i < frames; ++i)
+        {
+            if (i != cur)
+            {
+                vsapi->freeFrame(v_src[i]);
+            }
+        }
+    }
+
     // Always output 16bit int or 32bit float Gray/YUV
     static const VSFormat *NewFormat(const _Mydata &d, const VSFormat *f, VSCore *core, const VSAPI *vsapi)
     {
