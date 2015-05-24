@@ -1,0 +1,247 @@
+#!/bin/sh
+
+#----------------------------------------------------------------------------
+#  configure script for VapourSynth-BM3D
+#----------------------------------------------------------------------------
+
+# -- help -------------------------------------------------------------------
+if test x"$1" = x"-h" -o x"$1" = x"--help" ; then
+cat << EOF
+Usage: [PKG_CONFIG_PATH=/foo/bar/lib/pkgconfig] ./configure [options]
+options:
+  -h, --help               print help (this)
+
+  --install=PATH           set dir for install library
+                           [/usr/local/lib/vapoursynth]
+
+  --cxx=CXX                use a defined compiler for compilation and linking
+                           [g++]
+  --target-os=OS           build programs to run on OS [auto]
+  --cross-prefix=PREFIX    use PREFIX for compilation tools
+  --sysroot=SYSROOT        root of cross-build tree
+  --enable-debug           compile with debug symbols and never strip
+
+  --extra-cxxflags=XCXXFLAGS  add XCXXFLAGS to CXXFLAGS
+  --extra-ldflags=XLDFLAGS    add XLDFLAGS to LDFLAGS
+  --extra-libs=XLIBS          add XLIBS to LIBS
+
+  --target=TARGET          set target instruction set [sse2]
+
+EOF
+exit 1
+fi
+
+#-- func --------------------------------------------------------------------
+error_exit()
+{
+    echo error: $1
+    exit 1
+}
+
+log_echo()
+{
+    echo $1
+    echo >> config.log
+    echo --------------------------------- >> config.log
+    echo $1 >> config.log
+}
+
+cc_check()
+{
+    rm -f conftest.c
+    if [ -n "$3" ]; then
+        echo "#include <$3>" >> config.log
+        echo 'extern "C" {' > conftest.cpp
+        echo "#include <$3>" >> conftest.cpp
+        echo } >> conftest.cpp
+    fi
+    echo "int main(void){$4 return 0;}" >> config.log
+    echo "int main(void){$4 return 0;}" >> conftest.cpp
+    echo $CXX conftest.cpp -o conftest $1 $2 >> config.log
+    $CXX conftest.cpp -o conftest $1 $2 2>> config.log
+    ret=$?
+    echo $ret >> config.log
+    rm -f conftest*
+    return $ret
+}
+#----------------------------------------------------------------------------
+rm -f config.* .depend
+
+SRCDIR="$(cd $(dirname $0); pwd)"
+test "$SRCDIR" = "$(pwd)" && SRCDIR=.
+test -n "$(echo $SRCDIR | grep ' ')" && \
+    error_exit "out-of-tree builds are impossible with whitespace in source path"
+
+# -- init -------------------------------------------------------------------
+libdir="/usr/local/lib/vapoursynth"
+
+TARGET_OS=""
+CROSS=""
+
+SYSROOT=""
+CXX="g++"
+LD="g++"
+STRIP="strip"
+
+DEBUG=""
+
+LIBNAME=""
+
+CXXFLAGS="-std=c++11 -Wall -Wno-unused-local-typedefs -I. -I$SRCDIR/include"
+LDFLAGS=""
+SOFLAGS="-shared -Wl,-Bsymbolic"
+DEPLIBS="fftw3f"
+
+TARGET="-msse2"
+
+# -- options ----------------------------------------------------------------
+echo all command lines: > config.log
+echo "$*" >> config.log
+
+for opt; do
+    optarg="${opt#*=}"
+    case "$opt" in
+        --install=*)
+            libdir="$optarg"
+            ;;
+        --enable-debug)
+            DEBUG="enabled"
+            CXXFLAGS="$CXXFLAGS -g"
+            ;;
+        --cxx=*)
+            CXX="$optarg"
+            LD="$optarg"
+            ;;
+        --extra-cxxflags=*)
+            XCXXFLAGS="$optarg"
+            ;;
+        --extra-ldflags=*)
+            XLDFLAGS="$optarg"
+            ;;
+        --extra-libs=*)
+            XLIBS="$optarg"
+            ;;
+        --target-os=*)
+            TARGET_OS="$optarg"
+            ;;
+        --cross-prefix=*)
+            CROSS="$optarg"
+            ;;
+        --sysroot=*)
+            CXXFLAGS="$CXXFLAGS --sysroot=$optarg"
+            LDFLAGS="$LDFLAGS --sysroot=$optarg"
+            ;;
+        --target=*)
+            TARGET="-m$optarg"
+            ;;
+        --disable-simd)
+            SIMD=""
+            ;;
+        *)
+            error_exit "unknown option $opt"
+            ;;
+    esac
+done
+
+CXXFLAGS="$CXXFLAGS $XCXXFLAGS $TARGET $SIMD"
+LDFLAGS="$LDFLAGS $XLDFLAGS"
+
+CXX="${CROSS}${CXX}"
+LD="${CROSS}${LD}"
+STRIP="${CROSS}${STRIP}"
+for f in "$CXX" "$LD" "$STRIP"; do
+    test -n "$(which $f 2> /dev/null)" || error_exit "$f is not executable"
+done
+
+if test -n "$TARGET_OS"; then
+    TARGET_OS=$(echo $TARGET_OS | tr '[A-Z]' '[a-z]')
+else
+    TARGET_OS=$($CXX -dumpmachine | tr '[A-Z]' '[a-z]')
+fi
+case "$TARGET_OS" in
+    *mingw*)
+        LIBNAME="BM3D.dll"
+        SOFLAGS="$SOFLAGS -Wl,--dll,--add-stdcall-alias"
+        ;;
+    *darwin*)
+        LIBNAME="libbm3d.dylib"
+        DEPLIBS="$DEPLIBS vapoursynth"
+        SOFLAGS="$SOFLAGS -dynamiclib -Wl,-undefined,suppress -Wl,-read_only_relocs,suppress -Wl,-flat_namespace"
+        ;;
+    *linux*|*bsd*)
+        LIBNAME="libbm3d.so"
+        DEPLIBS="$DEPLIBS vapoursynth"
+        CXXFLAGS="$CXXFLAGS -fPIC"
+        SOFLAGS="$SOFLAGS -Wl,-soname,$LIBNAME -fPIC"
+        ;;
+    *)
+        error_exit "target is unsupported system"
+esac
+
+
+log_echo "CXXFLAGS/LDFLAGS checking..."
+if ! cc_check "$CXXFLAGS" "$LDFLAGS"; then
+    error_exit "invalid CXXFLAGS/LDFLAGS"
+fi
+if cc_check "-O2 -ffast-math $CXXFLAGS" "$LDFLAGS"; then
+    CXXFLAGS="-O2 -ffast-math $CXXFLAGS"
+fi
+if cc_check "$CXXFLAGS -mfpmath=sse" "$LDFLAGS"; then
+    CXXFLAGS="$CXXFLAGS -mfpmath=sse"
+fi
+
+PKGCONFIGBIN="pkg-config"
+test -n "$(which ${CROSS}${PKGCONFIGBIN} 2> /dev/null)" && \
+    PKGCONFIGBIN=${CROSS}${PKGCONFIGBIN}
+
+if $PKGCONFIGBIN --exists $DEPLIBS 2> /dev/null; then
+    LIBS="$($PKGCONFIGBIN --libs $DEPLIBS)"
+    CXXFLAGS="$CXXFLAGS $($PKGCONFIGBIN --cflags $DEPLIBS)"
+else
+    for lib in $DEPLIBS; do
+        LIBS="$LIBS -l${lib#lib}"
+    done
+    log_echo "warning: pkg-config or pc files not found, lib detection may be inaccurate."
+fi
+
+LDFLAGS="$SOFLAGS $LDFLAGS"
+LIBS="$LIBS $XLIBS"
+
+
+cat >> config.mak << EOF
+CXX = $CXX
+LD = $LD
+STRIP = $STRIP
+CXXFLAGS = $CXXFLAGS
+LDFLAGS = $LDFLAGS
+LIBS = $LIBS
+SRCDIR = $SRCDIR
+LIBNAME = $LIBNAME
+libdir = $libdir
+EOF
+
+cat >> config.log << EOF
+---------------------------------
+    setting
+---------------------------------
+EOF
+cat config.mak >> config.log
+
+cat << EOF
+
+settings...
+CXX          = $CXX
+LD           = $LD
+STRIP        = $STRIP
+CXXFLAGS     = $CXXFLAGS
+LDFLAGS      = $LDFLAGS
+LIBS         = $LIBS
+LIBNAME      = $LIBNAME
+install path = $libdir
+EOF
+
+test "$SRCDIR" = "." || ln -sf $SRCDIR/GNUmakefile .
+
+echo configure finished.
+
+exit 0
