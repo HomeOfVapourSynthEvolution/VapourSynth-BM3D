@@ -204,6 +204,13 @@ else
     log_echo "warning: pkg-config or pc files not found, lib detection may be inaccurate."
 fi
 
+
+log_echo "checking for fftw3f..."
+if ! cc_check "$CXXFLAGS" "$LDFLAGS $LIBS $XLIBS" "fftw3.h" "fftwf_free(nullptr);" ; then
+    log_echo "error: fftw3f checking failed."
+    error_exit "fftw3.h might not be installed or some libs missing."
+fi
+
 LDFLAGS="$SOFLAGS $LDFLAGS"
 LIBS="$LIBS $XLIBS"
 
