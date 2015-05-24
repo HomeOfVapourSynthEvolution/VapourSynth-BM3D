@@ -71,9 +71,13 @@ BM3D is a spatial domain denoising (image denoising) filter.
 #### basic estimate of BM3D denoising filter
 
 The input clip is processed in 3-step stages, For each reference block:<br />
-  - Grouping. Use block-matching within the noisy image to find locations of blocks similar to the reference one (alternatively, if clip "ref" is assigned, then the block-matching will be applied on the reference clip). Then form a groups by stacking together the matched blocks in noisy image.
-  - Collaborative hard-thresholding. Apply a 3D transform to the formed group. Attenuate the noise by hard-thresholding of the transform coefficients. Invert the 3D transform to produce estimates of all grouped blocks.
-  - Aggregation. Compute a basic estimate by aggregating the obtained block-wise estimates in each group using a weighted average.
+
+- Grouping.<br />
+    Use block-matching within the noisy image to find locations of blocks similar to the reference one (alternatively, if clip "ref" is assigned, then the block-matching will be applied on the reference clip). Then form a groups by stacking together the matched blocks in noisy image.
+- Collaborative hard-thresholding.<br />
+    Apply a 3D transform to the formed group. Attenuate the noise by hard-thresholding of the transform coefficients. Invert the 3D transform to produce estimates of all grouped blocks.
+- Aggregation.<br />
+    Compute a basic estimate by aggregating the obtained block-wise estimates in each group using a weighted average.
 
 This basic estimate produces a decent estimate of the noise-free image, as a reference for final estimate.
 
@@ -163,9 +167,13 @@ bm3d.Basic(clip input[, clip ref=input, string profile="fast", float[] sigma=[10
 It takes the basic estimate as a reference.
 
 The input clip is processed in 3-step stages, For each reference block:<br />
-  - Grouping. Use block-matching within the basic estimate to find locations of blocks similar to the reference one. Then form two groups, one from the noisy image and one from the basic estimate.
-  - Collaborative Wiener filtering. Apply a 3D transform on both groups. Perform empirical Wiener filtering on the noisy one guided by the basic estimate.
-  - Aggregation. Compute a final estimate by aggregating the obtained block-wise estimates in each group using a weighted average.
+
+- Grouping.<br />
+    Use block-matching within the basic estimate to find locations of blocks similar to the reference one. Then form two groups, one from the noisy image and one from the basic estimate.
+- Collaborative Wiener filtering.<br />
+    Apply a 3D transform on both groups. Perform empirical Wiener filtering on the noisy one guided by the basic estimate.
+- Aggregation.<br />
+    Compute a final estimate by aggregating the obtained block-wise estimates in each group using a weighted average.
 
 This final estimate can be realized as a refinement. It can significantly improve the denoising quality, keeping more details and fine structures that were removed in basic estimate.
 
