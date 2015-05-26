@@ -337,18 +337,18 @@ protected:
         vsapi->propSetIntArray(dst_map, "BM3D_V_process", process, VSMaxPlaneCount);
     }
 
-    void Kernel(std::vector<FLType *> &dst, std::vector<const FLType *> &src, std::vector<const FLType *> &ref);
+    void Kernel(const std::vector<FLType *> &dst, const std::vector<const FLType *> &src, const std::vector<const FLType *> &ref) const;
 
-    void Kernel(std::vector<FLType *> &dstY, std::vector<FLType *> &dstU, std::vector<FLType *> &dstV,
-        std::vector<const FLType *> &srcY, std::vector<const FLType *> &srcU, std::vector<const FLType *> &srcV,
-        std::vector<const FLType *> &refY, std::vector<const FLType *> &refU, std::vector<const FLType *> &refV);
+    void Kernel(const std::vector<FLType *> &dstY, const std::vector<FLType *> &dstU, const std::vector<FLType *> &dstV,
+        const std::vector<const FLType *> &srcY, const std::vector<const FLType *> &srcU, const std::vector<const FLType *> &srcV,
+        const std::vector<const FLType *> &refY, const std::vector<const FLType *> &refU, const std::vector<const FLType *> &refV) const;
 
-    Pos3PairCode BlockMatching(std::vector<const FLType *> &ref, PCType j, PCType i);
+    Pos3PairCode BlockMatching(const std::vector<const FLType *> &ref, PCType j, PCType i) const;
 
     virtual void CollaborativeFilter(int plane,
-        std::vector<FLType *> &ResNum, std::vector<FLType *> &ResDen,
-        std::vector<const FLType *> &src, std::vector<const FLType *> &ref,
-        const Pos3PairCode &code) = 0;
+        const std::vector<FLType *> &ResNum, const std::vector<FLType *> &ResDen,
+        const std::vector<const FLType *> &src, const std::vector<const FLType *> &ref,
+        const Pos3PairCode &code) const = 0;
 };
 
 

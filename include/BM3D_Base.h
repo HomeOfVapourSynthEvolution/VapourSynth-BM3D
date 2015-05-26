@@ -230,18 +230,18 @@ protected:
         _NewFrame(width, height, dfi == fi);
     }
 
-    void Kernel(FLType *dst, const FLType *src, const FLType *ref);
+    void Kernel(FLType *dst, const FLType *src, const FLType *ref) const;
 
     void Kernel(FLType *dstY, FLType *dstU, FLType *dstV,
         const FLType *srcY, const FLType *srcU, const FLType *srcV,
-        const FLType *refY, const FLType *refU, const FLType *refV);
+        const FLType *refY, const FLType *refU, const FLType *refV) const;
 
-    PosPairCode BlockMatching(const FLType *ref, PCType j, PCType i);
+    PosPairCode BlockMatching(const FLType *ref, PCType j, PCType i) const;
 
     virtual void CollaborativeFilter(int plane,
         FLType *ResNum, FLType *ResDen,
         const FLType *src, const FLType *ref,
-        const PosPairCode &code) = 0;
+        const PosPairCode &code) const = 0;
 };
 
 

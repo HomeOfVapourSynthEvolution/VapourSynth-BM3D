@@ -104,6 +104,7 @@ bm3d.Basic(clip input[, clip ref=input, string profile="fast", float[] sigma=[10
 
 - sigma:<br />
     The strength of denoising, valid range [0, +inf), default [10,10,10].<br />
+    This denoising algorithm is very sensitive to the sigma, so adjust it carefully according to the source.<br />
     Technically, this is the standard deviation of i.i.d. zero mean additive white Gaussian noise in 8 bit scale. BM3D denoising filter is designed based on this noise model, and best fit for attenuating it.<br />
     An array up to 3 elements can be assigned to set different sigma for Y,U,V channels. If less than 3 elements assigned, the last element's value will be assigned to the undefined elements.<br />
     0 will disable the processing for corresponding channel.
@@ -141,7 +142,7 @@ bm3d.Basic(clip input[, clip ref=input, string profile="fast", float[] sigma=[10
 
 - hard_thr:<br />
     The threshold parameter for the hard-thresholding in 3D transformed domain, in 8 bit scale, valid range (0, +inf).<br />
-    Larger results in stronger hard-threshold filtering in frequency domain.<br />
+    Larger value results in stronger hard-threshold filtering in frequency domain.<br />
     Usually, to tweak denoising strength, it's better to adjust "sigma" rather than "hard_thr".
 
 - matrix:<br />
@@ -296,7 +297,7 @@ bm3d.Basic / bm3d.Final / bm3d.VBasic / bm3d.VFinal
 bm3d.VBasic / bm3d.VFinal
 ---------------------------------------------------
 | profile || radius | ps_num | ps_range | ps_step |
---------------------------------------------------
+---------------------------------------------------
 | "fast"  || 1/1    | 2/2    | 4/5      | 1/1/1/1 |
 | "lc"    || 2/2    | 2/2    | 4/5      | 1/1/1/1 |
 | "np"    || 3/3    | 2/2    | 5/6      | 1/1/1/1 |
@@ -310,11 +311,11 @@ bm3d.Basic & bm3d.VBasic / bm3d.Final & bm3d.VFinal
 --------------------------------------------------------------
 | profile || th_mse                              | hard_thr  |
 --------------------------------------------------------------
-| "fast"  || sigma[0]*80+400   / sigma[0]*10+200 | 2.2 / NUL |
-| "lc"    || sigma[0]*80+400   / sigma[0]*10+200 | 2.2 / NUL |
-| "np"    || sigma[0]*80+400   / sigma[0]*10+200 | 2.2 / NUL |
-| "high"  || sigma[0]*80+400   / sigma[0]*10+200 | 2.2 / NUL |
-| "vn"    || sigma[0]*150+1000 / sigma[0]*40+400 | 2.3 / NUL |
+| "fast"  || sigma[0]*80+400   / sigma[0]*10+200 | 2.7 / NUL |
+| "lc"    || sigma[0]*80+400   / sigma[0]*10+200 | 2.7 / NUL |
+| "np"    || sigma[0]*80+400   / sigma[0]*10+200 | 2.7 / NUL |
+| "high"  || sigma[0]*80+400   / sigma[0]*10+200 | 2.7 / NUL |
+| "vn"    || sigma[0]*150+1000 / sigma[0]*40+400 | 2.8 / NUL |
 --------------------------------------------------------------
 ```
 

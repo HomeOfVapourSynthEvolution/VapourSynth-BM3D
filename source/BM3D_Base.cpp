@@ -295,7 +295,7 @@ void BM3D_Data_Base::init_filter_data()
 // Functions of class BM3D_Process_Base
 
 
-void BM3D_Process_Base::Kernel(FLType *dst, const FLType *src, const FLType *ref)
+void BM3D_Process_Base::Kernel(FLType *dst, const FLType *src, const FLType *ref) const
 {
     FLType *ResNum = dst, *ResDen = nullptr;
 
@@ -354,7 +354,7 @@ void BM3D_Process_Base::Kernel(FLType *dst, const FLType *src, const FLType *ref
 
 void BM3D_Process_Base::Kernel(FLType *dstY, FLType *dstU, FLType *dstV,
     const FLType *srcY, const FLType *srcU, const FLType *srcV,
-    const FLType *refY, const FLType *refU, const FLType *refV)
+    const FLType *refY, const FLType *refU, const FLType *refV) const
 {
     FLType *ResNumY = dstY, *ResDenY = nullptr;
     FLType *ResNumU = dstU, *ResDenU = nullptr;
@@ -442,7 +442,7 @@ void BM3D_Process_Base::Kernel(FLType *dstY, FLType *dstU, FLType *dstV,
 
 
 BM3D_Process_Base::PosPairCode BM3D_Process_Base::BlockMatching(
-    const FLType *ref, PCType j, PCType i)
+    const FLType *ref, PCType j, PCType i) const
 {
     // Skip block matching if GroupSize is 1 or thMSE is not positive,
     // and take the reference block as the only element in the group

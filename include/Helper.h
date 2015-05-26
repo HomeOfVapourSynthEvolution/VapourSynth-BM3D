@@ -33,6 +33,20 @@
 
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+// Exception handle
+
+
+#ifdef _DEBUG
+#define DEBUG_BREAK __debugbreak();
+#define DEBUG_FAIL(mesg) __debugbreak(); _STD _DEBUG_ERROR(mesg);
+#else
+#define DEBUG_BREAK exit(EXIT_FAILURE);
+#define DEBUG_FAIL(mesg) std::cerr << mesg << std::endl; exit(EXIT_FAILURE);
+#endif
+
+
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+// Convert to std::string
 
 
 template < typename _Ty >
@@ -45,6 +59,70 @@ std::string GetStr(const _Ty &src)
 
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+// Memory allocation
+
+
+const size_t MEMORY_ALIGNMENT = 32;
+
+
+template < typename _Ty >
+void AlignedMalloc(_Ty *&Memory, size_t Count, size_t Alignment = MEMORY_ALIGNMENT)
+{
+    Memory = vs_aligned_malloc<_Ty>(sizeof(_Ty) * Count, Alignment);
+}
+
+
+template < typename _Ty >
+void AlignedFree(_Ty *&Memory)
+{
+    vs_aligned_free(Memory);
+    Memory = nullptr;
+}
+
+
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+// 2D array copy
+
+
+template < typename _Dt1, typename _St1 >
+void MatCopy(_Dt1 *dstp, const _St1 *srcp, PCType height, PCType width, PCType dst_stride, PCType src_stride)
+{
+    for (PCType j = 0; j < height; ++j)
+    {
+        for (PCType i = 0; i < width; ++i)
+        {
+            dstp[i] = static_cast<_Dt1>(srcp[i]);
+        }
+
+        dstp += dst_stride;
+        srcp += src_stride;
+    }
+}
+
+template < typename _Ty >
+void MatCopy(_Ty *dstp, const _Ty *srcp, PCType height, PCType width, PCType dst_stride, PCType src_stride)
+{
+    if (height > 0)
+    {
+        if (src_stride == dst_stride && src_stride == width)
+        {
+            memcpy(dstp, srcp, sizeof(_Ty) * height * width);
+        }
+        else
+        {
+            for (PCType j = 0; j < height; ++j)
+            {
+                memcpy(dstp, srcp, sizeof(_Ty) * width);
+                dstp += dst_stride;
+                srcp += src_stride;
+            }
+        }
+    }
+}
+
+
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+// Loop in 2D array
 
 
 #define LOOP_V _Loop_V
@@ -123,6 +201,7 @@ void _Loop_VH(const PCType height, const PCType width, const PCType stride0, con
 
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+// Quantization parameters
 
 
 template < typename _Ty >
@@ -223,76 +302,75 @@ bool isPCChroma(_Ty Floor, _Ty Neutral, _Ty Ceil)
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 
-template < typename T >
-T Min(T a, T b)
+template < typename _Ty >
+_Ty Min(const _Ty &a, const _Ty &b)
 {
     return b < a ? b : a;
 }
 
-template < typename T >
-T Max(T a, T b)
+template < typename _Ty >
+_Ty Max(const _Ty &a, const _Ty &b)
 {
     return b > a ? b : a;
 }
 
-template < typename T >
-T Clip(T input, T Floor, T Ceil)
+template < typename _Ty >
+_Ty Clip(const _Ty &input, const _Ty &lower, const _Ty &upper)
 {
-    return input <= Floor ? Floor : input >= Ceil ? Ceil : input;
+    return input <= lower ? lower : input >= upper ? upper : input;
 }
 
-template <typename T>
-inline T Abs(T input)
+
+template < typename _Ty >
+_Ty Abs(const _Ty &input)
 {
     return input < 0 ? -input : input;
 }
 
-template <typename T>
-inline T Round_Div(T dividend, T divisor)
+template < typename _Ty >
+_Ty AbsSub(const _Ty &a, const _Ty &b)
+{
+    return b < a ? a - b : b - a;
+}
+
+
+template < typename _Ty >
+_Ty _RoundDiv(_Ty dividend, _Ty divisor, const std::false_type &)
 {
     return (dividend + divisor / 2) / divisor;
 }
 
-
-////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-
-
-const size_t MEMORY_ALIGNMENT = 32;
-
-
 template < typename _Ty >
-void AlignedMalloc(_Ty *&Memory, size_t Count, size_t Alignment = MEMORY_ALIGNMENT)
+_Ty _RoundDiv(_Ty dividend, _Ty divisor, const std::true_type &)
 {
-    Memory = vs_aligned_malloc<_Ty>(sizeof(_Ty) * Count, Alignment);
+    return dividend / divisor;
 }
 
-
 template < typename _Ty >
-void AlignedFree(_Ty *&Memory)
+_Ty RoundDiv(_Ty dividend, _Ty divisor)
 {
-    vs_aligned_free(Memory);
-    Memory = nullptr;
+    return _RoundDiv(dividend, divisor, _IsFloat<_Ty>);
 }
 
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 
-template < typename T >
+template < typename _Ty >
 int stride_cal(int width)
 {
-    size_t Alignment2 = MEMORY_ALIGNMENT / sizeof(T);
+    size_t Alignment2 = MEMORY_ALIGNMENT / sizeof(_Ty);
     return static_cast<int>(width % Alignment2 == 0 ? width : (width / Alignment2 + 1) * Alignment2);
 }
 
 
-template < typename T >
-void data2buff(T *dst, const T *src, int xoffset, int yoffset,
+template < typename _Ty >
+void data2buff(_Ty *dst, const _Ty *src, int xoffset, int yoffset,
     int bufheight, int bufwidth, int bufstride, int height, int width, int stride)
 {
     int x, y;
-    T *dstp;
-    const T *srcp;
+    _Ty *dstp;
+    const _Ty *srcp;
 
     for (y = 0; y < height; ++y)
     {
@@ -300,7 +378,7 @@ void data2buff(T *dst, const T *src, int xoffset, int yoffset,
         srcp = src + y * stride;
         for (x = 0; x < xoffset; ++x)
             dstp[x] = srcp[0];
-        memcpy(dstp + xoffset, srcp, sizeof(T) * width);
+        memcpy(dstp + xoffset, srcp, sizeof(_Ty) * width);
         for (x = xoffset + width; x < bufwidth; ++x)
             dstp[x] = srcp[width - 1];
     }
@@ -309,29 +387,29 @@ void data2buff(T *dst, const T *src, int xoffset, int yoffset,
     for (y = 0; y < yoffset; ++y)
     {
         dstp = dst + y * bufstride;
-        memcpy(dstp, srcp, sizeof(T) * bufwidth);
+        memcpy(dstp, srcp, sizeof(_Ty) * bufwidth);
     }
 
     srcp = dst + (yoffset + height - 1) * bufstride;
     for (y = yoffset + height; y < bufheight; ++y)
     {
         dstp = dst + y * bufstride;
-        memcpy(dstp, srcp, sizeof(T) * bufwidth);
+        memcpy(dstp, srcp, sizeof(_Ty) * bufwidth);
     }
 }
 
-template < typename T >
-T *newbuff(const T *src, int xoffset, int yoffset,
+template < typename _Ty >
+_Ty *newbuff(const _Ty *src, int xoffset, int yoffset,
     int bufheight, int bufwidth, int bufstride, int height, int width, int stride)
 {
-    T *dst;
+    _Ty *dst;
     AlignedMalloc(dst, bufheight * bufstride);
     data2buff(dst, src, xoffset, yoffset, bufheight, bufwidth, bufstride, height, width, stride);
     return dst;
 }
 
-template < typename T >
-void freebuff(T *&buff)
+template < typename _Ty >
+void freebuff(_Ty *&buff)
 {
     AlignedFree(buff);
 }

@@ -83,9 +83,9 @@ public:
 
 protected:
     virtual void CollaborativeFilter(int plane,
-        std::vector<FLType *> &ResNum, std::vector<FLType *> &ResDen,
-        std::vector<const FLType *> &src, std::vector<const FLType *> &ref,
-        const Pos3PairCode &code) override;
+        const std::vector<FLType *> &ResNum, const std::vector<FLType *> &ResDen,
+        const std::vector<const FLType *> &src, const std::vector<const FLType *> &ref,
+        const Pos3PairCode &code) const override;
 };
 
 

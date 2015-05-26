@@ -419,7 +419,8 @@ void VBM3D_Data_Base::init_filter_data()
 // Functions of class VBM3D_Process_Base
 
 
-void VBM3D_Process_Base::Kernel(std::vector<FLType *> &dst, std::vector<const FLType *> &src, std::vector<const FLType *> &ref)
+void VBM3D_Process_Base::Kernel(const std::vector<FLType *> &dst,
+    const std::vector<const FLType *> &src, const std::vector<const FLType *> &ref) const
 {
     std::vector<FLType *> ResNum(frames), ResDen(frames);
 
@@ -472,9 +473,9 @@ void VBM3D_Process_Base::Kernel(std::vector<FLType *> &dst, std::vector<const FL
 }
 
 
-void VBM3D_Process_Base::Kernel(std::vector<FLType *> &dstY, std::vector<FLType *> &dstU, std::vector<FLType *> &dstV,
-    std::vector<const FLType *> &srcY, std::vector<const FLType *> &srcU, std::vector<const FLType *> &srcV,
-    std::vector<const FLType *> &refY, std::vector<const FLType *> &refU, std::vector<const FLType *> &refV)
+void VBM3D_Process_Base::Kernel(const std::vector<FLType *> &dstY, const std::vector<FLType *> &dstU, const std::vector<FLType *> &dstV,
+    const std::vector<const FLType *> &srcY, const std::vector<const FLType *> &srcU, const std::vector<const FLType *> &srcV,
+    const std::vector<const FLType *> &refY, const std::vector<const FLType *> &refU, const std::vector<const FLType *> &refV) const
 {
     std::vector<FLType *> ResNumY(frames), ResDenY(frames);
     std::vector<FLType *> ResNumU(frames), ResDenU(frames);
@@ -556,7 +557,7 @@ void VBM3D_Process_Base::Kernel(std::vector<FLType *> &dstY, std::vector<FLType 
 
 
 VBM3D_Process_Base::Pos3PairCode VBM3D_Process_Base::BlockMatching(
-    std::vector<const FLType *> &ref, PCType j, PCType i)
+    const std::vector<const FLType *> &ref, PCType j, PCType i) const
 {
     // Skip block matching if GroupSize is 1 or thMSE is not positive,
     // and take the reference block as the only element in the group

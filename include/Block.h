@@ -76,15 +76,15 @@ public:
     }
 
     template < typename _St2, typename _Fn1 >
-    void for_each(_St2 &right, _Fn1 _Func)
+    void for_each(_St2 &data2, _Fn1 _Func)
     {
-        Block_For_each(*this, right, _Func);
+        Block_For_each(*this, data2, _Func);
     }
 
     template < typename _St2, typename _Fn1 >
-    void for_each(_St2 &right, _Fn1 _Func) const
+    void for_each(_St2 &data2, _Fn1 _Func) const
     {
-        Block_For_each(*this, right, _Func);
+        Block_For_each(*this, data2, _Func);
     }
 
     template < typename _Fn1 >
@@ -103,7 +103,7 @@ public:
     // Default constructor
     Block() {}
 
-    Block(PCType _Height, PCType _Width, PosType pos, bool Init = true, value_type Value = 0)
+    Block(PCType _Height, PCType _Width, const PosType &pos, bool Init = true, value_type Value = 0)
         : Height_(_Height), Width_(_Width), PixelCount_(Height_ * Width_), pos_(pos)
     {
         AlignedMalloc(Data_, size());
@@ -113,13 +113,13 @@ public:
 
     // Constructor from plane pointer and PosType
     template < typename _St1 >
-    Block(const _St1 *src, PCType src_stride, PCType _Height, PCType _Width, PosType pos)
+    Block(const _St1 *src, PCType src_stride, PCType _Height, PCType _Width, const PosType &pos)
         : Block(_Height, _Width, pos, false)
     {
         From(src, src_stride);
     }
 
-    // Constructor from src
+    // Constructor from src Block
     Block(const _Myt &src, bool Init, value_type Value = 0)
         : Block(src.Height_, src.Width_, src.pos_, Init, Value)
     {}
@@ -275,10 +275,9 @@ public:
     }
 
     template < typename _St1 >
-    void From(const _St1 *src, PCType src_stride, PosType pos)
+    void From(const _St1 *src, PCType src_stride, const PosType &pos)
     {
         pos_ = pos;
-
         From(src, src_stride);
     }
 
@@ -303,7 +302,7 @@ public:
     // Accumulate functions
 
     template < typename _St1 >
-    void AddFrom(const _St1 *src, PCType src_stride, PosType pos)
+    void AddFrom(const _St1 *src, PCType src_stride, const PosType &pos)
     {
         auto dstp = data();
         auto srcp = src + pos.y * src_stride + pos.x;
@@ -320,7 +319,7 @@ public:
     }
 
     template < typename _St1, typename _Gt1 >
-    void AddFrom(const _St1 *src, PCType src_stride, PosType pos, _Gt1 gain)
+    void AddFrom(const _St1 *src, PCType src_stride, const PosType &pos, _Gt1 gain)
     {
         auto dstp = data();
         auto srcp = src + pos.y * src_stride + pos.x;
@@ -403,7 +402,7 @@ public:
     }
 
     ////////////////////////////////////////////////////////////////
-    // Block matching functions
+    // Single block-matching functions
 
     template < typename _St1 >
     PosPair BlockMatching(const _St1 *src, PCType src_height, PCType src_width, PCType src_stride, _St1 src_range,
@@ -473,6 +472,9 @@ public:
 
         return PosPair(static_cast<KeyType>(distMin * distMul), pos);
     }
+
+    ////////////////////////////////////////////////////////////////
+    // Multiple block-matching functions
 
     template < typename _St1 >
     void BlockMatchingMulti(PosPairCode &match_code, const _St1 *src, PCType src_stride, _St1 src_range,
@@ -798,7 +800,7 @@ public:
 
     // Constructor from plane pointer and Pos3PairCode
     template < typename _St1 >
-    BlockGroup(std::vector<const _St1 *> src, PCType src_stride, const Pos3PairCode &code,
+    BlockGroup(const std::vector<const _St1 *> &src, PCType src_stride, const Pos3PairCode &code,
         PCType _GroupSize = -1, PCType _Height = 16, PCType _Width = 16)
         : Height_(_Height), Width_(_Width)
     {
@@ -984,7 +986,7 @@ public:
     // Read/Store functions
 
     template < typename _St1 >
-    _Myt &From(const _St1 *src, PCType src_stride)
+    void From(const _St1 *src, PCType src_stride)
     {
         auto dstp = data();
 
@@ -1002,12 +1004,10 @@ public:
                 }
             }
         }
-
-        return *this;
     }
 
     template < typename _St1 >
-    _Myt &From(std::vector<const _St1 *> src, PCType src_stride)
+    void From(const std::vector<const _St1 *> &src, PCType src_stride)
     {
         auto dstp = data();
 
@@ -1025,8 +1025,6 @@ public:
                 }
             }
         }
-
-        return *this;
     }
 
     template < typename _Dt1 >
@@ -1051,7 +1049,7 @@ public:
     }
 
     template < typename _Dt1 >
-    void To(std::vector<_Dt1 *> dst, PCType dst_stride) const
+    void To(const std::vector<_Dt1 *> &dst, PCType dst_stride) const
     {
         auto srcp = data();
 
@@ -1117,7 +1115,7 @@ public:
     }
 
     template < typename _Dt1 >
-    void AddTo(std::vector<_Dt1 *> dst, PCType dst_stride) const
+    void AddTo(const std::vector<_Dt1 *> &dst, PCType dst_stride) const
     {
         auto srcp = data();
 
@@ -1138,7 +1136,7 @@ public:
     }
 
     template < typename _Dt1, typename _Gt1 >
-    void AddTo(std::vector<_Dt1 *> dst, PCType dst_stride, _Gt1 gain) const
+    void AddTo(const std::vector<_Dt1 *> &dst, PCType dst_stride, _Gt1 gain) const
     {
         auto srcp = data();
 
@@ -1197,7 +1195,7 @@ public:
     }
 
     template < typename _Dt1 >
-    void CountTo(std::vector<_Dt1 *> dst, PCType dst_stride) const
+    void CountTo(const std::vector<_Dt1 *> &dst, PCType dst_stride) const
     {
         for (PCType z = 0; z < GroupSize(); ++z)
         {
@@ -1216,7 +1214,7 @@ public:
     }
 
     template < typename _Dt1 >
-    void CountTo(std::vector<_Dt1 *> dst, PCType dst_stride, _Dt1 value) const
+    void CountTo(const std::vector<_Dt1 *> &dst, PCType dst_stride, _Dt1 value) const
     {
         for (PCType z = 0; z < GroupSize(); ++z)
         {
@@ -1239,7 +1237,7 @@ public:
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 
-template < typename _St1, typename _Fn1 > inline
+template < typename _St1, typename _Fn1 >
 void Block_For_each(_St1 &data, _Fn1 &&_Func)
 {
     auto datap = data.data();
@@ -1250,26 +1248,24 @@ void Block_For_each(_St1 &data, _Fn1 &&_Func)
     }
 }
 
-template < typename _St1, typename _St2, typename _Fn1 > inline
-void Block_For_each(_St1 &left, _St2 &right, _Fn1 &&_Func)
+template < typename _St1, typename _St2, typename _Fn1 >
+void Block_For_each(_St1 &data1, _St2 &data2, _Fn1 &&_Func)
 {
-    const char *FunctionName = "Block_For_each";
-    if (left.size() != right.size())
+    if (data1.size() != data2.size())
     {
-        std::cerr << FunctionName << ": size() of left and right must be the same.\n";
-        exit(EXIT_FAILURE);
+        DEBUG_FAIL("Block_For_each: size() of data1 and data2 must be the same.");
     }
 
-    auto leftp = left.data();
-    auto rightp = right.data();
+    auto data1p = data1.data();
+    auto data2p = data2.data();
 
-    for (auto upper = leftp + left.size(); leftp != upper; ++leftp, ++rightp)
+    for (auto upper = data1p + data1.size(); data1p != upper; ++data1p, ++data2p)
     {
-        _Func(*leftp, *rightp);
+        _Func(*data1p, *data2p);
     }
 }
 
-template < typename _St1, typename _Fn1 > inline
+template < typename _St1, typename _Fn1 >
 void Block_Transform(_St1 &data, _Fn1 &&_Func)
 {
     auto datap = data.data();
@@ -1280,14 +1276,12 @@ void Block_Transform(_St1 &data, _Fn1 &&_Func)
     }
 }
 
-template < typename _Dt1, typename _St1, typename _Fn1 > inline
+template < typename _Dt1, typename _St1, typename _Fn1 >
 void Block_Transform(_Dt1 &dst, const _St1 &src, _Fn1 &&_Func)
 {
-    const char *FunctionName = "Block_Transform";
     if (dst.size() != src.size())
     {
-        std::cerr << FunctionName << ": size() of dst and src must be the same.\n";
-        exit(EXIT_FAILURE);
+        DEBUG_FAIL("Block_Transform: size() of dst and src must be the same.");
     }
 
     auto dstp = dst.data();

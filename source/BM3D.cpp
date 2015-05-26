@@ -35,7 +35,7 @@ BM3D_Para::BM3D_Para(bool _wiener, std::string _profile)
     {
         BlockStep = 4;
         GroupSize = 16;
-        lambda = 2.2;
+        lambda = 2.7;
     }
     else
     {
@@ -88,7 +88,7 @@ BM3D_Para::BM3D_Para(bool _wiener, std::string _profile)
         {
             BlockStep = 4;
             GroupSize = 32;
-            lambda = 2.3;
+            lambda = 2.8;
         }
         else
         {
@@ -133,8 +133,8 @@ BM3D_FilterData::BM3D_FilterData(bool wiener, double sigma, PCType GroupSize, PC
     wienerSigmaSqr(wiener ? GroupSize : 0)
 {
     const unsigned int flags = FFTW_PATIENT;
-    const fftw::r2r_kind fkind = FFTW_REDFT01;
-    const fftw::r2r_kind bkind = FFTW_REDFT10;
+    const fftw::r2r_kind fkind = FFTW_REDFT10;
+    const fftw::r2r_kind bkind = FFTW_REDFT01;
 
     FLType *temp = nullptr;
 
@@ -156,10 +156,11 @@ BM3D_FilterData::BM3D_FilterData(bool wiener, double sigma, PCType GroupSize, PC
         {
             double thrBase = sigma * lambda * forwardAMP;
             std::vector<double> thr(4);
+            
             thr[0] = thrBase;
-            thr[1] = thrBase;
-            thr[2] = thrBase / double(2);
-            thr[3] = 0;
+            thr[1] = thrBase * sqrt(double(2));
+            thr[2] = thrBase * double(2);
+            thr[3] = thrBase * sqrt(double(8));
 
             thrTable[i - 1] = std::vector<FLType>(i * BlockSize * BlockSize);
             auto thr_d = thrTable[i - 1].data();
@@ -171,64 +172,21 @@ BM3D_FilterData::BM3D_FilterData(bool wiener, double sigma, PCType GroupSize, PC
                     for (PCType x = 0; x < BlockSize; ++x, ++thr_d)
                     {
                         int flag = 0;
-                        double scale = 1;
 
                         if (x == 0)
                         {
                             ++flag;
                         }
-                        else if (x < BlockSize / 4)
-                        {
-                            scale *= 1.00;
-                        }
-                        else if (x < BlockSize / 2)
-                        {
-                            scale *= 1.01;
-                        }
-                        else
-                        {
-                            scale *= 1.07;
-                        }
-
                         if (y == 0)
                         {
                             ++flag;
                         }
-                        else if (y < BlockSize / 4)
-                        {
-                            scale *= 1.00;
-                        }
-                        else if (y < BlockSize / 2)
-                        {
-                            scale *= 1.01;
-                        }
-                        else
-                        {
-                            scale *= 1.07;
-                        }
-
                         if (z == 0)
                         {
                             ++flag;
                         }
-                        else if (z < i / 8)
-                        {
-                            scale *= 1.01;
-                        }
-                        else if (z < i / 4)
-                        {
-                            scale *= 1.07;
-                        }
-                        else if (z < i / 2)
-                        {
-                            scale *= 1.16;
-                        }
-                        else
-                        {
-                            scale *= 1.40;
-                        }
 
-                        *thr_d = static_cast<FLType>(thr[flag] * scale);
+                        *thr_d = static_cast<FLType>(thr[flag]);
                     }
                 }
             }

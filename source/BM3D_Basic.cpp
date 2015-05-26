@@ -60,7 +60,7 @@ int BM3D_Basic_Data::arguments_process(const VSMap *in, VSMap *out)
 void BM3D_Basic_Process::CollaborativeFilter(int plane,
     FLType *ResNum, FLType *ResDen,
     const FLType *src, const FLType *ref,
-    const PosPairCode &code)
+    const PosPairCode &code) const
 {
     PCType GroupSize = static_cast<PCType>(code.size());
     // When para.GroupSize > 0, limit GroupSize up to para.GroupSize
@@ -78,7 +78,7 @@ void BM3D_Basic_Process::CollaborativeFilter(int plane,
     // Apply forward 3D transform to the source group
     d.f[plane].fp[GroupSize - 1].execute_r2r(srcGroup.data(), srcGroup.data());
 
-    // Apply hard threshold filtering to the source group
+    // Apply hard-thresholding to the source group
     Block_For_each(srcGroup, d.f[plane].thrTable[GroupSize - 1], [&](FLType &x, FLType y)
     {
         if (Abs(x) <= y)

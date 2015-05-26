@@ -43,9 +43,9 @@ int VBM3D_Final_Data::arguments_process(const VSMap *in, VSMap *out)
 
 
 void VBM3D_Final_Process::CollaborativeFilter(int plane,
-    std::vector<FLType *> &ResNum, std::vector<FLType *> &ResDen,
-    std::vector<const FLType *> &src, std::vector<const FLType *> &ref,
-    const Pos3PairCode &code)
+    const std::vector<FLType *> &ResNum, const std::vector<FLType *> &ResDen,
+    const std::vector<const FLType *> &src, const std::vector<const FLType *> &ref,
+    const Pos3PairCode &code) const
 {
     PCType GroupSize = static_cast<PCType>(code.size());
     // When para.GroupSize > 0, limit GroupSize up to para.GroupSize

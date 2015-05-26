@@ -45,7 +45,7 @@ int BM3D_Final_Data::arguments_process(const VSMap *in, VSMap *out)
 void BM3D_Final_Process::CollaborativeFilter(int plane,
     FLType *ResNum, FLType *ResDen,
     const FLType *src, const FLType *ref,
-    const PosPairCode &code)
+    const PosPairCode &code) const
 {
     PCType GroupSize = static_cast<PCType>(code.size());
     // When para.GroupSize > 0, limit GroupSize up to para.GroupSize

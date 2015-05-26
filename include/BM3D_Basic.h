@@ -85,7 +85,7 @@ protected:
     virtual void CollaborativeFilter(int plane,
         FLType *ResNum, FLType *ResDen,
         const FLType *src, const FLType *ref,
-        const PosPairCode &code) override;
+        const PosPairCode &code) const override;
 };
 
 
