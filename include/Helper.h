@@ -349,7 +349,7 @@ _Ty _RoundDiv(_Ty dividend, _Ty divisor, const std::true_type &)
 template < typename _Ty >
 _Ty RoundDiv(_Ty dividend, _Ty divisor)
 {
-    return _RoundDiv(dividend, divisor, _IsFloat<_Ty>);
+    return _RoundDiv(dividend, divisor, _IsFloat<_Ty>());
 }
 
 
