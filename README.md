@@ -32,6 +32,8 @@ sub sampling: when chroma is processed, no sub-sampling is supported, only YUV44
 
 - For V-BM3D, the filtered output is always OPP for RGB input, and you should manually call bm3d.OPP2RGB afterwards.
 
+- For V-BM3D, if specific plane is not processed (sigma is 0), then the result of that plane will be garbage, thus you should manually use std.ShufflePlanes to merge them. For the same reason, you should always convert RGB input to OPP first if you want to keep those unprocessed planes.
+
 ## Usage
 
 ### Helper Functions
@@ -206,15 +208,15 @@ For the backward frames and forward frames, it applies predictive-search block-m
 
 The obtained block-wise estimates are also aggregated into multiple frames.
 
-However, since the estimates are returned into multiple frames, I have to divide it into 2 functions: bm3d.VBasic or bm3d.VFinal as the first stage and bm3d.VAggregate as the second stage.
+However, since the estimates are returned into multiple frames, I have to divide it into 2 functions: bm3d.VBasic or bm3d.VFinal as the first stage and bm3d.VAggregate as the second stage. The output clip of bm3d.VBasic and bm3d.VFinal is an intermediate processed buffer. It is of 32 bit float format, and (radius * 2 + 1) * 2 times the height of input.
 
 *Always call bm3d.VAggregate after bm3d.VBasic or bm3d.VFinal.*
 
-For RGB color family input, the output clip is of opponent color space in YUV color family. You should manually call bm3d.OPP2RGB after bm3d.VAggregate if you want to convert it back to RGB color space.
-
-The output clip is an intermediate processed buffer. It is of 32 bit float format, and (radius * 2 + 1) * 2 times the height of input.
-
 Due to the float format and multiple times height of the output clip, as well as the multiple frames requested by each function, those frame cache leads to very high memory consumption of this V-BM3D implementation.
+
+*For RGB color family input, the output clip is of opponent color space in YUV color family. You should manually call bm3d.OPP2RGB after bm3d.VAggregate if you want to convert it back to RGB color space.*
+
+*If specific plane is not processed (sigma is 0), then the result of that plane will be garbage, thus you should manually use std.ShufflePlanes to merge them. For the same reason, you should always convert RGB input to OPP first if you want to keep those unprocessed planes. Becanse the implementaion of V-BM3D is divided into 2 functions, it's not very convenient and efficient to pass through the unprocessed planes.*
 
 #### basic estimate of V-BM3D denoising filter
 
@@ -361,6 +363,16 @@ flt = core.bm3d.OPP2RGB(flt) # The output is of 16bit RGB color space
 src = core.bm3d.RGB2OPP(src)
 ref = core.bm3d.VBasic(src, radius=1, matrix=100).bm3d.VAggregate(radius=1)
 flt = core.bm3d.VFinal(src, ref, radius=1, matrix=100).bm3d.VAggregate(radius=1)
+flt = core.bm3d.OPP2RGB(flt)
+```
+
+- if chroma is not processed, merge them into the result with std.ShufflePlanes
+
+```python
+src = core.bm3d.RGB2OPP(src)
+ref = core.bm3d.VBasic(src, sigma=[10,0,0], radius=1, matrix=100).bm3d.VAggregate(radius=1)
+flt = core.bm3d.VFinal(src, ref, sigma=[10,0,0], radius=1, matrix=100).bm3d.VAggregate(radius=1)
+flt = core.std.ShufflePlanes([flt,src,src], [0,1,2], vs.YUV)
 flt = core.bm3d.OPP2RGB(flt)
 ```
 
