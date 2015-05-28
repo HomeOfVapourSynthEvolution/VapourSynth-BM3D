@@ -376,7 +376,18 @@ flt = core.std.ShufflePlanes([flt,src,src], [0,1,2], vs.YUV)
 flt = core.bm3d.OPP2RGB(flt)
 ```
 
-- use bm3d.Basic instead of bm3d.VBasic, faster, less memory consumption
+- if luma is not processed, since block-matching is based on luma of clip "ref", also merge it into basic estimate with std.ShufflePlanes
+
+```python
+src = core.bm3d.RGB2OPP(src)
+ref = core.bm3d.VBasic(src, sigma=[0,10,10], radius=1, matrix=100).bm3d.VAggregate(radius=1)
+ref = core.std.ShufflePlanes([src,ref,ref], [0,1,2], vs.YUV)
+flt = core.bm3d.VFinal(src, ref, sigma=[0,10,10], radius=1, matrix=100).bm3d.VAggregate(radius=1)
+flt = core.std.ShufflePlanes([src,flt,flt], [0,1,2], vs.YUV)
+flt = core.bm3d.OPP2RGB(flt)
+```
+
+- alternatively, use bm3d.Basic instead of bm3d.VBasic, faster, less memory consumption
 
 ```python
 src = core.bm3d.RGB2OPP(src)
