@@ -59,7 +59,7 @@ private:
     PCType Height_ = 0;
     PCType Width_ = 0;
     PCType PixelCount_ = 0;
-    PosType pos_ = { 0, 0 };
+    PosType pos_;
     pointer Data_ = nullptr;
 
 public:
@@ -114,7 +114,7 @@ public:
     // Constructor from plane pointer and PosType
     template < typename _St1 >
     Block(const _St1 *src, PCType src_stride, PCType _Height, PCType _Width, const PosType &pos)
-        : Block(_Height, _Width, pos, false)
+        : Block(_Height, _Width, pos, false, 0)
     {
         From(src, src_stride);
     }
@@ -126,7 +126,7 @@ public:
 
     // Copy constructor
     Block(const _Myt &src)
-        : Block(src.Height_, src.Width_, src.pos_, false)
+        : Block(src.Height_, src.Width_, src.pos_, false, 0)
     {
         memcpy(Data_, src.Data_, sizeof(value_type) * size());
     }
