@@ -89,7 +89,7 @@ LIBNAME=""
 
 CXXFLAGS="-std=c++11 -Wall -Wno-unused-local-typedefs -I. -I$SRCDIR/include"
 LDFLAGS=""
-SOFLAGS="-shared -Wl,-Bsymbolic"
+SOFLAGS="-shared"
 DEPLIBS="fftw3f"
 
 TARGET="-msse2"
@@ -134,16 +134,13 @@ for opt; do
         --target=*)
             TARGET="-m$optarg"
             ;;
-        --disable-simd)
-            SIMD=""
-            ;;
         *)
             error_exit "unknown option $opt"
             ;;
     esac
 done
 
-CXXFLAGS="$CXXFLAGS $XCXXFLAGS $TARGET $SIMD"
+CXXFLAGS="$CXXFLAGS $XCXXFLAGS $TARGET"
 LDFLAGS="$LDFLAGS $XLDFLAGS"
 
 CXX="${CROSS}${CXX}"
