@@ -165,12 +165,10 @@ case "$TARGET_OS" in
         ;;
     *darwin*)
         LIBNAME="libbm3d.dylib"
-        DEPLIBS="$DEPLIBS vapoursynth"
         SOFLAGS="$SOFLAGS -dynamiclib -Wl,-undefined,suppress -Wl,-read_only_relocs,suppress -Wl,-flat_namespace"
         ;;
     *linux*|*bsd*)
         LIBNAME="libbm3d.so"
-        DEPLIBS="$DEPLIBS vapoursynth"
         CXXFLAGS="$CXXFLAGS -fPIC"
         SOFLAGS="$SOFLAGS -Wl,-soname,$LIBNAME -fPIC"
         ;;
