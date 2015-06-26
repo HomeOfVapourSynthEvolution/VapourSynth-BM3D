@@ -200,6 +200,17 @@ else
 fi
 
 
+log_echo "checking for vapoursynth headers..."
+if $PKGCONFIGBIN --exists vapoursynth 2> /dev/null; then
+    VSCFLAGS="$($PKGCONFIGBIN --cflags vapoursynth)"
+else
+    log_echo "warning: pkg-config or pc files not found, header detection may be inaccurate."
+fi
+if ! cc_check "$CXXFLAGS $VSCFLAGS" "$LDFLAGS $LIBS $XLIBS" "vapoursynth/VapourSynth.h" "getVapourSynthAPI;" ; then
+    log_echo "error: vapoursynth checking failed."
+    error_exit "vapoursynth/VapourSynth.h might not be installed."
+fi
+
 log_echo "checking for fftw3f..."
 if ! cc_check "$CXXFLAGS" "$LDFLAGS $LIBS $XLIBS" "fftw3.h" "fftwf_free(nullptr);" ; then
     log_echo "error: fftw3f checking failed."
