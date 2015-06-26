@@ -270,7 +270,7 @@ public:
     }
 
 protected:
-    virtual void NewFormat()
+    virtual void NewFormat() override
     {
         dfi = NewFormat(d, fi, core, vsapi);
     }
