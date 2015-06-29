@@ -4,6 +4,8 @@
 #  configure script for VapourSynth-BM3D
 #----------------------------------------------------------------------------
 
+## This script was modified based on d2vsource/configure.
+
 # -- help -------------------------------------------------------------------
 if test x"$1" = x"-h" -o x"$1" = x"--help" ; then
 cat << EOF
@@ -91,7 +93,6 @@ CXXFLAGS="-std=c++11 -Wall -Wno-unused-local-typedefs -I. -I$SRCDIR/include"
 LDFLAGS=""
 SOFLAGS="-shared"
 DEPLIBS="fftw3f"
-
 TARGET="-msse2"
 
 # -- options ----------------------------------------------------------------
@@ -199,16 +200,15 @@ else
     log_echo "warning: pkg-config or pc files not found, lib detection may be inaccurate."
 fi
 
-
 log_echo "checking for vapoursynth headers..."
 if $PKGCONFIGBIN --exists vapoursynth 2> /dev/null; then
     VSCFLAGS="$($PKGCONFIGBIN --cflags vapoursynth)"
 else
     log_echo "warning: pkg-config or pc files not found, header detection may be inaccurate."
 fi
-if ! cc_check "$CXXFLAGS $VSCFLAGS" "$LDFLAGS $LIBS $XLIBS" "vapoursynth/VapourSynth.h" "getVapourSynthAPI;" ; then
+if ! cc_check "$CXXFLAGS $VSCFLAGS" "$LDFLAGS $LIBS $XLIBS" "VapourSynth.h" "getVapourSynthAPI;" ; then
     log_echo "error: vapoursynth checking failed."
-    error_exit "vapoursynth/VapourSynth.h might not be installed."
+    error_exit "VapourSynth.h might not be installed."
 fi
 
 log_echo "checking for fftw3f..."
@@ -219,6 +219,7 @@ fi
 
 LDFLAGS="$SOFLAGS $LDFLAGS"
 LIBS="$LIBS $XLIBS"
+CXXFLAGS="$CXXFLAGS $VSCFLAGS"
 
 
 cat >> config.mak << EOF
