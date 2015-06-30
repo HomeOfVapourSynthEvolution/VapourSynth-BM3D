@@ -190,6 +190,16 @@ PKGCONFIGBIN="pkg-config"
 test -n "$(which ${CROSS}${PKGCONFIGBIN} 2> /dev/null)" && \
     PKGCONFIGBIN=${CROSS}${PKGCONFIGBIN}
 
+if $PKGCONFIGBIN --exists $DEPLIBS 2> /dev/null; then
+    LIBS="$($PKGCONFIGBIN --libs $DEPLIBS)"
+    CXXFLAGS="$CXXFLAGS $($PKGCONFIGBIN --cflags $DEPLIBS)"
+else
+    for lib in $DEPLIBS; do
+        LIBS="$LIBS -l${lib#lib}"
+    done
+    log_echo "warning: pkg-config or pc files not found, lib detection may be inaccurate."
+fi
+
 log_echo "checking for vapoursynth headers..."
 if $PKGCONFIGBIN --exists vapoursynth 2> /dev/null; then
     VSCFLAGS="$($PKGCONFIGBIN --cflags vapoursynth)"
