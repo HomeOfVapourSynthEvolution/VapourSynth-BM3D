@@ -102,6 +102,11 @@ void MatCopy(_Dt1 *dstp, const _St1 *srcp, PCType height, PCType width, PCType d
 template < typename _Ty >
 void MatCopy(_Ty *dstp, const _Ty *srcp, PCType height, PCType width, PCType dst_stride, PCType src_stride)
 {
+    if (dstp == srcp)
+    {
+        return;
+    }
+
     if (height > 0)
     {
         if (src_stride == dst_stride && src_stride == width)

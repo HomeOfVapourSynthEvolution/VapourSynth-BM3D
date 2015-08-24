@@ -40,7 +40,7 @@ int BM3D_Data_Base::arguments_process(const VSMap *in, VSMap *out)
     }
     if (vi->format->sampleType == stFloat && vi->format->bitsPerSample != 32)
     {
-        setError(out, "Invalid input clip, only 8-16 bit int or 32 bit float formats supported");
+        setError(out, "Invalid input clip, only 8-16 bit integer or 32 bit float formats supported");
         return 1;
     }
 
@@ -95,7 +95,7 @@ int BM3D_Data_Base::arguments_process(const VSMap *in, VSMap *out)
     if (para.profile != "fast" && para.profile != "lc" && para.profile != "np"
         && para.profile != "high" && para.profile != "vn")
     {
-        setError(out, "Unrecognized \"profile\" specified, should be \"fast\", \"lc\", \"np\", \"high\" or \"vn\"\n");
+        setError(out, "Unrecognized \"profile\" specified, should be \"fast\", \"lc\", \"np\", \"high\" or \"vn\"");
         return 1;
     }
 
@@ -241,7 +241,7 @@ int BM3D_Data_Base::arguments_process(const VSMap *in, VSMap *out)
     // process
     for (int i = 0; i < VSMaxPlaneCount; i++)
     {
-        if (para.sigma[i] == 0)
+        if (vi->format->colorFamily != cmRGB && para.sigma[i] == 0)
         {
             process[i] = 0;
         }
