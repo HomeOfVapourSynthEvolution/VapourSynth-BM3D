@@ -117,13 +117,13 @@ _Ty _TypeMinInt(const std::true_type &)
 }
 
 template < typename _Ty >
-_Ty _TypeMinFloat(const std::false_type &)
+_Ty _TypeMin(const std::false_type &)
 {
     return _TypeMinInt<_Ty>(_IsSInt<_Ty>());
 }
 
 template < typename _Ty >
-_Ty _TypeMinFloat(const std::true_type &)
+_Ty _TypeMin(const std::true_type &)
 {
     return FltNegMax(_Ty);
 }
@@ -131,7 +131,7 @@ _Ty _TypeMinFloat(const std::true_type &)
 template < typename _Ty >
 _Ty TypeMin()
 {
-    return _TypeMinFloat<_Ty>(_IsFloat<_Ty>());
+    return _TypeMin<_Ty>(_IsFloat<_Ty>());
 }
 
 template < typename _Ty >
@@ -154,13 +154,13 @@ _Ty _TypeMaxInt(const std::true_type &)
 }
 
 template < typename _Ty >
-_Ty _TypeMaxFloat(const std::false_type &)
+_Ty _TypeMax(const std::false_type &)
 {
     return _TypeMaxInt<_Ty>(_IsSInt<_Ty>());
 }
 
 template < typename _Ty >
-_Ty _TypeMaxFloat(const std::true_type &)
+_Ty _TypeMax(const std::true_type &)
 {
     return FltMax(_Ty);
 }
@@ -168,7 +168,7 @@ _Ty _TypeMaxFloat(const std::true_type &)
 template < typename _Ty >
 _Ty TypeMax()
 {
-    return _TypeMaxFloat<_Ty>(_IsFloat<_Ty>());
+    return _TypeMax<_Ty>(_IsFloat<_Ty>());
 }
 
 template < typename _Ty >

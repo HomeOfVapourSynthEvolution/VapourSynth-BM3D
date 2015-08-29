@@ -41,7 +41,7 @@
 #define DEBUG_FAIL(mesg) __debugbreak(); _STD _DEBUG_ERROR(mesg);
 #else
 #define DEBUG_BREAK exit(EXIT_FAILURE);
-#define DEBUG_FAIL(mesg) std::cerr << mesg << std::endl; exit(EXIT_FAILURE);
+#define DEBUG_FAIL(mesg) std::cerr << mesg << std::endl; std::cin.get();
 #endif
 
 
@@ -62,7 +62,7 @@ std::string GetStr(const _Ty &src)
 // Memory allocation
 
 
-const size_t MEMORY_ALIGNMENT = 32;
+const size_t MEMORY_ALIGNMENT = 64;
 
 
 template < typename _Ty >
@@ -340,19 +340,19 @@ _Ty AbsSub(const _Ty &a, const _Ty &b)
 
 
 template < typename _Ty >
-_Ty _RoundDiv(_Ty dividend, _Ty divisor, const std::false_type &)
+_Ty _RoundDiv(const _Ty &dividend, const _Ty &divisor, const std::false_type &)
 {
     return (dividend + divisor / 2) / divisor;
 }
 
 template < typename _Ty >
-_Ty _RoundDiv(_Ty dividend, _Ty divisor, const std::true_type &)
+_Ty _RoundDiv(const _Ty &dividend, const _Ty &divisor, const std::true_type &)
 {
     return dividend / divisor;
 }
 
 template < typename _Ty >
-_Ty RoundDiv(_Ty dividend, _Ty divisor)
+_Ty RoundDiv(const _Ty &dividend, const _Ty &divisor)
 {
     return _RoundDiv(dividend, divisor, _IsFloat<_Ty>());
 }
