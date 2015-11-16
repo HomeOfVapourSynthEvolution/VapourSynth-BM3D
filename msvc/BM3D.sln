@@ -11,8 +11,6 @@ Global
 		Debug|x64 = Debug|x64
 		Release|Win32 = Release|Win32
 		Release|x64 = Release|x64
-		Release-AVX|Win32 = Release-AVX|Win32
-		Release-AVX|x64 = Release-AVX|x64
 	EndGlobalSection
 	GlobalSection(ProjectConfigurationPlatforms) = postSolution
 		{A555F1F3-6D85-4976-982B-7A72ED1D1E3B}.Debug|Win32.ActiveCfg = Debug|Win32
@@ -23,10 +21,6 @@ Global
 		{A555F1F3-6D85-4976-982B-7A72ED1D1E3B}.Release|Win32.Build.0 = Release|Win32
 		{A555F1F3-6D85-4976-982B-7A72ED1D1E3B}.Release|x64.ActiveCfg = Release|x64
 		{A555F1F3-6D85-4976-982B-7A72ED1D1E3B}.Release|x64.Build.0 = Release|x64
-		{A555F1F3-6D85-4976-982B-7A72ED1D1E3B}.Release-AVX|Win32.ActiveCfg = Release-AVX|Win32
-		{A555F1F3-6D85-4976-982B-7A72ED1D1E3B}.Release-AVX|Win32.Build.0 = Release-AVX|Win32
-		{A555F1F3-6D85-4976-982B-7A72ED1D1E3B}.Release-AVX|x64.ActiveCfg = Release-AVX|x64
-		{A555F1F3-6D85-4976-982B-7A72ED1D1E3B}.Release-AVX|x64.Build.0 = Release-AVX|x64
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

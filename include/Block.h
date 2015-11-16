@@ -487,13 +487,53 @@ public:
         size_t index = match_code.size();
         match_code.resize(index + search_pos.size());
 
-        for (auto pos : search_pos)
+#if defined(USE_SSE2)
+        static const PCType step = 8;
+        const PCType simd_width = Width() / step * step;
+#endif
+
+        for (const auto &pos : search_pos)
         {
             dist_type dist = 0;
 
             auto refp = data();
             auto srcp = src + pos.y * src_stride + pos.x;
 
+#if defined(USE_SSE2)
+            __m128 ssum = _mm_setzero_ps();
+
+            for (PCType y = 0; y < Height(); ++y)
+            {
+                PCType x = y * src_stride;
+
+                _mm_prefetch(reinterpret_cast<const char *>(refp), _MM_HINT_NTA);
+                _mm_prefetch(reinterpret_cast<const char *>(refp + 4), _MM_HINT_NTA);
+                _mm_prefetch(reinterpret_cast<const char *>(srcp + x), _MM_HINT_NTA);
+                _mm_prefetch(reinterpret_cast<const char *>(srcp + x + 4), _MM_HINT_NTA);
+
+                for (PCType upper = x + simd_width; x < upper; x += step, refp += step)
+                {
+                    __m128 r1 = _mm_loadu_ps(refp);
+                    __m128 r2 = _mm_loadu_ps(refp + 4);
+                    __m128 s1 = _mm_loadu_ps(srcp + x);
+                    __m128 s2 = _mm_loadu_ps(srcp + x + 4);
+                    __m128 d1 = _mm_sub_ps(r1, s1);
+                    __m128 d2 = _mm_sub_ps(r2, s2);
+                    r1 = _mm_mul_ps(d1, d1);
+                    s1 = _mm_mul_ps(d2, d2);
+                    ssum = _mm_add_ps(ssum, r1);
+                    ssum = _mm_add_ps(ssum, s1);
+                }
+
+                for (PCType upper = x + Width(); x < upper; ++x, ++refp)
+                {
+                    dist_type temp = static_cast<dist_type>(*refp) - static_cast<dist_type>(srcp[x]);
+                    dist += temp * temp;
+                }
+            }
+
+            dist += ssum.m128_f32[0] + ssum.m128_f32[1] + ssum.m128_f32[2] + ssum.m128_f32[3];
+#else
             for (PCType y = 0; y < Height(); ++y)
             {
                 PCType x = y * src_stride;
@@ -504,6 +544,7 @@ public:
                     dist += temp * temp;
                 }
             }
+#endif
 
             // Only match similar blocks but not identical blocks
             if (dist <= thSSE && dist != 0)
@@ -1015,6 +1056,34 @@ public:
         {
             auto srcp = src[GetPos3(z).z] + GetPos3(z).y * src_stride + GetPos3(z).x;
 
+#if defined(USE_SSE2)
+            if (Width() % 4 == 0)
+            {
+                for (PCType y = 0; y < Height(); ++y)
+                {
+                    PCType x = y * src_stride;
+                    _mm_prefetch(reinterpret_cast<const char *>(srcp + x), _MM_HINT_NTA);
+
+                    for (PCType upper = x + Width(); x < upper; x += 4, dstp += 4)
+                    {
+                        __m128 s1 = _mm_loadu_ps(srcp + x);
+                        _mm_stream_ps(dstp, s1);
+                    }
+                }
+            }
+            else
+            {
+                for (PCType y = 0; y < Height(); ++y)
+                {
+                    PCType x = y * src_stride;
+
+                    for (PCType upper = x + Width(); x < upper; ++x, ++dstp)
+                    {
+                        *dstp = static_cast<value_type>(srcp[x]);
+                    }
+                }
+            }
+#else
             for (PCType y = 0; y < Height(); ++y)
             {
                 PCType x = y * src_stride;
@@ -1024,6 +1093,7 @@ public:
                     *dstp = static_cast<value_type>(srcp[x]);
                 }
             }
+#endif
         }
     }
 
