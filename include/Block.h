@@ -20,11 +20,11 @@
 #ifndef BLOCK_H_
 #define BLOCK_H_
 
-
+#include <iostream>
 #include <vector>
 #include <algorithm>
 #include "Type.h"
-
+#include "emmintrin.h"
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
@@ -206,13 +206,13 @@ public:
     value_type value(PCType i) { return Data_[i]; }
     const value_type value(PCType i) const { return Data_[i]; }
 
-    PCType Height() const { return Height_; }
-    PCType Width() const { return Width_; }
-    PCType Stride() const { return Width_; }
-    PCType PixelCount() const { return PixelCount_; }
-    PosType GetPos() const { return pos_; }
-    PCType PosY() const { return pos_.y; }
-    PCType PosX() const { return pos_.x; }
+    __forceinline PCType Height() const { return Height_; }
+	__forceinline PCType Width() const { return Width_; }
+	__forceinline PCType Stride() const { return Width_; }
+	__forceinline PCType PixelCount() const { return PixelCount_; }
+	__forceinline PosType GetPos() const { return pos_; }
+	__forceinline PCType PosY() const { return pos_.y; }
+	__forceinline PCType PosX() const { return pos_.x; }
 
     void SetPos(PosType _pos) { pos_ = _pos; }
 
@@ -487,23 +487,50 @@ public:
         size_t index = match_code.size();
         match_code.resize(index + search_pos.size());
 
+		PCType strbroder = Width() % 8;
         for (auto pos : search_pos)
         {
             dist_type dist = 0;
 
             auto refp = data();
             auto srcp = src + pos.y * src_stride + pos.x;
-
+			__m128 ssum = _mm_setzero_ps();
             for (PCType y = 0; y < Height(); ++y)
             {
-                PCType x = y * src_stride;
+                PCType m = y * src_stride;
+				PCType x = m;
+                
+				if (strbroder)
+				{
+					PCType upper = m + strbroder;
+					do {
+						dist_type temp = static_cast<dist_type>(*refp) - static_cast<dist_type>(srcp[x]);
+						dist += temp * temp;
+						++x, ++refp;
+					} while (x < upper);
+				}
 
-                for (PCType upper = x + Width(); x < upper; ++x, ++refp)
-                {
-                    dist_type temp = static_cast<dist_type>(*refp) - static_cast<dist_type>(srcp[x]);
-                    dist += temp * temp;
-                }
+				_mm_prefetch((const char*)(refp), _MM_HINT_NTA);
+				_mm_prefetch((const char*)(refp + 4), _MM_HINT_NTA);
+				_mm_prefetch((const char*)(&srcp[x]), _MM_HINT_NTA);
+				_mm_prefetch((const char*)(&srcp[x + 4]), _MM_HINT_NTA);
+
+				for (PCType upper = m + Width(); x < upper; x+=8 , refp+=8)
+				{
+					__m128 a = _mm_load_ps(const_cast<const float*>((float*)refp));
+					__m128 c = _mm_load_ps(const_cast<const float*>((float*)(refp + 4)));
+					__m128 b = _mm_load_ps(const_cast<const float*>((float*)&srcp[x]));
+					__m128 d = _mm_load_ps(const_cast<const float*>((float*)&srcp[x + 4]));
+					__m128 e = _mm_sub_ps(a, b);
+					__m128 f = _mm_sub_ps(c, d);
+					b = _mm_mul_ps(e, e);
+					d = _mm_mul_ps(f, f);
+					ssum = _mm_add_ps(ssum, b);
+					ssum = _mm_add_ps(ssum, d);
+				}
+				
             }
+			dist += ssum.m128_f32[0] + ssum.m128_f32[1] + ssum.m128_f32[2] + ssum.m128_f32[3];
 
             // Only match similar blocks but not identical blocks
             if (dist <= thSSE && dist != 0)
@@ -516,7 +543,7 @@ public:
     }
 
     template < typename _St1 >
-    PosPairCode BlockMatchingMulti(const _St1 *src, PCType src_stride, _St1 src_range,
+	__forceinline PosPairCode BlockMatchingMulti(const _St1 *src, PCType src_stride, _St1 src_range,
         const PosCode &search_pos, double thMSE, size_t match_size = 0, bool sorted = true) const
     {
         PosPairCode match_code;
@@ -1014,16 +1041,36 @@ public:
         for (PCType z = 0; z < GroupSize(); ++z)
         {
             auto srcp = src[GetPos3(z).z] + GetPos3(z).y * src_stride + GetPos3(z).x;
+			if(Width() % 4 == 0)
+			{
+				for (PCType y = 0; y < Height(); ++y)
+				{
+				
+					register PCType x = y * src_stride;
+					_mm_prefetch((const char*)&srcp[x], _MM_HINT_NTA);
+					for (PCType upper = x + Width(); x < upper; x+=4, dstp+=4)
+					{
+						__m128 a = _mm_load_ps(&srcp[x]);
+						_mm_stream_ps(dstp, a);
+					
+					}
 
-            for (PCType y = 0; y < Height(); ++y)
-            {
-                PCType x = y * src_stride;
+				}
+			}
+			else
+			{
+				for (PCType y = 0; y < Height(); ++y)
+				{
 
-                for (PCType upper = x + Width(); x < upper; ++x, ++dstp)
-                {
-                    *dstp = static_cast<value_type>(srcp[x]);
-                }
-            }
+					PCType x = y * src_stride;
+
+					for (PCType upper = x + Width()%4; x < upper; ++x, ++dstp)
+					{
+					 *dstp = static_cast<value_type>(srcp[x]);
+					}
+
+				}
+			}
         }
     }
 
