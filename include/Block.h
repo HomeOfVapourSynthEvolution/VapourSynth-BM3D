@@ -1109,7 +1109,7 @@ public:
             {
                 for (auto upper = srcp + Width(); srcp < upper; ++srcp, ++dstp)
                 {
-                    *dstp = static_cast<value_type>(*srcp);
+                    *dstp = static_cast<_Dt1>(*srcp);
                 }
 
                 dstp += dst_stride0;
@@ -1131,7 +1131,7 @@ public:
             {
                 for (auto upper = srcp + Width(); srcp < upper; ++srcp, ++dstp)
                 {
-                    *dstp = static_cast<value_type>(*srcp);
+                    *dstp = static_cast<_Dt1>(*srcp);
                 }
 
                 dstp += dst_stride0;
