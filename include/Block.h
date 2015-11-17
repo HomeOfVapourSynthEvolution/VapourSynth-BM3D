@@ -24,6 +24,9 @@
 #include <vector>
 #include <algorithm>
 #include "Type.h"
+#if defined(USE_SSE2)
+#include <xmmintrin.h>
+#endif
 
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -489,60 +492,82 @@ public:
 
 #if defined(USE_SSE2)
         static const PCType step = 8;
-        const PCType simd_width = Width() / step * step;
+        const PCType residue = Width() % step;
+        const PCType simd_width = Width() - residue;
+        const PCType src_stride1 = src_stride - simd_width;
+        const PCType src_stride2 = src_stride - residue;
+#else
+        const PCType src_stride0 = src_stride - Width();
 #endif
 
         for (const auto &pos : search_pos)
         {
             dist_type dist = 0;
 
-            auto refp = data();
-            auto srcp = src + pos.y * src_stride + pos.x;
+            auto refp0 = data();
+            auto srcp0 = src + pos.y * src_stride + pos.x;
 
 #if defined(USE_SSE2)
-            __m128 ssum = _mm_setzero_ps();
-
-            for (PCType y = 0; y < Height(); ++y)
+            if(simd_width > 0)
             {
-                PCType x = y * src_stride;
+                auto refp = refp0;
+                auto srcp = srcp0;
+                __m128 ssum = _mm_setzero_ps();
 
-                _mm_prefetch(reinterpret_cast<const char *>(refp), _MM_HINT_NTA);
-                _mm_prefetch(reinterpret_cast<const char *>(refp + 4), _MM_HINT_NTA);
-                _mm_prefetch(reinterpret_cast<const char *>(srcp + x), _MM_HINT_NTA);
-                _mm_prefetch(reinterpret_cast<const char *>(srcp + x + 4), _MM_HINT_NTA);
-
-                for (PCType upper = x + simd_width; x < upper; x += step, refp += step)
+                for (PCType y = 0; y < Height(); ++y)
                 {
-                    __m128 r1 = _mm_loadu_ps(refp);
-                    __m128 r2 = _mm_loadu_ps(refp + 4);
-                    __m128 s1 = _mm_loadu_ps(srcp + x);
-                    __m128 s2 = _mm_loadu_ps(srcp + x + 4);
-                    __m128 d1 = _mm_sub_ps(r1, s1);
-                    __m128 d2 = _mm_sub_ps(r2, s2);
-                    r1 = _mm_mul_ps(d1, d1);
-                    s1 = _mm_mul_ps(d2, d2);
-                    ssum = _mm_add_ps(ssum, r1);
-                    ssum = _mm_add_ps(ssum, s1);
-                }
+                    for (auto upper = refp + simd_width; refp < upper; refp += step, srcp += step)
+                    {
+                        _mm_prefetch(reinterpret_cast<const char *>(refp), _MM_HINT_NTA);
+                        _mm_prefetch(reinterpret_cast<const char *>(refp + 4), _MM_HINT_NTA);
+                        _mm_prefetch(reinterpret_cast<const char *>(srcp), _MM_HINT_NTA);
+                        _mm_prefetch(reinterpret_cast<const char *>(srcp + 4), _MM_HINT_NTA);
 
-                for (PCType upper = x + Width(); x < upper; ++x, ++refp)
-                {
-                    dist_type temp = static_cast<dist_type>(*refp) - static_cast<dist_type>(srcp[x]);
-                    dist += temp * temp;
+                        __m128 r1 = _mm_loadu_ps(refp);
+                        __m128 r2 = _mm_loadu_ps(refp + 4);
+                        __m128 s1 = _mm_loadu_ps(srcp);
+                        __m128 s2 = _mm_loadu_ps(srcp + 4);
+                        __m128 d1 = _mm_sub_ps(r1, s1);
+                        __m128 d2 = _mm_sub_ps(r2, s2);
+                        r1 = _mm_mul_ps(d1, d1);
+                        s1 = _mm_mul_ps(d2, d2);
+                        ssum = _mm_add_ps(ssum, r1);
+                        ssum = _mm_add_ps(ssum, s1);
+                    }
+
+                    refp += residue;
+                    srcp += src_stride1;
                 }
+                dist += ssum.m128_f32[0] + ssum.m128_f32[1] + ssum.m128_f32[2] + ssum.m128_f32[3];
             }
 
-            dist += ssum.m128_f32[0] + ssum.m128_f32[1] + ssum.m128_f32[2] + ssum.m128_f32[3];
+            if (residue > 0)
+            {
+                auto refp = refp0 + simd_width;
+                auto srcp = srcp0 + simd_width;
+
+                for (PCType y = 0; y < Height(); ++y)
+                {
+                    for (auto upper = refp + residue; refp < upper; ++refp, ++srcp)
+                    {
+                        dist_type temp = static_cast<dist_type>(*refp) - static_cast<dist_type>(*srcp);
+                        dist += temp * temp;
+                    }
+
+                    refp += simd_width;
+                    srcp += src_stride2;
+                }
+            }
 #else
             for (PCType y = 0; y < Height(); ++y)
             {
-                PCType x = y * src_stride;
-
-                for (PCType upper = x + Width(); x < upper; ++x, ++refp)
+                for (auto upper = refp0 + Width(); refp0 < upper; ++refp0, ++srcp0)
                 {
-                    dist_type temp = static_cast<dist_type>(*refp) - static_cast<dist_type>(srcp[x]);
+                    dist_type temp = static_cast<dist_type>(*refp0) - static_cast<dist_type>(*srcp0);
                     dist += temp * temp;
                 }
+
+                srcp0 += src_stride0;
             }
 #endif
 
@@ -1024,11 +1049,12 @@ public:
     }
 
     ////////////////////////////////////////////////////////////////
-    // Read/Store functions
+    // Load/Store functions
 
     template < typename _St1 >
     void From(const _St1 *src, PCType src_stride)
     {
+        const PCType src_stride0 = src_stride - Width();
         auto dstp = data();
 
         for (PCType z = 0; z < GroupSize(); ++z)
@@ -1037,12 +1063,12 @@ public:
 
             for (PCType y = 0; y < Height(); ++y)
             {
-                PCType x = y * src_stride;
-
-                for (PCType upper = x + Width(); x < upper; ++x, ++dstp)
+                for (auto upper = dstp + Width(); dstp < upper; ++dstp, ++srcp)
                 {
-                    *dstp = static_cast<value_type>(srcp[x]);
+                    *dstp = static_cast<value_type>(*srcp);
                 }
+
+                srcp += src_stride0;
             }
         }
     }
@@ -1050,56 +1076,29 @@ public:
     template < typename _St1 >
     void From(const std::vector<const _St1 *> &src, PCType src_stride)
     {
+        const PCType src_stride0 = src_stride - Width();
         auto dstp = data();
 
         for (PCType z = 0; z < GroupSize(); ++z)
         {
             auto srcp = src[GetPos3(z).z] + GetPos3(z).y * src_stride + GetPos3(z).x;
 
-#if defined(USE_SSE2)
-            if (Width() % 4 == 0)
-            {
-                for (PCType y = 0; y < Height(); ++y)
-                {
-                    PCType x = y * src_stride;
-                    _mm_prefetch(reinterpret_cast<const char *>(srcp + x), _MM_HINT_NTA);
-
-                    for (PCType upper = x + Width(); x < upper; x += 4, dstp += 4)
-                    {
-                        __m128 s1 = _mm_loadu_ps(srcp + x);
-                        _mm_stream_ps(dstp, s1);
-                    }
-                }
-            }
-            else
-            {
-                for (PCType y = 0; y < Height(); ++y)
-                {
-                    PCType x = y * src_stride;
-
-                    for (PCType upper = x + Width(); x < upper; ++x, ++dstp)
-                    {
-                        *dstp = static_cast<value_type>(srcp[x]);
-                    }
-                }
-            }
-#else
             for (PCType y = 0; y < Height(); ++y)
             {
-                PCType x = y * src_stride;
-
-                for (PCType upper = x + Width(); x < upper; ++x, ++dstp)
+                for (auto upper = dstp + Width(); dstp < upper; ++dstp, ++srcp)
                 {
-                    *dstp = static_cast<value_type>(srcp[x]);
+                    *dstp = static_cast<value_type>(*srcp);
                 }
+
+                srcp += src_stride0;
             }
-#endif
         }
     }
 
     template < typename _Dt1 >
     void To(_Dt1 *dst, PCType dst_stride) const
     {
+        const PCType dst_stride0 = dst_stride - Width();
         auto srcp = data();
 
         for (PCType z = 0; z < GroupSize(); ++z)
@@ -1108,12 +1107,12 @@ public:
 
             for (PCType y = 0; y < Height(); ++y)
             {
-                PCType x = y * dst_stride;
-
-                for (PCType upper = x + Width(); x < upper; ++x, ++srcp)
+                for (auto upper = srcp + Width(); srcp < upper; ++srcp, ++dstp)
                 {
-                    dstp[x] = static_cast<_Dt1>(*srcp);
+                    *dstp = static_cast<value_type>(*srcp);
                 }
+
+                dstp += dst_stride0;
             }
         }
     }
@@ -1121,6 +1120,7 @@ public:
     template < typename _Dt1 >
     void To(const std::vector<_Dt1 *> &dst, PCType dst_stride) const
     {
+        const PCType dst_stride0 = dst_stride - Width();
         auto srcp = data();
 
         for (PCType z = 0; z < GroupSize(); ++z)
@@ -1129,12 +1129,12 @@ public:
 
             for (PCType y = 0; y < Height(); ++y)
             {
-                PCType x = y * dst_stride;
-
-                for (PCType upper = x + Width(); x < upper; ++x, ++srcp)
+                for (auto upper = srcp + Width(); srcp < upper; ++srcp, ++dstp)
                 {
-                    dstp[x] = static_cast<_Dt1>(*srcp);
+                    *dstp = static_cast<value_type>(*srcp);
                 }
+
+                dstp += dst_stride0;
             }
         }
     }
@@ -1145,6 +1145,7 @@ public:
     template < typename _Dt1 >
     void AddTo(_Dt1 *dst, PCType dst_stride) const
     {
+        const PCType dst_stride0 = dst_stride - Width();
         auto srcp = data();
 
         for (PCType z = 0; z < GroupSize(); ++z)
@@ -1153,12 +1154,12 @@ public:
 
             for (PCType y = 0; y < Height(); ++y)
             {
-                PCType x = y * dst_stride;
-
-                for (PCType upper = x + Width(); x < upper; ++x, ++srcp)
+                for (auto upper = srcp + Width(); srcp < upper; ++srcp, ++dstp)
                 {
-                    dstp[x] += static_cast<_Dt1>(*srcp);
+                    *dstp += static_cast<_Dt1>(*srcp);
                 }
+
+                dstp += dst_stride0;
             }
         }
     }
@@ -1166,6 +1167,7 @@ public:
     template < typename _Dt1, typename _Gt1 >
     void AddTo(_Dt1 *dst, PCType dst_stride, _Gt1 gain) const
     {
+        const PCType dst_stride0 = dst_stride - Width();
         auto srcp = data();
 
         for (PCType z = 0; z < GroupSize(); ++z)
@@ -1174,12 +1176,12 @@ public:
 
             for (PCType y = 0; y < Height(); ++y)
             {
-                PCType x = y * dst_stride;
-
-                for (PCType upper = x + Width(); x < upper; ++x, ++srcp)
+                for (auto upper = srcp + Width(); srcp < upper; ++srcp, ++dstp)
                 {
-                    dstp[x] += static_cast<_Dt1>(*srcp * gain);
+                    *dstp += static_cast<_Dt1>(*srcp * gain);
                 }
+
+                dstp += dst_stride0;
             }
         }
     }
@@ -1187,6 +1189,7 @@ public:
     template < typename _Dt1 >
     void AddTo(const std::vector<_Dt1 *> &dst, PCType dst_stride) const
     {
+        const PCType dst_stride0 = dst_stride - Width();
         auto srcp = data();
 
         for (PCType z = 0; z < GroupSize(); ++z)
@@ -1195,12 +1198,12 @@ public:
 
             for (PCType y = 0; y < Height(); ++y)
             {
-                PCType x = y * dst_stride;
-
-                for (PCType upper = x + Width(); x < upper; ++x, ++srcp)
+                for (auto upper = srcp + Width(); srcp < upper; ++srcp, ++dstp)
                 {
-                    dstp[x] += static_cast<_Dt1>(*srcp);
+                    *dstp += static_cast<_Dt1>(*srcp);
                 }
+
+                dstp += dst_stride0;
             }
         }
     }
@@ -1208,6 +1211,7 @@ public:
     template < typename _Dt1, typename _Gt1 >
     void AddTo(const std::vector<_Dt1 *> &dst, PCType dst_stride, _Gt1 gain) const
     {
+        const PCType dst_stride0 = dst_stride - Width();
         auto srcp = data();
 
         for (PCType z = 0; z < GroupSize(); ++z)
@@ -1216,12 +1220,12 @@ public:
 
             for (PCType y = 0; y < Height(); ++y)
             {
-                PCType x = y * dst_stride;
-
-                for (PCType upper = x + Width(); x < upper; ++x, ++srcp)
+                for (auto upper = srcp + Width(); srcp < upper; ++srcp, ++dstp)
                 {
-                    dstp[x] += static_cast<_Dt1>(*srcp * gain);
+                    *dstp += static_cast<_Dt1>(*srcp * gain);
                 }
+
+                dstp += dst_stride0;
             }
         }
     }
@@ -1229,18 +1233,20 @@ public:
     template < typename _Dt1 >
     void CountTo(_Dt1 *dst, PCType dst_stride) const
     {
+        const PCType dst_stride0 = dst_stride - Width();
+
         for (PCType z = 0; z < GroupSize(); ++z)
         {
             auto dstp = dst + GetPos(z).y * dst_stride + GetPos(z).x;
 
             for (PCType y = 0; y < Height(); ++y)
             {
-                PCType x = y * dst_stride;
-
-                for (PCType upper = x + Width(); x < upper; ++x)
+                for (auto upper = dstp + Width(); dstp < upper; ++dstp)
                 {
-                    ++dstp[x];
+                    ++*dstp;
                 }
+
+                dstp += dst_stride0;
             }
         }
     }
@@ -1248,18 +1254,20 @@ public:
     template < typename _Dt1 >
     void CountTo(_Dt1 *dst, PCType dst_stride, _Dt1 value) const
     {
+        const PCType dst_stride0 = dst_stride - Width();
+
         for (PCType z = 0; z < GroupSize(); ++z)
         {
             auto dstp = dst + GetPos(z).y * dst_stride + GetPos(z).x;
 
             for (PCType y = 0; y < Height(); ++y)
             {
-                PCType x = y * dst_stride;
-
-                for (PCType upper = x + Width(); x < upper; ++x)
+                for (auto upper = dstp + Width(); dstp < upper; ++dstp)
                 {
-                    dstp[x] += value;
+                    *dstp += value;
                 }
+
+                dstp += dst_stride0;
             }
         }
     }
@@ -1267,18 +1275,20 @@ public:
     template < typename _Dt1 >
     void CountTo(const std::vector<_Dt1 *> &dst, PCType dst_stride) const
     {
+        const PCType dst_stride0 = dst_stride - Width();
+
         for (PCType z = 0; z < GroupSize(); ++z)
         {
             auto dstp = dst[GetPos3(z).z] + GetPos3(z).y * dst_stride + GetPos3(z).x;
 
             for (PCType y = 0; y < Height(); ++y)
             {
-                PCType x = y * dst_stride;
-
-                for (PCType upper = x + Width(); x < upper; ++x)
+                for (auto upper = dstp + Width(); dstp < upper; ++dstp)
                 {
-                    ++dstp[x];
+                    ++*dstp;
                 }
+
+                dstp += dst_stride0;
             }
         }
     }
@@ -1286,18 +1296,20 @@ public:
     template < typename _Dt1 >
     void CountTo(const std::vector<_Dt1 *> &dst, PCType dst_stride, _Dt1 value) const
     {
+        const PCType dst_stride0 = dst_stride - Width();
+
         for (PCType z = 0; z < GroupSize(); ++z)
         {
             auto dstp = dst[GetPos3(z).z] + GetPos3(z).y * dst_stride + GetPos3(z).x;
 
             for (PCType y = 0; y < Height(); ++y)
             {
-                PCType x = y * dst_stride;
-
-                for (PCType upper = x + Width(); x < upper; ++x)
+                for (auto upper = dstp + Width(); dstp < upper; ++dstp)
                 {
-                    dstp[x] += value;
+                    *dstp += value;
                 }
+
+                dstp += dst_stride0;
             }
         }
     }
