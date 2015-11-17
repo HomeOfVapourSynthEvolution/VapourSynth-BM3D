@@ -8,7 +8,9 @@ BM3D denoising filter for VapourSynth
 
 BM3D is a state-of-the-art image denoising algorithm. It can be extended to video denoising, named V-BM3D, which is also implemented in this plugin.
 
-Requirements: libfftw3f-3.dll should be in the search path http://www.fftw.org/install/windows.html
+This filter is much easier to use with the wrap function named BM3D() in [mvsfunc](http://forum.doom9.org/showthread.php?t=172564)
+
+Requirements: libfftw3f-3.dll from [FFTW3](http://www.fftw.org/install/windows.html) should be in the search path
 
 namespace: bm3d
 
@@ -20,7 +22,7 @@ sample type & bps: 8-16 bit integer, 32 bit float.
 
 color family: Gray, RGB, YUV or YCoCg.
 
-sub sampling: when chroma is processed, no sub-sampling is supported, only YUV444.
+sub-sampling: when chroma is processed, sub-sampling is not supported, YUV444 only.
 
 ## Important Note
 
@@ -287,7 +289,7 @@ bm3d.Basic / bm3d.Final / bm3d.VBasic / bm3d.VFinal
 ----------------------------------------------------------------------------
 | profile || block_size | block_step | group_size  | bm_range    | bm_step |
 ----------------------------------------------------------------------------
-| "fast"  || 8/8/8/8    | 8/7/8/7    | 16/16/8/8   | 9/9/7/7     | 1/1/1/1 |
+| "fast"  || 8/8/8/8    | 8/7/8/7    | 8/8/8/8     | 9/9/7/7     | 1/1/1/1 |
 | "lc"    || 8/8/8/8    | 6/5/6/5    | 16/16/8/8   | 9/9/9/9     | 1/1/1/1 |
 | "np"    || 8/8/8/8    | 4/3/4/3    | 16/32/8/8   | 16/16/12/12 | 1/1/1/1 |
 | "high"  || 8/8/8/8    | 3/2/3/2    | 16/32/8/8   | 16/16/16/16 | 1/1/1/1 |
@@ -325,6 +327,14 @@ bm3d.Basic & bm3d.VBasic / bm3d.Final & bm3d.VFinal
 
 ### BM3D Example
 
+- using warp function in [mvsfunc](http://forum.doom9.org/showthread.php?t=172564) for convenience
+
+```python
+import mvsfunc as mvf
+
+flt = mvf.BM3D(src, sigma=3.0, profile1="fast")
+```
+
 - basic estimate only, specify different sigma for Y,U,V planes
 
 ```python
@@ -346,7 +356,7 @@ ref = core.bm3d.Basic(src, pre, sigma=10)
 flt = core.bm3d.Final(src, ref, sigma=10)
 ```
 
-- apply the RGB<->OPP conversions separately
+- apply the RGB<->OPP conversions explicitly
 
 ```python
 src = core.bm3d.RGB2OPP(src) # The output is of 16bit opponent color space
@@ -356,6 +366,14 @@ flt = core.bm3d.OPP2RGB(flt) # The output is of 16bit RGB color space
 ```
 
 ### V-BM3D Example
+
+- using warp function in [mvsfunc](http://forum.doom9.org/showthread.php?t=172564) for convenience
+
+```python
+import mvsfunc as mvf
+
+flt = mvf.BM3D(src, sigma=3.0, radius1=1, profile1="fast")
+```
 
 - basic estimate + final estimate
 
