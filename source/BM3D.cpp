@@ -46,6 +46,7 @@ BM3D_Para::BM3D_Para(bool _wiener, std::string _profile)
     if (profile == "fast")
     {
         BMrange = 9;
+        GroupSize = 8;
 
         if (!wiener)
         {
@@ -54,7 +55,6 @@ BM3D_Para::BM3D_Para(bool _wiener, std::string _profile)
         else
         {
             BlockStep = 7;
-            GroupSize = 16;
         }
     }
     else if (profile == "lc")
