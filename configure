@@ -28,7 +28,10 @@ options:
   --extra-libs=XLIBS          add XLIBS to LIBS
 
   --target=TARGET          set target instruction set [sse2]
-  --opt-macro=OPTMACRO     set optimization macro [USE_SSE2]
+  --opt-macro=OPTMACRO     set optimization macro
+                           - USE_SSE2
+                           - USE_SSE4_1
+                           [USE_SSE4_1]
 
 EOF
 exit 1
@@ -95,7 +98,7 @@ LDFLAGS=""
 SOFLAGS="-shared"
 DEPLIBS="fftw3f"
 TARGET="-msse2"
-OPTMACRO="-DUSE_SSE2"
+OPTMACRO="-DUSE_SSE4_1"
 
 # -- options ----------------------------------------------------------------
 echo all command lines: > config.log
