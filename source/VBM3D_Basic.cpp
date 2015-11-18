@@ -79,15 +79,15 @@ void VBM3D_Basic_Process::CollaborativeFilter(int plane,
     d.f[plane].fp[GroupSize - 1].execute_r2r(srcGroup.data(), srcGroup.data());
 
     // Apply hard-thresholding to the source group
-    Block_For_each(srcGroup, d.f[plane].thrTable[GroupSize - 1], [&](FLType &x, FLType y)
+    Block_For_each(srcGroup, d.f[plane].thrTable[GroupSize - 1], [&](FLType &x, const FLType &y)
     {
-        if (Abs(x) <= y)
+        if (x > y || x < -y)
         {
-            x = 0;
+            ++retainedCoefs;
         }
         else
         {
-            ++retainedCoefs;
+            x = 0;
         }
     });
 
