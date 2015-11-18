@@ -21,6 +21,7 @@
 #define BM3D_H_
 
 
+#include <memory>
 #include "fftw3_helper.hpp"
 #include "Conversion.hpp"
 #include "Block.h"
@@ -61,7 +62,7 @@ struct BM3D_FilterData
     std::vector<fftw::plan> fp;
     std::vector<fftw::plan> bp;
     std::vector<double> finalAMP;
-    std::vector<std::vector<FLType>> thrTable;
+    std::vector<std::shared_ptr<const FLType>> thrTable;
     std::vector<FLType> wienerSigmaSqr;
 
     BM3D_FilterData() {}

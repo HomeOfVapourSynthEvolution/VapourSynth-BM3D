@@ -79,17 +79,21 @@ void BM3D_Basic_Process::CollaborativeFilter(int plane,
     d.f[plane].fp[GroupSize - 1].execute_r2r(srcGroup.data(), srcGroup.data());
 
     // Apply hard-thresholding to the source group
-    Block_For_each(srcGroup, d.f[plane].thrTable[GroupSize - 1], [&](FLType &x, const FLType &y)
+    auto srcp = srcGroup.data();
+    auto thrp = d.f[plane].thrTable[GroupSize - 1].get();
+    const auto upper = srcp + srcGroup.size();
+
+    for (; srcp < upper; ++srcp, ++thrp)
     {
-        if (x > y || x < -y)
+        if (*srcp > *thrp || *srcp < -*thrp)
         {
             ++retainedCoefs;
         }
         else
         {
-            x = 0;
+            *srcp = 0;
         }
-    });
+    }
 
     // Apply backward 3D transform to the filtered group
     d.f[plane].bp[GroupSize - 1].execute_r2r(srcGroup.data(), srcGroup.data());

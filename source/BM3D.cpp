@@ -162,14 +162,18 @@ BM3D_FilterData::BM3D_FilterData(bool wiener, double sigma, PCType GroupSize, PC
             thr[2] = thrBase * double(2);
             thr[3] = thrBase * sqrt(double(8));
 
-            thrTable[i - 1] = std::vector<FLType>(i * BlockSize * BlockSize);
-            auto thr_d = thrTable[i - 1].data();
+            FLType *thrp = nullptr;
+            AlignedMalloc(thrp, i * BlockSize * BlockSize);
+            thrTable[i - 1].reset(thrp, [](FLType *memory)
+            {
+                AlignedFree(memory);
+            });
 
             for (PCType z = 0; z < i; ++z)
             {
                 for (PCType y = 0; y < BlockSize; ++y)
                 {
-                    for (PCType x = 0; x < BlockSize; ++x, ++thr_d)
+                    for (PCType x = 0; x < BlockSize; ++x, ++thrp)
                     {
                         int flag = 0;
 
@@ -186,7 +190,7 @@ BM3D_FilterData::BM3D_FilterData(bool wiener, double sigma, PCType GroupSize, PC
                             ++flag;
                         }
 
-                        *thr_d = static_cast<FLType>(thr[flag]);
+                        *thrp = static_cast<FLType>(thr[flag]);
                     }
                 }
             }
