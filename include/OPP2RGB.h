@@ -165,6 +165,7 @@ protected:
         // Set output frame properties
         VSMap *dst_map = vsapi->getFramePropsRW(dst);
 
+        vsapi->propSetInt(dst_map, "_Matrix", 0, paReplace);
         vsapi->propDeleteKey(dst_map, "BM3D_OPP");
     }
 };
