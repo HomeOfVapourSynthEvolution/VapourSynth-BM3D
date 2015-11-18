@@ -93,7 +93,7 @@ DEBUG=""
 
 LIBNAME=""
 
-CXXFLAGS="-std=c++11 -Wall -Wno-unused-local-typedefs -I. -I$SRCDIR/include"
+CXXFLAGS="-std=c++11 -Wall -Wno-unused-local-typedefs -I. -I$SRCDIR/include -DNDEBUG"
 LDFLAGS=""
 SOFLAGS="-shared"
 DEPLIBS="fftw3f"
@@ -112,7 +112,7 @@ for opt; do
             ;;
         --enable-debug)
             DEBUG="enabled"
-            CXXFLAGS="$CXXFLAGS -g"
+            CXXFLAGS="$CXXFLAGS -g -UNDEBUG"
             ;;
         --cxx=*)
             CXX="$optarg"
