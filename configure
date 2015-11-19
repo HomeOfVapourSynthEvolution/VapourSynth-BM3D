@@ -28,8 +28,8 @@ options:
   --extra-libs=XLIBS          add XLIBS to LIBS
 
   --target=TARGET          set target instruction set
-                           -sse2
-                           -sse4.1
+                           - sse2
+                           - sse4.1
                            [sse4.1]
 
 EOF
