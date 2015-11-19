@@ -109,7 +109,7 @@ void BM3D_Basic_Process::CollaborativeFilter(int plane,
         cmp_sum = _mm_sub_epi32(cmp_sum, _mm_castps_si128(cmp));
     }
 
-    _MM_ALIGN16 int32_t cmp_sum_i32[4];
+    alignas(16) int32_t cmp_sum_i32[4];
     _mm_store_si128(reinterpret_cast<__m128i *>(cmp_sum_i32), cmp_sum);
     retainedCoefs += cmp_sum_i32[0] + cmp_sum_i32[1] + cmp_sum_i32[2] + cmp_sum_i32[3];
 #endif
