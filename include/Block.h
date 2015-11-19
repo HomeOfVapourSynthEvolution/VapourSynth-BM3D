@@ -23,6 +23,8 @@
 
 #include <vector>
 #include <algorithm>
+#include <cassert>
+#include <smmintrin.h>
 #include "Helper.h"
 
 
@@ -489,7 +491,7 @@ public:
                             srcp += src_stride1;
                         }
 
-                        _MM_ALIGN16 FLType ssum_f32[4];
+                        alignas(16) FLType ssum_f32[4];
                         _mm_store_ps(ssum_f32, ssum);
                         dist += ssum_f32[0] + ssum_f32[1] + ssum_f32[2] + ssum_f32[3];
                     }
@@ -612,7 +614,7 @@ public:
                     srcp += src_stride1;
                 }
 
-                _MM_ALIGN16 FLType ssum_f32[4];
+                alignas(16) FLType ssum_f32[4];
                 _mm_store_ps(ssum_f32, ssum);
                 dist += ssum_f32[0] + ssum_f32[1] + ssum_f32[2] + ssum_f32[3];
             }
