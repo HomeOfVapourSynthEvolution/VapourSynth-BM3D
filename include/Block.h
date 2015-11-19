@@ -23,7 +23,7 @@
 
 #include <vector>
 #include <algorithm>
-#include "Type.h"
+#include "Helper.h"
 
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -432,11 +432,11 @@ public:
         dist_type thSSE = static_cast<dist_type>(thMSE * MSE2SSE);
 
 #if defined(__SSE2__)
-        static const ptrdiff_t step = 8;
-        const ptrdiff_t residue = Width() % step;
-        const ptrdiff_t simd_width = Width() - residue;
+        static const ptrdiff_t simd_step = 8;
+        const ptrdiff_t simd_residue = Width() % simd_step;
+        const ptrdiff_t simd_width = Width() - simd_residue;
         const ptrdiff_t src_stride1 = src_stride - simd_width;
-        const ptrdiff_t src_stride2 = src_stride - residue;
+        const ptrdiff_t src_stride2 = src_stride - simd_residue;
 #else
         const ptrdiff_t src_stride0 = src_stride - Width();
 #endif
@@ -461,11 +461,12 @@ public:
                     {
                         auto refp = refp0;
                         auto srcp = srcp0;
+
                         __m128 ssum = _mm_setzero_ps();
 
                         for (PCType y = 0; y < Height(); ++y)
                         {
-                            for (const auto upper = refp + simd_width; refp < upper; refp += step, srcp += step)
+                            for (const auto upper = refp + simd_width; refp < upper; refp += simd_step, srcp += simd_step)
                             {
                                 _mm_prefetch(reinterpret_cast<const char *>(refp), _MM_HINT_NTA);
                                 _mm_prefetch(reinterpret_cast<const char *>(refp + 4), _MM_HINT_NTA);
@@ -484,20 +485,23 @@ public:
                                 ssum = _mm_add_ps(ssum, d2sqr);
                             }
 
-                            refp += residue;
+                            refp += simd_residue;
                             srcp += src_stride1;
                         }
-                        dist += ssum.m128_f32[0] + ssum.m128_f32[1] + ssum.m128_f32[2] + ssum.m128_f32[3];
+
+                        _MM_ALIGN16 FLType ssum_f32[4];
+                        _mm_store_ps(ssum_f32, ssum);
+                        dist += ssum_f32[0] + ssum_f32[1] + ssum_f32[2] + ssum_f32[3];
                     }
 
-                    if (residue > 0)
+                    if (simd_residue > 0)
                     {
                         auto refp = refp0 + simd_width;
                         auto srcp = srcp0 + simd_width;
 
                         for (PCType y = 0; y < Height(); ++y)
                         {
-                            for (const auto upper = refp + residue; refp < upper; ++refp, ++srcp)
+                            for (const auto upper = refp + simd_residue; refp < upper; ++refp, ++srcp)
                             {
                                 dist_type temp = static_cast<dist_type>(*refp) - static_cast<dist_type>(*srcp);
                                 dist += temp * temp;
@@ -559,11 +563,11 @@ public:
         match_code.resize(index + search_pos.size());
 
 #if defined(__SSE2__)
-        static const ptrdiff_t step = 8;
-        const ptrdiff_t residue = Width() % step;
-        const ptrdiff_t simd_width = Width() - residue;
+        static const ptrdiff_t simd_step = 8;
+        const ptrdiff_t simd_residue = Width() % simd_step;
+        const ptrdiff_t simd_width = Width() - simd_residue;
         const ptrdiff_t src_stride1 = src_stride - simd_width;
-        const ptrdiff_t src_stride2 = src_stride - residue;
+        const ptrdiff_t src_stride2 = src_stride - simd_residue;
 #else
         const ptrdiff_t src_stride0 = src_stride - Width();
 #endif
@@ -580,11 +584,12 @@ public:
             {
                 auto refp = refp0;
                 auto srcp = srcp0;
+
                 __m128 ssum = _mm_setzero_ps();
 
                 for (PCType y = 0; y < Height(); ++y)
                 {
-                    for (const auto upper = refp + simd_width; refp < upper; refp += step, srcp += step)
+                    for (const auto upper = refp + simd_width; refp < upper; refp += simd_step, srcp += simd_step)
                     {
                         _mm_prefetch(reinterpret_cast<const char *>(refp), _MM_HINT_NTA);
                         _mm_prefetch(reinterpret_cast<const char *>(refp + 4), _MM_HINT_NTA);
@@ -603,20 +608,23 @@ public:
                         ssum = _mm_add_ps(ssum, d2sqr);
                     }
 
-                    refp += residue;
+                    refp += simd_residue;
                     srcp += src_stride1;
                 }
-                dist += ssum.m128_f32[0] + ssum.m128_f32[1] + ssum.m128_f32[2] + ssum.m128_f32[3];
+
+                _MM_ALIGN16 FLType ssum_f32[4];
+                _mm_store_ps(ssum_f32, ssum);
+                dist += ssum_f32[0] + ssum_f32[1] + ssum_f32[2] + ssum_f32[3];
             }
 
-            if (residue > 0)
+            if (simd_residue > 0)
             {
                 auto refp = refp0 + simd_width;
                 auto srcp = srcp0 + simd_width;
 
                 for (PCType y = 0; y < Height(); ++y)
                 {
-                    for (const auto upper = refp + residue; refp < upper; ++refp, ++srcp)
+                    for (const auto upper = refp + simd_residue; refp < upper; ++refp, ++srcp)
                     {
                         dist_type temp = static_cast<dist_type>(*refp) - static_cast<dist_type>(*srcp);
                         dist += temp * temp;

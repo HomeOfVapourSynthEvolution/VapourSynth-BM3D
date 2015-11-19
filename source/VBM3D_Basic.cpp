@@ -84,14 +84,14 @@ void VBM3D_Basic_Process::CollaborativeFilter(int plane,
     const auto upper = srcp + srcGroup.size();
 
 #if defined(__SSE4_1__)
-    static const ptrdiff_t step = 4;
-    const ptrdiff_t residue = srcGroup.size() % step;
-    const ptrdiff_t simd_width = srcGroup.size() - residue;
+    static const ptrdiff_t simd_step = 4;
+    const ptrdiff_t simd_residue = srcGroup.size() % simd_step;
+    const ptrdiff_t simd_width = srcGroup.size() - simd_residue;
 
     static const __m128 zero_ps = _mm_setzero_ps();
     __m128i cmp_sum = _mm_setzero_si128();
 
-    for (const auto upper1 = srcp + simd_width; srcp < upper1; srcp += step, thrp += step)
+    for (const auto upper1 = srcp + simd_width; srcp < upper1; srcp += simd_step, thrp += simd_step)
     {
         _mm_prefetch(reinterpret_cast<const char *>(srcp), _MM_HINT_NTA);
         _mm_prefetch(reinterpret_cast<const char *>(thrp), _MM_HINT_NTA);
@@ -109,7 +109,9 @@ void VBM3D_Basic_Process::CollaborativeFilter(int plane,
         cmp_sum = _mm_sub_epi32(cmp_sum, _mm_castps_si128(cmp));
     }
 
-    retainedCoefs += cmp_sum.m128i_i32[0] + cmp_sum.m128i_i32[1] + cmp_sum.m128i_i32[2] + cmp_sum.m128i_i32[3];
+    _MM_ALIGN16 int32_t cmp_sum_i32[4];
+    _mm_store_si128(reinterpret_cast<__m128i *>(cmp_sum_i32), cmp_sum);
+    retainedCoefs += cmp_sum_i32[0] + cmp_sum_i32[1] + cmp_sum_i32[2] + cmp_sum_i32[3];
 #endif
 
     for (; srcp < upper; ++srcp, ++thrp)
