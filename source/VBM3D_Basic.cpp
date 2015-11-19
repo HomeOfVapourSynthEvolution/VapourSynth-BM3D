@@ -18,9 +18,6 @@
 
 
 #include "VBM3D_Basic.h"
-#if defined(USE_SSE4_1)
-#include <smmintrin.h>
-#endif
 
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -86,7 +83,7 @@ void VBM3D_Basic_Process::CollaborativeFilter(int plane,
     auto thrp = d.f[plane].thrTable[GroupSize - 1].get();
     const auto upper = srcp + srcGroup.size();
 
-#if defined(USE_SSE4_1)
+#if defined(__SSE4_1__)
     static const ptrdiff_t step = 4;
     const ptrdiff_t residue = srcGroup.size() % step;
     const ptrdiff_t simd_width = srcGroup.size() - residue;

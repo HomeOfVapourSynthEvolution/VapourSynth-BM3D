@@ -24,9 +24,6 @@
 #include <vector>
 #include <algorithm>
 #include "Type.h"
-#if defined(USE_SSE2) || defined(USE_SSE4_1)
-#include <xmmintrin.h>
-#endif
 
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -434,7 +431,7 @@ public:
         double distMul = double(1) / MSE2SSE;
         dist_type thSSE = static_cast<dist_type>(thMSE * MSE2SSE);
 
-#if defined(USE_SSE2) || defined(USE_SSE4_1)
+#if defined(__SSE2__)
         static const ptrdiff_t step = 8;
         const ptrdiff_t residue = Width() % step;
         const ptrdiff_t simd_width = Width() - residue;
@@ -459,7 +456,7 @@ public:
                     auto refp0 = data();
                     auto srcp0 = src + j * src_stride + i;
 
-#if defined(USE_SSE2) || defined(USE_SSE4_1)
+#if defined(__SSE2__)
                     if (simd_width > 0)
                     {
                         auto refp = refp0;
@@ -561,7 +558,7 @@ public:
         size_t index = match_code.size();
         match_code.resize(index + search_pos.size());
 
-#if defined(USE_SSE2) || defined(USE_SSE4_1)
+#if defined(__SSE2__)
         static const ptrdiff_t step = 8;
         const ptrdiff_t residue = Width() % step;
         const ptrdiff_t simd_width = Width() - residue;
@@ -578,7 +575,7 @@ public:
             auto refp0 = data();
             auto srcp0 = src + pos.y * src_stride + pos.x;
 
-#if defined(USE_SSE2) || defined(USE_SSE4_1)
+#if defined(__SSE2__)
             if(simd_width > 0)
             {
                 auto refp = refp0;
