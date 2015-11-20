@@ -468,11 +468,6 @@ public:
                         {
                             for (const auto upper = refp + simd_width; refp < upper; refp += simd_step, srcp += simd_step)
                             {
-                                _mm_prefetch(reinterpret_cast<const char *>(refp), _MM_HINT_NTA);
-                                _mm_prefetch(reinterpret_cast<const char *>(refp + 4), _MM_HINT_NTA);
-                                _mm_prefetch(reinterpret_cast<const char *>(srcp), _MM_HINT_NTA);
-                                _mm_prefetch(reinterpret_cast<const char *>(srcp + 4), _MM_HINT_NTA);
-
                                 const __m128 r1 = _mm_loadu_ps(refp);
                                 const __m128 r2 = _mm_loadu_ps(refp + 4);
                                 const __m128 s1 = _mm_loadu_ps(srcp);
@@ -591,11 +586,6 @@ public:
                 {
                     for (const auto upper = refp + simd_width; refp < upper; refp += simd_step, srcp += simd_step)
                     {
-                        _mm_prefetch(reinterpret_cast<const char *>(refp), _MM_HINT_NTA);
-                        _mm_prefetch(reinterpret_cast<const char *>(refp + 4), _MM_HINT_NTA);
-                        _mm_prefetch(reinterpret_cast<const char *>(srcp), _MM_HINT_NTA);
-                        _mm_prefetch(reinterpret_cast<const char *>(srcp + 4), _MM_HINT_NTA);
-
                         const __m128 r1 = _mm_loadu_ps(refp);
                         const __m128 r2 = _mm_loadu_ps(refp + 4);
                         const __m128 s1 = _mm_loadu_ps(srcp);

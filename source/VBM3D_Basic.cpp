@@ -93,9 +93,6 @@ void VBM3D_Basic_Process::CollaborativeFilter(int plane,
 
     for (const auto upper1 = srcp + simd_width; srcp < upper1; srcp += simd_step, thrp += simd_step)
     {
-        _mm_prefetch(reinterpret_cast<const char *>(srcp), _MM_HINT_NTA);
-        _mm_prefetch(reinterpret_cast<const char *>(thrp), _MM_HINT_NTA);
-
         const __m128 s1 = _mm_load_ps(srcp);
         const __m128 t1p = _mm_load_ps(thrp);
         const __m128 t1n = _mm_sub_ps(zero_ps, t1p);

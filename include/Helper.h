@@ -54,6 +54,56 @@
 #endif
 
 
+#if defined(__INTRIN_H_) && (defined(_M_IX86) || defined(_M_X64))
+class ClockCounter
+{
+public:
+    void Clear()
+    {
+        _point = 0;
+        _elapse = 0;
+        _total_elapse = 0;
+        _loop = 0;
+    }
+
+    void Start()
+    {
+        _point = __rdtsc();
+    }
+
+    void End()
+    {
+        uint64_t cur_point = __rdtsc();
+        _elapse = cur_point - _point;
+        _point = cur_point;
+        _total_elapse += _elapse;
+        ++_loop;
+    }
+
+    void ShowCurrent() const
+    {
+        std::cout << "Current elapse: " << _elapse << " cycles.\n";
+    }
+
+    void ShowTotal() const
+    {
+        std::cout << "Total elapse: " << _total_elapse << " cycles.\n";
+    }
+
+    void ShowTotalAvg() const
+    {
+        std::cout << "Total average elapse: " << static_cast<double>(_total_elapse) / _loop << " cycles.\n";
+    }
+
+private:
+    uint64_t _point = 0;
+    uint64_t _elapse = 0;
+    uint64_t _total_elapse = 0;
+    uint64_t _loop = 0;
+};
+#endif
+
+
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 // Exception handle
 
