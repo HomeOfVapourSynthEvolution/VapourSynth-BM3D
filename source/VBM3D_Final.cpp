@@ -68,13 +68,43 @@ void VBM3D_Final_Process::CollaborativeFilter(int plane,
     // Apply empirical Wiener filtering to the source group guided by the reference group
     const FLType sigmaSquare = d.f[plane].wienerSigmaSqr[GroupSize - 1];
 
-    Block_For_each(srcGroup, refGroup, [&](FLType &x, FLType y)
+    auto srcp = srcGroup.data();
+    auto refp = refGroup.data();
+    const auto upper = srcp + srcGroup.size();
+
+#if defined(__SSE2__)
+    static const ptrdiff_t simd_step = 4;
+    const ptrdiff_t simd_residue = srcGroup.size() % simd_step;
+    const ptrdiff_t simd_width = srcGroup.size() - simd_residue;
+
+    const __m128 sgm_sqr = _mm_set_ps1(sigmaSquare);
+    __m128 l2wiener_sum = _mm_setzero_ps();
+
+    for (const auto upper1 = srcp + simd_width; srcp < upper1; srcp += simd_step, refp += simd_step)
     {
-        FLType ySquare = y * y;
-        FLType wienerCoef = ySquare / (ySquare + sigmaSquare);
-        x *= wienerCoef;
+        const __m128 s1 = _mm_load_ps(srcp);
+        const __m128 r1 = _mm_load_ps(refp);
+        const __m128 r1sqr = _mm_mul_ps(r1, r1);
+
+        const __m128 wiener = _mm_mul_ps(r1sqr, _mm_rcp_ps(_mm_add_ps(r1sqr, sgm_sqr)));
+
+        const __m128 d1 = _mm_mul_ps(s1, wiener);
+        _mm_store_ps(srcp, d1);
+        l2wiener_sum = _mm_add_ps(l2wiener_sum, _mm_mul_ps(wiener, wiener));
+    }
+
+    alignas(16) FLType l2wiener_sum_f32[4];
+    _mm_store_ps(l2wiener_sum_f32, l2wiener_sum);
+    L2Wiener += l2wiener_sum_f32[0] + l2wiener_sum_f32[1] + l2wiener_sum_f32[2] + l2wiener_sum_f32[3];
+#endif
+
+    for (; srcp < upper; ++srcp, ++refp)
+    {
+        const FLType refSquare = *refp * *refp;
+        const FLType wienerCoef = refSquare / (refSquare + sigmaSquare);
+        *srcp *= wienerCoef;
         L2Wiener += wienerCoef * wienerCoef;
-    });
+    }
 
     // Apply backward 3D transform to the filtered group
     d.f[plane].bp[GroupSize - 1].execute_r2r(srcGroup.data(), srcGroup.data());
