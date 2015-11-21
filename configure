@@ -29,8 +29,7 @@ options:
 
   --target=TARGET          set target instruction set
                            - sse2
-                           - sse4.1
-                           [sse4.1]
+                           [sse2]
 
 EOF
 exit 1
@@ -96,7 +95,7 @@ CXXFLAGS="-std=c++11 -Wall -Wno-unused-local-typedefs -I. -I$SRCDIR/include -DND
 LDFLAGS=""
 SOFLAGS="-shared"
 DEPLIBS="fftw3f"
-TARGET="-msse4.1"
+TARGET="-msse2"
 
 # -- options ----------------------------------------------------------------
 echo all command lines: > config.log
