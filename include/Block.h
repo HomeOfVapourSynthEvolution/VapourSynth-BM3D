@@ -711,7 +711,8 @@ public:
         {
             // Always sorted when size of match code is larger than match_size,
             // since std::partial_sort is faster than std::nth_element
-            std::partial_sort(match_code.begin(), match_code.begin() + match_size, match_code.end());
+            std::partial_sort(excludeCurPos == 1 ? match_code.begin() + 1 : match_code.begin(),
+                match_code.begin() + match_size, match_code.end());
             match_code.resize(match_size);
         }
         else if (sorted)
