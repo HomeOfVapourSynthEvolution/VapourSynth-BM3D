@@ -158,22 +158,21 @@ protected:
 
         if (error)
         {
-            vsapi->setFilterError("bm3d.VAggregate - error: "
+            vsapi->logMessage(mtWarning, "bm3d.VAggregate - warning: "
                 "No frame property \"BM3D_V_radius\" exists in the input frame. "
-                "Make sure you call bm3d.VAggregate next to bm3d.VBasic or bm3d.VFinal. ", frameCtx);
+                "Make sure you call bm3d.VAggregate next to bm3d.VBasic or bm3d.VFinal. ");
         }
         else if (d.radius != p_radius)
         {
-            std::string msg, temp;
-            std::stringstream ss;
+            std::string msg;
 
-            msg += "bm3d.VAggregate - error: Mismatch between argument \"radius=";
-            msg += GetStr(d.radius);
+            msg += "bm3d.VAggregate - warning: Mismatch between argument \"radius=";
+            msg += std::to_string(d.radius);
             msg += "\" and the input frame property \"BM3D_V_radius=";
-            msg += GetStr(p_radius);
+            msg += std::to_string(p_radius);
             msg += "\" which indicates the radius used in previous filter (bm3d.VBasic or bm3d.VFinal).";
 
-            vsapi->setFilterError(msg.c_str(), frameCtx);
+            vsapi->logMessage(mtWarning, msg.c_str());
         }
 
         int m = vsapi->propNumElements(src_map, "BM3D_V_process");
@@ -181,9 +180,14 @@ protected:
 
         if (error || m != VSMaxPlaneCount)
         {
-            vsapi->setFilterError("bm3d.VAggregate - error: "
-                "No valid frame property \"BM3D_V_process\" exists in the input frame. "
-                "Make sure you call bm3d.VAggregate next to bm3d.VBasic or bm3d.VFinal. ", frameCtx);
+            vsapi->logMessage(mtWarning, "bm3d.VAggregate - warning: "
+                "No frame property \"BM3D_V_process\" exists in the input frame. "
+                "Make sure you call bm3d.VAggregate next to bm3d.VBasic or bm3d.VFinal. ");
+
+            for (int i = 0; i < VSMaxPlaneCount; i++)
+            {
+                process_plane[i] = 1;
+            }
         }
         else
         {

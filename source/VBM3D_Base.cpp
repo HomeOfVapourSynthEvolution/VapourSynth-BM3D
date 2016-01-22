@@ -429,13 +429,9 @@ void VBM3D_Process_Base::Kernel(const std::vector<FLType *> &dst,
     {
         ResNum[f] = dst[f * 2];
         ResDen[f] = dst[f * 2 + 1];
-
-        LOOP_VH(dst_height[0], dst_width[0], dst_stride[0], [&](PCType i)
-        {
-            ResNum[f][i] = 0;
-            ResDen[f][i] = 0;
-        });
     }
+
+    memset(dst[0], 0, sizeof(FLType) * dst_pcount[0] * frames * 2);
 
     const PCType BlockPosBottom = height - d.para.BlockSize;
     const PCType BlockPosRight = width - d.para.BlockSize;
@@ -482,40 +478,37 @@ void VBM3D_Process_Base::Kernel(const std::vector<FLType *> &dstY, const std::ve
     std::vector<FLType *> ResNumU(frames), ResDenU(frames);
     std::vector<FLType *> ResNumV(frames), ResDenV(frames);
 
-    if (d.process[0]) for (int f = 0; f < frames; ++f)
+    if (d.process[0])
     {
-        ResNumY[f] = dstY[f * 2];
-        ResDenY[f] = dstY[f * 2 + 1];
-
-        LOOP_VH(dst_height[0], dst_width[0], dst_stride[0], [&](PCType i)
+        for (int f = 0; f < frames; ++f)
         {
-            ResNumY[f][i] = 0;
-            ResDenY[f][i] = 0;
-        });
+            ResNumY[f] = dstY[f * 2];
+            ResDenY[f] = dstY[f * 2 + 1];
+        }
+
+        memset(dstY[0], 0, sizeof(FLType) * dst_pcount[0] * frames * 2);
     }
 
-    if (d.process[1]) for (int f = 0; f < frames; ++f)
+    if (d.process[1])
     {
-        ResNumU[f] = dstU[f * 2];
-        ResDenU[f] = dstU[f * 2 + 1];
-
-        LOOP_VH(dst_height[1], dst_width[1], dst_stride[1], [&](PCType i)
+        for (int f = 0; f < frames; ++f)
         {
-            ResNumU[f][i] = 0;
-            ResDenU[f][i] = 0;
-        });
+            ResNumU[f] = dstU[f * 2];
+            ResDenU[f] = dstU[f * 2 + 1];
+        }
+
+        memset(dstU[0], 0, sizeof(FLType) * dst_pcount[1] * frames * 2);
     }
 
-    if (d.process[2]) for (int f = 0; f < frames; ++f)
+    if (d.process[2])
     {
-        ResNumV[f] = dstV[f * 2];
-        ResDenV[f] = dstV[f * 2 + 1];
-
-        LOOP_VH(dst_height[2], dst_width[2], dst_stride[2], [&](PCType i)
+        for (int f = 0; f < frames; ++f)
         {
-            ResNumV[f][i] = 0;
-            ResDenV[f][i] = 0;
-        });
+            ResNumV[f] = dstV[f * 2];
+            ResDenV[f] = dstV[f * 2 + 1];
+        }
+
+        memset(dstV[0], 0, sizeof(FLType) * dst_pcount[2] * frames * 2);
     }
 
     const PCType BlockPosBottom = height - d.para.BlockSize;
@@ -584,7 +577,7 @@ VBM3D_Process_Base::Pos3PairCode VBM3D_Process_Base::BlockMatching(
 
     matchCode.resize(matchCode.size() + frameMatch.size());
     std::transform(frameMatch.begin(), frameMatch.end(),
-        matchCode.end() - frameMatch.size(), [&](PosPair x)
+        matchCode.end() - frameMatch.size(), [&](const PosPair &x)
     {
         return Pos3Pair(x.first, Pos3Type(x.second, f));
     });
@@ -592,7 +585,7 @@ VBM3D_Process_Base::Pos3PairCode VBM3D_Process_Base::BlockMatching(
     PCType nextPosNum = Min(d.para.PSnum, static_cast<PCType>(frameMatch.size()));
     PosCode curPosCode(nextPosNum);
     std::transform(frameMatch.begin(), frameMatch.begin() + nextPosNum,
-        curPosCode.begin(), [](PosPair x)
+        curPosCode.begin(), [](const PosPair &x)
     {
         return x.second;
     });
@@ -615,7 +608,7 @@ VBM3D_Process_Base::Pos3PairCode VBM3D_Process_Base::BlockMatching(
             PCType nextPosNum = Min(d.para.PSnum, static_cast<PCType>(frameMatch.size()));
             prePosCode.resize(nextPosNum);
             std::transform(frameMatch.begin(), frameMatch.begin() + nextPosNum,
-                prePosCode.begin(), [](PosPair x)
+                prePosCode.begin(), [](const PosPair &x)
             {
                 return x.second;
             });
@@ -628,7 +621,7 @@ VBM3D_Process_Base::Pos3PairCode VBM3D_Process_Base::BlockMatching(
 
         matchCode.resize(matchCode.size() + frameMatch.size());
         std::transform(frameMatch.begin(), frameMatch.end(),
-            matchCode.end() - frameMatch.size(), [&](PosPair x)
+            matchCode.end() - frameMatch.size(), [&](const PosPair &x)
         {
             return Pos3Pair(x.first, Pos3Type(x.second, f));
         });
@@ -649,7 +642,7 @@ VBM3D_Process_Base::Pos3PairCode VBM3D_Process_Base::BlockMatching(
             PCType nextPosNum = Min(d.para.PSnum, static_cast<PCType>(frameMatch.size()));
             prePosCode.resize(nextPosNum);
             std::transform(frameMatch.begin(), frameMatch.begin() + nextPosNum,
-                prePosCode.begin(), [](PosPair x)
+                prePosCode.begin(), [](const PosPair &x)
             {
                 return x.second;
             });
@@ -662,7 +655,7 @@ VBM3D_Process_Base::Pos3PairCode VBM3D_Process_Base::BlockMatching(
 
         matchCode.resize(matchCode.size() + frameMatch.size());
         std::transform(frameMatch.begin(), frameMatch.end(),
-            matchCode.end() - frameMatch.size(), [&](PosPair x)
+            matchCode.end() - frameMatch.size(), [&](const PosPair &x)
         {
             return Pos3Pair(x.first, Pos3Type(x.second, f));
         });

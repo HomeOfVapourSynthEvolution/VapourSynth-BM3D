@@ -197,7 +197,7 @@ struct Pos
         : y(_y), x(_x)
     {}
 
-    explicit Pos(Pos3 &_pos3);
+    explicit Pos(const Pos3 &_pos3);
 
     _Myt &operator=(const Pos3 &right);
 
@@ -282,7 +282,7 @@ struct Pos3
         : z(_z), y(_y), x(_x)
     {}
 
-    explicit Pos3(Pos &_pos2, PCType _z = 0);
+    explicit Pos3(const Pos &_pos2, const PCType &_z = 0);
 
     _Myt &operator=(const Pos &right);
 
@@ -371,7 +371,7 @@ struct Pos3
 };
 
 
-inline Pos::Pos(Pos3 &_pos3)
+inline Pos::Pos(const Pos3 &_pos3)
     : y(_pos3.y), x(_pos3.x)
 {}
 
@@ -383,7 +383,7 @@ inline Pos &Pos::operator=(const Pos3 &right)
 }
 
 
-inline Pos3::Pos3(Pos &_pos2, PCType _z)
+inline Pos3::Pos3(const Pos &_pos2, const PCType &_z)
     : z(_z), y(_pos2.y), x(_pos2.x)
 {}
 
@@ -412,7 +412,7 @@ struct KeyPair
         : _Mybase()
     {}
 
-    KeyPair(const _Ty1& _Val1, const _Ty2& _Val2)
+    KeyPair(const _Ty1 &_Val1, const _Ty2 &_Val2)
         : _Mybase(_Val1, _Val2)
     {}
 

@@ -111,7 +111,7 @@ void VBM3D_Final_Process::CollaborativeFilter(int plane,
 
     // Calculate weight for the filtered group
     // Also include the normalization factor to compensate for the amplification introduced in 3D transform
-    FLType denWeight = L2Wiener <= 0 ? 1 : FLType(1) / L2Wiener;
+    FLType denWeight = L2Wiener <= 0 ? 16777216 : FLType(1) / L2Wiener;
     FLType numWeight = static_cast<FLType>(denWeight / d.f[plane].finalAMP[GroupSize - 1]);
 
     // Store the weighted filtered group to the numerator part of the final estimation

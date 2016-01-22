@@ -301,12 +301,8 @@ void BM3D_Process_Base::Kernel(FLType *dst, const FLType *src, const FLType *ref
     FLType *ResNum = dst, *ResDen = nullptr;
 
     AlignedMalloc(ResDen, dst_pcount[0]);
-
-    LOOP_VH(dst_height[0], dst_width[0], dst_stride[0], [&](PCType i)
-    {
-        ResNum[i] = 0;
-        ResDen[i] = 0;
-    });
+    memset(ResNum, 0, sizeof(FLType) * dst_pcount[0]);
+    memset(ResDen, 0, sizeof(FLType) * dst_pcount[0]);
 
     const PCType BlockPosBottom = height - d.para.BlockSize;
     const PCType BlockPosRight = width - d.para.BlockSize;
@@ -361,27 +357,26 @@ void BM3D_Process_Base::Kernel(FLType *dstY, FLType *dstU, FLType *dstV,
     FLType *ResNumU = dstU, *ResDenU = nullptr;
     FLType *ResNumV = dstV, *ResDenV = nullptr;
 
-    if (d.process[0]) AlignedMalloc(ResDenY, dst_pcount[0]);
-    if (d.process[1]) AlignedMalloc(ResDenU, dst_pcount[1]);
-    if (d.process[2]) AlignedMalloc(ResDenV, dst_pcount[2]);
-
-    if (d.process[0]) LOOP_VH(dst_height[0], dst_width[0], dst_stride[0], [&](PCType i)
+    if (d.process[0])
     {
-        ResNumY[i] = 0;
-        ResDenY[i] = 0;
-    });
+        AlignedMalloc(ResDenY, dst_pcount[0]);
+        memset(ResNumY, 0, sizeof(FLType) * dst_pcount[0]);
+        memset(ResDenY, 0, sizeof(FLType) * dst_pcount[0]);
+    }
 
-    if (d.process[1]) LOOP_VH(dst_height[1], dst_width[1], dst_stride[1], [&](PCType i)
+    if (d.process[1])
     {
-        ResNumU[i] = 0;
-        ResDenU[i] = 0;
-    });
+        AlignedMalloc(ResDenU, dst_pcount[1]);
+        memset(ResNumU, 0, sizeof(FLType) * dst_pcount[1]);
+        memset(ResDenU, 0, sizeof(FLType) * dst_pcount[1]);
+    }
 
-    if (d.process[2]) LOOP_VH(dst_height[2], dst_width[2], dst_stride[2], [&](PCType i)
+    if (d.process[2])
     {
-        ResNumV[i] = 0;
-        ResDenV[i] = 0;
-    });
+        AlignedMalloc(ResDenV, dst_pcount[2]);
+        memset(ResNumV, 0, sizeof(FLType) * dst_pcount[2]);
+        memset(ResDenV, 0, sizeof(FLType) * dst_pcount[2]);
+    }
 
     const PCType BlockPosBottom = height - d.para.BlockSize;
     const PCType BlockPosRight = width - d.para.BlockSize;
