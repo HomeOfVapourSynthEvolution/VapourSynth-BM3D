@@ -88,18 +88,15 @@ void BM3D_Basic_Process::CollaborativeFilter(int plane,
     const ptrdiff_t simd_residue = srcGroup.size() % simd_step;
     const ptrdiff_t simd_width = srcGroup.size() - simd_residue;
 
-    static const __m128 zero_ps = _mm_setzero_ps();
     __m128i cmp_sum = _mm_setzero_si128();
 
     for (const auto upper1 = srcp + simd_width; srcp < upper1; srcp += simd_step, thrp += simd_step)
     {
         const __m128 s1 = _mm_load_ps(srcp);
-        const __m128 t1p = _mm_load_ps(thrp);
-        const __m128 t1n = _mm_sub_ps(zero_ps, t1p);
+        const __m128 t1 = _mm_load_ps(thrp);
 
-        const __m128 cmp1 = _mm_cmpgt_ps(s1, t1p);
-        const __m128 cmp2 = _mm_cmplt_ps(s1, t1n);
-        const __m128 cmp = _mm_or_ps(cmp1, cmp2);
+        const __m128 s1abs = _mm_abs_ps(s1);
+        const __m128 cmp = _mm_cmpgt_ps(s1abs, t1);
 
         const __m128 d1 = _mm_and_ps(cmp, s1);
         _mm_store_ps(srcp, d1);
