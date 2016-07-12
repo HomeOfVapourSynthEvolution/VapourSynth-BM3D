@@ -1,6 +1,6 @@
 # VapourSynth-BM3D
 
-Copyright© 2015 mawen1250
+Copyright© 2015-2016 mawen1250
 
 BM3D denoising filter for VapourSynth
 
