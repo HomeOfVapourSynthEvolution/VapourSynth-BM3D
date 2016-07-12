@@ -52,7 +52,7 @@ void VAggregate_Process::process_core_gray()
     // Get write pointer
     auto dstY = reinterpret_cast<_Dt1 *>(vsapi->getWritePtr(dst, 0));
 
-    for (int i = 0, o = d.radius + f_offset; i < frames; ++i, --o)
+    for (int i = 0, o = d.radius - b_offset; i < frames; ++i, --o)
     {
         // Get read pointer
         auto srcY = reinterpret_cast<const FLType *>(vsapi->getReadPtr(v_src[i], 0));
@@ -83,7 +83,7 @@ inline void VAggregate_Process::process_core_gray<FLType>()
     // Get write pointer
     auto dstY = reinterpret_cast<FLType *>(vsapi->getWritePtr(dst, 0));
 
-    for (int i = 0, o = d.radius + f_offset; i < frames; ++i, --o)
+    for (int i = 0, o = d.radius - b_offset; i < frames; ++i, --o)
     {
         // Get read pointer
         auto srcY = reinterpret_cast<const FLType *>(vsapi->getReadPtr(v_src[i], 0));
@@ -160,7 +160,7 @@ inline void VAggregate_Process::process_core_yuv<FLType>()
     auto dstU = reinterpret_cast<FLType *>(vsapi->getWritePtr(dst, 1));
     auto dstV = reinterpret_cast<FLType *>(vsapi->getWritePtr(dst, 2));
 
-    for (int i = 0, o = d.radius + f_offset; i < frames; ++i, --o)
+    for (int i = 0, o = d.radius - b_offset; i < frames; ++i, --o)
     {
         // Get read pointer
         auto srcY = reinterpret_cast<const FLType *>(vsapi->getReadPtr(v_src[i], 0));

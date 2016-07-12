@@ -89,7 +89,7 @@ private:
 protected:
     virtual void process_coreS() override
     {
-        if (d.sample == 0)
+        if (d.sample == stInteger)
         {
             process_core<uint16_t>();
         }
