@@ -50,39 +50,43 @@ public:
 
     virtual int arguments_process(const VSMap *in, VSMap *out) override
     {
-        int error;
+        try
+        {
+            int error;
 
-        // input - clip
-        node = vsapi->propGetNode(in, "input", 0, nullptr);
-        vi = vsapi->getVideoInfo(node);
+            // input - clip
+            node = vsapi->propGetNode(in, "input", 0, nullptr);
+            vi = vsapi->getVideoInfo(node);
 
-        if (!isConstantFormat(vi))
-        {
-            setError(out, "Invalid input clip, only constant format input supported");
-            return 1;
-        }
-        if ((vi->format->sampleType == stInteger && vi->format->bitsPerSample > 16)
-            || (vi->format->sampleType == stFloat && vi->format->bitsPerSample != 32))
-        {
-            setError(out, "Invalid input clip, only 8-16 bit int or 32 bit float formats supported");
-            return 1;
-        }
-        if (vi->format->colorFamily != cmRGB)
-        {
-            setError(out, "Invalid input clip, must be of RGB color family");
-            return 1;
-        }
+            if (!isConstantFormat(vi))
+            {
+                throw std::string("Invalid input clip, only constant format input supported");
+            }
+            if ((vi->format->sampleType == stInteger && vi->format->bitsPerSample > 16)
+                || (vi->format->sampleType == stFloat && vi->format->bitsPerSample != 32))
+            {
+                throw std::string("Invalid input clip, only 8-16 bit int or 32 bit float formats supported");
+            }
+            if (vi->format->colorFamily != cmRGB)
+            {
+                throw std::string("Invalid input clip, must be of RGB color family");
+            }
 
-        // sample - int
-        sample = static_cast<VSSampleType>(vsapi->propGetInt(in, "sample", 0, &error));
+            // sample - int
+            sample = static_cast<VSSampleType>(vsapi->propGetInt(in, "sample", 0, &error));
 
-        if (error)
-        {
-            sample = stInteger;
+            if (error)
+            {
+                sample = stInteger;
+            }
+            else if (sample != stInteger && sample != stFloat)
+            {
+                throw std::string("Invalid \'sample\' assigned, must be 0 (integer sample type) or 1 (float sample type)");
+            }
         }
-        else if (sample != stInteger && sample != stFloat)
+        catch (const std::string &error_msg)
         {
-            setError(out, "Invalid \'sample\' assigned, must be 0 (integer sample type) or 1 (float sample type)");
+            setError(out, error_msg.c_str());
             return 1;
         }
 

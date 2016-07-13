@@ -31,51 +31,54 @@
 
 int VAggregate_Data::arguments_process(const VSMap *in, VSMap *out)
 {
-    int error;
+    try
+    {
+        int error;
 
-    // input - clip
-    node = vsapi->propGetNode(in, "input", 0, nullptr);
-    vi = vsapi->getVideoInfo(node);
+        // input - clip
+        node = vsapi->propGetNode(in, "input", 0, nullptr);
+        vi = vsapi->getVideoInfo(node);
 
-    if (!isConstantFormat(vi))
-    {
-        setError(out, "Invalid input clip, only constant format input supported");
-        return 1;
-    }
-    if (vi->format->sampleType != stFloat || vi->format->bitsPerSample != 32)
-    {
-        setError(out, "Invalid input clip, only accept 32 bit float format clip from bm3d.VBasic or bm3d.VFinal");
-        return 1;
-    }
-    if (vi->format->colorFamily == cmRGB)
-    {
-        setError(out, "Invalid input clip, must be of Gray, YUV or YCoCg color family");
-        return 1;
-    }
+        if (!isConstantFormat(vi))
+        {
+            throw std::string("Invalid input clip, only constant format input supported");
+        }
+        if (vi->format->sampleType != stFloat || vi->format->bitsPerSample != 32)
+        {
+            throw std::string("Invalid input clip, only accept 32 bit float format clip from bm3d.VBasic or bm3d.VFinal");
+        }
+        if (vi->format->colorFamily == cmRGB)
+        {
+            throw std::string("Invalid input clip, must be of Gray, YUV or YCoCg color family");
+        }
 
-    // radius - int
-    radius = int64ToIntS(vsapi->propGetInt(in, "radius", 0, &error));
+        // radius - int
+        radius = int64ToIntS(vsapi->propGetInt(in, "radius", 0, &error));
 
-    if (error)
-    {
-        radius = 1;
-    }
-    else if (radius < 1 || radius > 16)
-    {
-        setError(out, "Invalid \"radius\" assigned, must be an integer in [1, 16]");
-        return 1;
-    }
+        if (error)
+        {
+            radius = 1;
+        }
+        else if (radius < 1 || radius > 16)
+        {
+            throw std::string("Invalid \"radius\" assigned, must be an integer in [1, 16]");
+        }
 
-    // sample - int
-    sample = static_cast<VSSampleType>(vsapi->propGetInt(in, "sample", 0, &error));
+        // sample - int
+        sample = static_cast<VSSampleType>(vsapi->propGetInt(in, "sample", 0, &error));
 
-    if (error)
-    {
-        sample = stInteger;
+        if (error)
+        {
+            sample = stInteger;
+        }
+        else if (sample != stInteger && sample != stFloat)
+        {
+            throw std::string("Invalid \'sample\' assigned, must be 0 (integer sample type) or 1 (float sample type)");
+        }
     }
-    else if (sample != stInteger && sample != stFloat)
+    catch (const std::string &error_msg)
     {
-        setError(out, "Invalid \'sample\' assigned, must be 0 (integer sample type) or 1 (float sample type)");
+        setError(out, error_msg.c_str());
         return 1;
     }
 

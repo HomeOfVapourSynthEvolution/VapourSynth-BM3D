@@ -36,18 +36,25 @@ int VBM3D_Basic_Data::arguments_process(const VSMap *in, VSMap *out)
         return 1;
     }
 
-    int error;
-
-    // hard_thr - float
-    para.lambda = vsapi->propGetFloat(in, "hard_thr", 0, &error);
-
-    if (error)
+    try
     {
-        para.lambda = para_default.lambda;
+        int error;
+
+        // hard_thr - float
+        para.lambda = vsapi->propGetFloat(in, "hard_thr", 0, &error);
+
+        if (error)
+        {
+            para.lambda = para_default.lambda;
+        }
+        else if (para.lambda <= 0)
+        {
+            throw std::string("Invalid \"hard_thr\" assigned, must be a positive floating point number");
+        }
     }
-    else if (para.lambda <= 0)
+    catch (const std::string &error_msg)
     {
-        setError(out, "Invalid \"hard_thr\" assigned, must be a positive floating point number");
+        setError(out, error_msg.c_str());
         return 1;
     }
 

@@ -31,242 +31,232 @@
 
 int BM3D_Data_Base::arguments_process(const VSMap *in, VSMap *out)
 {
-    int error;
-    int m;
-
-    // input - clip
-    node = vsapi->propGetNode(in, "input", 0, nullptr);
-    vi = vsapi->getVideoInfo(node);
-
-    if (!isConstantFormat(vi))
+    try
     {
-        setError(out, "Invalid input clip, only constant format input supported");
-        return 1;
-    }
-    if ((vi->format->sampleType == stInteger && vi->format->bitsPerSample > 16)
-        || (vi->format->sampleType == stFloat && vi->format->bitsPerSample != 32))
-    {
-        setError(out, "Invalid input clip, only 8-16 bit integer or 32 bit float formats supported");
-        return 1;
-    }
+        int error;
+        int m;
 
-    // ref - clip
-    rnode = vsapi->propGetNode(in, "ref", 0, &error);
+        // input - clip
+        node = vsapi->propGetNode(in, "input", 0, nullptr);
+        vi = vsapi->getVideoInfo(node);
 
-    if (error)
-    {
-        rdef = false;
-        rnode = node;
-        rvi = vi;
-    }
-    else
-    {
-        rdef = true;
-        rvi = vsapi->getVideoInfo(rnode);
-
-        if (!isConstantFormat(rvi))
+        if (!isConstantFormat(vi))
         {
-            setError(out, "Invalid clip \"ref\", only constant format input supported");
-            return 1;
+            throw std::string("Invalid input clip, only constant format input supported");
         }
-        if (rvi->format != vi->format)
+        if ((vi->format->sampleType == stInteger && vi->format->bitsPerSample > 16)
+            || (vi->format->sampleType == stFloat && vi->format->bitsPerSample != 32))
         {
-            setError(out, "input clip and clip \"ref\" must be of the same format");
-            return 1;
+            throw std::string("Invalid input clip, only 8-16 bit integer or 32 bit float formats supported");
         }
-        if (rvi->width != vi->width || rvi->height != vi->height)
+
+        // ref - clip
+        rnode = vsapi->propGetNode(in, "ref", 0, &error);
+
+        if (error)
         {
-            setError(out, "input clip and clip \"ref\" must be of the same width and height");
-            return 1;
+            rdef = false;
+            rnode = node;
+            rvi = vi;
         }
-        if (rvi->numFrames != vi->numFrames)
+        else
         {
-            setError(out, "input clip and clip \"ref\" must have the same number of frames");
-            return 1;
-        }
-    }
+            rdef = true;
+            rvi = vsapi->getVideoInfo(rnode);
 
-    // profile - data
-    auto profile = vsapi->propGetData(in, "profile", 0, &error);
-
-    if (error)
-    {
-        para.profile = para_default.profile;
-    }
-    else
-    {
-        para.profile = profile;
-    }
-
-    if (para.profile != "fast" && para.profile != "lc" && para.profile != "np"
-        && para.profile != "high" && para.profile != "vn")
-    {
-        setError(out, "Unrecognized \"profile\" specified, should be \"fast\", \"lc\", \"np\", \"high\" or \"vn\"");
-        return 1;
-    }
-
-    get_default_para(para.profile);
-
-    // sigma - float[]
-    m = vsapi->propNumElements(in, "sigma");
-
-    if (m > 0)
-    {
-        int i;
-
-        if (m > 3) m = 3;
-
-        for (i = 0; i < m; ++i)
-        {
-            para.sigma[i] = vsapi->propGetFloat(in, "sigma", i, nullptr);
-
-            if (para.sigma[i] < 0)
+            if (!isConstantFormat(rvi))
             {
-                setError(out, "Invalid \"sigma\" assigned, must be a non-negative floating point number");
-                return 1;
+                throw std::string("Invalid clip \"ref\", only constant format input supported");
+            }
+            if (rvi->format != vi->format)
+            {
+                throw std::string("input clip and clip \"ref\" must be of the same format");
+            }
+            if (rvi->width != vi->width || rvi->height != vi->height)
+            {
+                throw std::string("input clip and clip \"ref\" must be of the same width and height");
+            }
+            if (rvi->numFrames != vi->numFrames)
+            {
+                throw std::string("input clip and clip \"ref\" must have the same number of frames");
             }
         }
 
-        for (; i < 3; ++i)
+        // profile - data
+        auto profile = vsapi->propGetData(in, "profile", 0, &error);
+
+        if (error)
         {
-            para.sigma[i] = para.sigma[i - 1];
+            para.profile = para_default.profile;
+        }
+        else
+        {
+            para.profile = profile;
+        }
+
+        if (para.profile != "fast" && para.profile != "lc" && para.profile != "np"
+            && para.profile != "high" && para.profile != "vn")
+        {
+            throw std::string("Unrecognized \"profile\" specified, should be \"fast\", \"lc\", \"np\", \"high\" or \"vn\"");
+        }
+
+        get_default_para(para.profile);
+
+        // sigma - float[]
+        m = vsapi->propNumElements(in, "sigma");
+
+        if (m > 0)
+        {
+            int i;
+
+            if (m > 3) m = 3;
+
+            for (i = 0; i < m; ++i)
+            {
+                para.sigma[i] = vsapi->propGetFloat(in, "sigma", i, nullptr);
+
+                if (para.sigma[i] < 0)
+                {
+                    throw std::string("Invalid \"sigma\" assigned, must be a non-negative floating point number");
+                }
+            }
+
+            for (; i < 3; ++i)
+            {
+                para.sigma[i] = para.sigma[i - 1];
+            }
+        }
+        else
+        {
+            para.sigma = para_default.sigma;
+        }
+
+        // block_size - int
+        para.BlockSize = int64ToIntS(vsapi->propGetInt(in, "block_size", 0, &error));
+
+        if (error)
+        {
+            para.BlockSize = para_default.BlockSize;
+        }
+        else if (para.BlockSize < 1 || para.BlockSize > 64)
+        {
+            throw std::string("Invalid \"block_size\" assigned, must be an integer in [1, 64]");
+        }
+        else if (para.BlockSize > vi->width || para.BlockSize > vi->height)
+        {
+            throw std::string("Invalid \"block_size\" assigned, must not exceed width or height of the frame");
+        }
+
+        // block_step - int
+        para.BlockStep = int64ToIntS(vsapi->propGetInt(in, "block_step", 0, &error));
+
+        if (error)
+        {
+            para.BlockStep = para_default.BlockStep;
+        }
+        else if (para.BlockStep < 1 || para.BlockStep > para.BlockSize)
+        {
+            throw std::string("Invalid \"block_step\" assigned, must be an integer in [1, block_size]");
+        }
+
+        // group_size - int
+        para.GroupSize = int64ToIntS(vsapi->propGetInt(in, "group_size", 0, &error));
+
+        if (error)
+        {
+            para.GroupSize = para_default.GroupSize;
+        }
+        else if (para.GroupSize < 1 || para.GroupSize > 256)
+        {
+            throw std::string("Invalid \"group_size\" assigned, must be an integer in [1, 256]");
+        }
+
+        // bm_range - int
+        para.BMrange = int64ToIntS(vsapi->propGetInt(in, "bm_range", 0, &error));
+
+        if (error)
+        {
+            para.BMrange = para_default.BMrange;
+        }
+        else if (para.BMrange < 1)
+        {
+            throw std::string("Invalid \"bm_range\" assigned, must be a positive integer");
+        }
+
+        // bm_step - int
+        para.BMstep = int64ToIntS(vsapi->propGetInt(in, "bm_step", 0, &error));
+
+        if (error)
+        {
+            para.BMstep = para_default.BMstep;
+        }
+        else if (para.BMstep < 1 || para.BMstep > para.BMrange)
+        {
+            throw std::string("Invalid \"bm_step\" assigned, must be an integer in [1, bm_range]");
+        }
+
+        // th_mse - float
+        para.thMSE = vsapi->propGetFloat(in, "th_mse", 0, &error);
+
+        if (error)
+        {
+            para.thMSE_Default();
+        }
+        else if (para.thMSE <= 0)
+        {
+            throw std::string("Invalid \"th_mse\" assigned, must be a positive floating point number");
+        }
+
+        // matrix - int
+        matrix = static_cast<ColorMatrix>(vsapi->propGetInt(in, "matrix", 0, &error));
+
+        if (vi->format->colorFamily == cmRGB)
+        {
+            matrix = ColorMatrix::OPP;
+        }
+        else if (vi->format->colorFamily == cmYCoCg)
+        {
+            matrix = ColorMatrix::YCgCo;
+        }
+        else if (error || matrix == ColorMatrix::Unspecified)
+        {
+            matrix = ColorMatrix_Default(vi->width, vi->height);
+        }
+        else if (matrix != ColorMatrix::GBR && matrix != ColorMatrix::bt709
+            && matrix != ColorMatrix::fcc && matrix != ColorMatrix::bt470bg && matrix != ColorMatrix::smpte170m
+            && matrix != ColorMatrix::smpte240m && matrix != ColorMatrix::YCgCo && matrix != ColorMatrix::bt2020nc
+            && matrix != ColorMatrix::bt2020c && matrix != ColorMatrix::OPP)
+        {
+            throw std::string("Unsupported \"matrix\" specified");
+        }
+
+        // process
+        for (int i = 0; i < VSMaxPlaneCount; i++)
+        {
+            if (vi->format->colorFamily != cmRGB && para.sigma[i] == 0)
+            {
+                process[i] = 0;
+            }
+        }
+
+        if (process[1] || process[2])
+        {
+            if (vi->format->subSamplingH || vi->format->subSamplingW)
+            {
+                throw std::string("input clip: sub-sampled format is not supported when chroma is processed, convert it to YUV444 or RGB first. "
+                    "For the best quality, RGB colorspace is recommended as input.");
+            }
+            if (rvi->format->subSamplingH || rvi->format->subSamplingW)
+            {
+                throw std::string("clip \"ref\": sub-sampled format is not supported when chroma is processed, convert it to YUV444 or RGB first. "
+                    "For the best quality, RGB colorspace is recommended as input.");
+            }
         }
     }
-    else
+    catch (const std::string &error_msg)
     {
-        para.sigma = para_default.sigma;
-    }
-
-    // block_size - int
-    para.BlockSize = int64ToIntS(vsapi->propGetInt(in, "block_size", 0, &error));
-
-    if (error)
-    {
-        para.BlockSize = para_default.BlockSize;
-    }
-    else if (para.BlockSize < 1 || para.BlockSize > 64)
-    {
-        setError(out, "Invalid \"block_size\" assigned, must be an integer in [1, 64]");
+        setError(out, error_msg.c_str());
         return 1;
-    }
-    else if (para.BlockSize > vi->width || para.BlockSize > vi->height)
-    {
-        setError(out, "Invalid \"block_size\" assigned, must not exceed width or height of the frame");
-        return 1;
-    }
-
-    // block_step - int
-    para.BlockStep = int64ToIntS(vsapi->propGetInt(in, "block_step", 0, &error));
-
-    if (error)
-    {
-        para.BlockStep = para_default.BlockStep;
-    }
-    else if (para.BlockStep < 1 || para.BlockStep > para.BlockSize)
-    {
-        setError(out, "Invalid \"block_step\" assigned, must be an integer in [1, block_size]");
-        return 1;
-    }
-
-    // group_size - int
-    para.GroupSize = int64ToIntS(vsapi->propGetInt(in, "group_size", 0, &error));
-
-    if (error)
-    {
-        para.GroupSize = para_default.GroupSize;
-    }
-    else if (para.GroupSize < 1 || para.GroupSize > 256)
-    {
-        setError(out, "Invalid \"group_size\" assigned, must be an integer in [1, 256]");
-        return 1;
-    }
-
-    // bm_range - int
-    para.BMrange = int64ToIntS(vsapi->propGetInt(in, "bm_range", 0, &error));
-
-    if (error)
-    {
-        para.BMrange = para_default.BMrange;
-    }
-    else if (para.BMrange < 1)
-    {
-        setError(out, "Invalid \"bm_range\" assigned, must be a positive integer");
-        return 1;
-    }
-
-    // bm_step - int
-    para.BMstep = int64ToIntS(vsapi->propGetInt(in, "bm_step", 0, &error));
-
-    if (error)
-    {
-        para.BMstep = para_default.BMstep;
-    }
-    else if (para.BMstep < 1 || para.BMstep > para.BMrange)
-    {
-        setError(out, "Invalid \"bm_step\" assigned, must be an integer in [1, bm_range]");
-        return 1;
-    }
-
-    // th_mse - float
-    para.thMSE = vsapi->propGetFloat(in, "th_mse", 0, &error);
-
-    if (error)
-    {
-        para.thMSE_Default();
-    }
-    else if (para.thMSE <= 0)
-    {
-        setError(out, "Invalid \"th_mse\" assigned, must be a positive floating point number");
-        return 1;
-    }
-
-    // matrix - int
-    matrix = static_cast<ColorMatrix>(vsapi->propGetInt(in, "matrix", 0, &error));
-
-    if (vi->format->colorFamily == cmRGB)
-    {
-        matrix = ColorMatrix::OPP;
-    }
-    else if (vi->format->colorFamily == cmYCoCg)
-    {
-        matrix = ColorMatrix::YCgCo;
-    }
-    else if (error || matrix == ColorMatrix::Unspecified)
-    {
-        matrix = ColorMatrix_Default(vi->width, vi->height);
-    }
-    else if (matrix != ColorMatrix::GBR && matrix != ColorMatrix::bt709
-        && matrix != ColorMatrix::fcc && matrix != ColorMatrix::bt470bg && matrix != ColorMatrix::smpte170m
-        && matrix != ColorMatrix::smpte240m && matrix != ColorMatrix::YCgCo && matrix != ColorMatrix::bt2020nc
-        && matrix != ColorMatrix::bt2020c && matrix != ColorMatrix::OPP)
-    {
-        setError(out, "Unsupported \"matrix\" specified");
-        return 1;
-    }
-
-    // process
-    for (int i = 0; i < VSMaxPlaneCount; i++)
-    {
-        if (vi->format->colorFamily != cmRGB && para.sigma[i] == 0)
-        {
-            process[i] = 0;
-        }
-    }
-
-    if (process[1] || process[2])
-    {
-        if (vi->format->subSamplingH || vi->format->subSamplingW)
-        {
-            setError(out, "input clip: sub-sampled format is not supported when chroma is processed, convert it to YUV444 or RGB first. "
-                "For the best quality, RGB colorspace is recommended as input.");
-            return 1;
-        }
-        if (rvi->format->subSamplingH || rvi->format->subSamplingW)
-        {
-            setError(out, "clip \"ref\": sub-sampled format is not supported when chroma is processed, convert it to YUV444 or RGB first. "
-                "For the best quality, RGB colorspace is recommended as input.");
-            return 1;
-        }
     }
 
     return 0;
