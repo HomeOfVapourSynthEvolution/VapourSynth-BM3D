@@ -92,17 +92,7 @@ private:
     void process_core_yuv();
 
 protected:
-    virtual void process_coreS() override
-    {
-        if (d.sample == stInteger)
-        {
-            process_core<uint16_t>();
-        }
-        else
-        {
-            process_core<FLType>();
-        }
-    }
+    virtual void process_coreS() override;
 
 public:
     VAggregate_Process(const _Mydata &_d, int _n, VSFrameContext *_frameCtx, VSCore *_core, const VSAPI *_vsapi)
@@ -246,12 +236,6 @@ protected:
         std::vector<const FLType *> ResNumU, std::vector<const FLType *> ResDenU,
         std::vector<const FLType *> ResNumV, std::vector<const FLType *> ResDenV);
 };
-
-
-////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-
-
-#include "VAggregate.hpp"
 
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////

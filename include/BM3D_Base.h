@@ -162,9 +162,9 @@ private:
     void process_core_rgb();
 
 protected:
-    virtual void process_core8() override { process_core<uint8_t>(); }
-    virtual void process_core16() override { process_core<uint16_t>(); }
-    virtual void process_coreS() override { process_core<float>(); }
+    virtual void process_core8() override;
+    virtual void process_core16() override;
+    virtual void process_coreS() override;
 
 public:
     BM3D_Process_Base(const _Mydata &_d, int _n, VSFrameContext *_frameCtx, VSCore *_core, const VSAPI *_vsapi)
@@ -248,12 +248,6 @@ protected:
         const FLType *src, const FLType *ref,
         const PosPairCode &code) const = 0;
 };
-
-
-////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-
-
-#include "BM3D_Base.hpp"
 
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////

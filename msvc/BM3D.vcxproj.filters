@@ -53,9 +53,6 @@
     <ClInclude Include="..\include\BM3D_Base.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="..\include\BM3D_Base.hpp">
-      <Filter>Header Files</Filter>
-    </ClInclude>
     <ClInclude Include="..\include\BM3D_Basic.h">
       <Filter>Header Files</Filter>
     </ClInclude>
@@ -86,13 +83,7 @@
     <ClInclude Include="..\include\VAggregate.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="..\include\VAggregate.hpp">
-      <Filter>Header Files</Filter>
-    </ClInclude>
     <ClInclude Include="..\include\VBM3D_Base.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="..\include\VBM3D_Base.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="..\include\VBM3D_Basic.h">
