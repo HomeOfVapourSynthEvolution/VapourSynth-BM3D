@@ -26,6 +26,8 @@
 #define BM3D_BASE_H_
 
 
+#include <unordered_map>
+#include <thread>
 #include "BM3D.h"
 
 
@@ -52,6 +54,8 @@ public:
     _Mypara para;
     std::vector<BM3D_FilterData> f;
 
+    std::unordered_map<std::thread::id, FLType *> buffer0, buffer1, buffer2;
+
 public:
     explicit BM3D_Data_Base(bool _wiener,
         const VSAPI *_vsapi = nullptr, std::string _FunctionName = "Base", std::string _NameSpace = "bm3d")
@@ -60,45 +64,26 @@ public:
     {}
 
     BM3D_Data_Base(const _Myt &right) = delete;
-
-    BM3D_Data_Base(_Myt &&right)
-        : _Mybase(std::move(right)),
-        rdef(right.rdef), rnode(right.rnode), rvi(right.rvi),
-        para_default(right.para_default), para(right.para),
-        f(std::move(right.f))
-    {
-        right.rdef = false;
-        right.rnode = nullptr;
-        right.rvi = nullptr;
-    }
-
+    BM3D_Data_Base(_Myt &&right) = delete;
     _Myt &operator=(const _Myt &right) = delete;
-
-    _Myt &operator=(_Myt &&right)
-    {
-        _Mybase::operator=(std::move(right));
-
-        if (rdef && rnode) vsapi->freeNode(rnode);
-
-        rdef = right.rdef;
-        rnode = right.rnode;
-        rvi = right.rvi;
-
-        para_default = right.para_default;
-        para = right.para;
-
-        f = std::move(right.f);
-
-        right.rdef = false;
-        right.rnode = nullptr;
-        right.rvi = nullptr;
-
-        return *this;
-    }
+    _Myt &operator=(_Myt &&right) = delete;
 
     virtual ~BM3D_Data_Base() override
     {
         if (rdef && rnode) vsapi->freeNode(rnode);
+
+        for (auto &e : buffer0)
+        {
+            AlignedFree(e.second);
+        }
+        for (auto &e : buffer1)
+        {
+            AlignedFree(e.second);
+        }
+        for (auto &e : buffer2)
+        {
+            AlignedFree(e.second);
+        }
     }
 
     virtual int arguments_process(const VSMap *in, VSMap *out) override;
@@ -135,7 +120,7 @@ public:
     typedef BlockGroup<FLType, FLType> block_group;
 
 private:
-    const _Mydata &d;
+    _Mydata &d;
 
 protected:
     const VSFrameRef *ref = nullptr;
@@ -167,7 +152,7 @@ protected:
     virtual void process_coreS() override;
 
 public:
-    BM3D_Process_Base(const _Mydata &_d, int _n, VSFrameContext *_frameCtx, VSCore *_core, const VSAPI *_vsapi)
+    BM3D_Process_Base(_Mydata &_d, int _n, VSFrameContext *_frameCtx, VSCore *_core, const VSAPI *_vsapi)
         : _Mybase(_d, _n, _frameCtx, _core, _vsapi), d(_d)
     {
         if (d.rdef)

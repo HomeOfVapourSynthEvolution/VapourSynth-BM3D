@@ -45,19 +45,9 @@ public:
     {}
 
     VBM3D_Final_Data(const _Myt &right) = delete;
-
-    VBM3D_Final_Data(_Myt &&right)
-        : _Mybase(std::move(right))
-    {}
-
+    VBM3D_Final_Data(_Myt &&right) = delete;
     _Myt &operator=(const _Myt &right) = delete;
-
-    _Myt &operator=(_Myt &&right)
-    {
-        _Mybase::operator=(std::move(right));
-
-        return *this;
-    }
+    _Myt &operator=(_Myt &&right) = delete;
 
     virtual ~VBM3D_Final_Data() override {}
 

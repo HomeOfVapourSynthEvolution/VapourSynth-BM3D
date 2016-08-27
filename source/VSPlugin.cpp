@@ -154,7 +154,7 @@ static void VS_CC BM3D_Basic_Init(VSMap *in, VSMap *out, void **instanceData, VS
 
 static const VSFrameRef *VS_CC BM3D_Basic_GetFrame(int n, int activationReason, void **instanceData, void **frameData, VSFrameContext *frameCtx, VSCore *core, const VSAPI *vsapi)
 {
-    const BM3D_Basic_Data *d = reinterpret_cast<BM3D_Basic_Data *>(*instanceData);
+    BM3D_Basic_Data *d = reinterpret_cast<BM3D_Basic_Data *>(*instanceData);
 
     if (activationReason == arInitial)
     {
@@ -207,7 +207,7 @@ static void VS_CC BM3D_Final_Init(VSMap *in, VSMap *out, void **instanceData, VS
 
 static const VSFrameRef *VS_CC BM3D_Final_GetFrame(int n, int activationReason, void **instanceData, void **frameData, VSFrameContext *frameCtx, VSCore *core, const VSAPI *vsapi)
 {
-    const BM3D_Final_Data *d = reinterpret_cast<BM3D_Final_Data *>(*instanceData);
+    BM3D_Final_Data *d = reinterpret_cast<BM3D_Final_Data *>(*instanceData);
 
     if (activationReason == arInitial)
     {

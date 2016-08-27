@@ -45,19 +45,9 @@ public:
     {}
 
     BM3D_Basic_Data(const _Myt &right) = delete;
-
-    BM3D_Basic_Data(_Myt &&right)
-        : _Mybase(std::move(right))
-    {}
-
+    BM3D_Basic_Data(_Myt &&right) = delete;
     _Myt &operator=(const _Myt &right) = delete;
-
-    _Myt &operator=(_Myt &&right)
-    {
-        _Mybase::operator=(std::move(right));
-
-        return *this;
-    }
+    _Myt &operator=(_Myt &&right) = delete;
 
     virtual ~BM3D_Basic_Data() override {}
 
@@ -80,7 +70,7 @@ private:
     const _Mydata &d;
 
 public:
-    BM3D_Basic_Process(const _Mydata &_d, int _n, VSFrameContext *_frameCtx, VSCore *_core, const VSAPI *_vsapi)
+    BM3D_Basic_Process(_Mydata &_d, int _n, VSFrameContext *_frameCtx, VSCore *_core, const VSAPI *_vsapi)
         : _Mybase(_d, _n, _frameCtx, _core, _vsapi), d(_d)
     {}
 

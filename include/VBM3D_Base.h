@@ -78,41 +78,9 @@ public:
     {}
 
     VBM3D_Data_Base(const _Myt &right) = delete;
-
-    VBM3D_Data_Base(_Myt &&right)
-        : _Mybase(std::move(right)),
-        rdef(right.rdef), rnode(right.rnode), rvi(right.rvi),
-        para_default(right.para_default), para(right.para),
-        f(std::move(right.f))
-    {
-        right.rdef = false;
-        right.rnode = nullptr;
-        right.rvi = nullptr;
-    }
-
+    VBM3D_Data_Base(_Myt &&right) = delete;
     _Myt &operator=(const _Myt &right) = delete;
-
-    _Myt &operator=(_Myt &&right)
-    {
-        _Mybase::operator=(std::move(right));
-
-        if (rdef && rnode) vsapi->freeNode(rnode);
-
-        rdef = right.rdef;
-        rnode = right.rnode;
-        rvi = right.rvi;
-
-        para_default = right.para_default;
-        para = right.para;
-
-        f = std::move(right.f);
-
-        right.rdef = false;
-        right.rnode = nullptr;
-        right.rvi = nullptr;
-
-        return *this;
-    }
+    _Myt &operator=(_Myt &&right) = delete;
 
     virtual ~VBM3D_Data_Base() override
     {
