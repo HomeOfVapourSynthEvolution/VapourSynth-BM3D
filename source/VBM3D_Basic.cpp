@@ -96,6 +96,7 @@ void VBM3D_Basic_Process::CollaborativeFilter(int plane,
     const auto upper = srcp + srcGroup.size();
 
 #if defined(__SSE2__)
+    static const __m128 abs_mask = _mm_castsi128_ps(_mm_set1_epi32(~0x80000000));
     static const ptrdiff_t simd_step = 4;
     const ptrdiff_t simd_residue = srcGroup.size() % simd_step;
     const ptrdiff_t simd_width = srcGroup.size() - simd_residue;
@@ -107,7 +108,7 @@ void VBM3D_Basic_Process::CollaborativeFilter(int plane,
         const __m128 s1 = _mm_load_ps(srcp);
         const __m128 t1 = _mm_load_ps(thrp);
 
-        const __m128 s1abs = _mm_abs_ps(s1);
+        const __m128 s1abs = _mm_and_ps(s1, abs_mask);
         const __m128 cmp = _mm_cmpgt_ps(s1abs, t1);
 
         const __m128 d1 = _mm_and_ps(cmp, s1);

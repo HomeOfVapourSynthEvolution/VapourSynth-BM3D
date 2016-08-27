@@ -116,7 +116,7 @@ void BM3D_Final_Process::CollaborativeFilter(int plane,
 
     // Calculate weight for the filtered group
     // Also include the normalization factor to compensate for the amplification introduced in 3D transform
-    L2Wiener = Max(FLT_EPSILON, L2Wiener);
+    L2Wiener = Max(std::numeric_limits<float>::epsilon(), L2Wiener);
     FLType denWeight = FLType(1) / L2Wiener;
     FLType numWeight = static_cast<FLType>(denWeight / d.f[plane].finalAMP[GroupSize - 1]);
 
