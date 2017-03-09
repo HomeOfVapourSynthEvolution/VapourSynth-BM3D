@@ -28,6 +28,8 @@
 
 #include <vector>
 #include <algorithm>
+#include <cassert>
+#include <smmintrin.h>
 #include "Helper.h"
 
 
