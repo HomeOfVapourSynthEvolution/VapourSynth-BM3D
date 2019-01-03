@@ -434,3 +434,10 @@ ref = haf.SMDegrain(src)
 flt = core.bm3d.VFinal(src, ref, radius=1, matrix=100).bm3d.VAggregate(radius=1)
 flt = core.bm3d.OPP2RGB(flt)
 ```
+
+## Compilation
+
+```
+meson build
+ninja -C build
+```
