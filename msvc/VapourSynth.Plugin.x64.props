@@ -12,7 +12,6 @@
     </Link>
     <ClCompile>
       <AdditionalIncludeDirectories>C:\Program Files (x86)\VapourSynth\sdk\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
-      <FloatingPointModel>Precise</FloatingPointModel>
     </ClCompile>
   </ItemDefinitionGroup>
   <ItemGroup />
