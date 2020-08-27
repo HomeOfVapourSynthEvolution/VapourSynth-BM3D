@@ -36,6 +36,36 @@ int VBM3D_Final_Data::arguments_process(const VSMap *in, VSMap *out)
         return 1;
     }
 
+    auto error = 0;
+    wnode = vsapi->propGetNode(in, "wref", 0, &error);
+
+    if (error) {
+        wdef = false;
+        wnode = rnode;
+        wvi = rvi;
+    }
+    else {
+        wdef = true;
+        wvi = vsapi->getVideoInfo(wnode);
+
+        if (!isConstantFormat(wvi)) {
+            setError(out, "Invalid clip \"wref\", only constant format input supported");
+            return 1;
+        }
+        if (wvi->format != vi->format) {
+            setError(out, "input clip and clip \"wref\" must be of the same format");
+            return 1;
+        }
+        if (wvi->width != vi->width || wvi->height != vi->height) {
+            setError(out, "input clip and clip \"wref\" must be of the same width and height");
+            return 1;
+        }
+        if (wvi->numFrames != vi->numFrames) {
+            setError(out, "input clip and clip \"wref\" must have the same number of frames");
+            return 1;
+        }
+    }
+
     // Initialize filter data for empirical Wiener filtering
     init_filter_data();
 

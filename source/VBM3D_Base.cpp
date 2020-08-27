@@ -412,7 +412,7 @@ void VBM3D_Data_Base::init_filter_data()
 
 
 void VBM3D_Process_Base::Kernel(const std::vector<FLType *> &dst,
-    const std::vector<const FLType *> &src, const std::vector<const FLType *> &ref) const
+    const std::vector<const FLType *> &src, const std::vector<const FLType *> &ref, const std::vector<const FLType *> &wref) const
 {
     std::vector<FLType *> ResNum(frames), ResDen(frames);
 
@@ -455,7 +455,7 @@ void VBM3D_Process_Base::Kernel(const std::vector<FLType *> &dst,
             Pos3PairCode matchCode = BlockMatching(ref, j, i);
 
             // Get the filtered result through collaborative filtering and aggregation of matched blocks
-            CollaborativeFilter(0, ResNum, ResDen, src, ref, matchCode);
+            CollaborativeFilter(0, ResNum, ResDen, src, wref, matchCode);
         }
     }
 }
@@ -463,7 +463,8 @@ void VBM3D_Process_Base::Kernel(const std::vector<FLType *> &dst,
 
 void VBM3D_Process_Base::Kernel(const std::vector<FLType *> &dstY, const std::vector<FLType *> &dstU, const std::vector<FLType *> &dstV,
     const std::vector<const FLType *> &srcY, const std::vector<const FLType *> &srcU, const std::vector<const FLType *> &srcV,
-    const std::vector<const FLType *> &refY, const std::vector<const FLType *> &refU, const std::vector<const FLType *> &refV) const
+    const std::vector<const FLType *> &refY,
+    const std::vector<const FLType *> &wrefY, const std::vector<const FLType *> &wrefU, const std::vector<const FLType *> &wrefV) const
 {
     std::vector<FLType *> ResNumY(frames), ResDenY(frames);
     std::vector<FLType *> ResNumU(frames), ResDenU(frames);
@@ -533,9 +534,9 @@ void VBM3D_Process_Base::Kernel(const std::vector<FLType *> &dstY, const std::ve
             Pos3PairCode matchCode = BlockMatching(refY, j, i);
 
             // Get the filtered result through collaborative filtering and aggregation of matched blocks
-            if (d.process[0]) CollaborativeFilter(0, ResNumY, ResDenY, srcY, refY, matchCode);
-            if (d.process[1]) CollaborativeFilter(1, ResNumU, ResDenU, srcU, refU, matchCode);
-            if (d.process[2]) CollaborativeFilter(2, ResNumV, ResDenV, srcV, refV, matchCode);
+            if (d.process[0]) CollaborativeFilter(0, ResNumY, ResDenY, srcY, wrefY, matchCode);
+            if (d.process[1]) CollaborativeFilter(1, ResNumU, ResDenU, srcU, wrefU, matchCode);
+            if (d.process[2]) CollaborativeFilter(2, ResNumV, ResDenV, srcV, wrefV, matchCode);
         }
     }
 }
@@ -694,8 +695,9 @@ void VBM3D_Process_Base::process_core_gray()
     std::vector<FLType *> dstYv;
     std::vector<const FLType *> srcYv;
     std::vector<const FLType *> refYv;
+    std::vector<const FLType *> wrefYv;
 
-    std::vector<FLType *> srcYd(frames, nullptr), refYd(frames, nullptr);
+    std::vector<FLType *> srcYd(frames, nullptr), refYd(frames, nullptr), wrefYd(frames, nullptr);
 
     // Get write pointer
     auto dstY = reinterpret_cast<FLType *>(vsapi->getWritePtr(dst, 0))
@@ -707,30 +709,39 @@ void VBM3D_Process_Base::process_core_gray()
         auto srcY = reinterpret_cast<const _Ty *>(vsapi->getReadPtr(v_src[i], 0));
         auto refY = reinterpret_cast<const _Ty *>(vsapi->getReadPtr(v_ref[i], 0));
 
+        auto wrefY = static_cast<const _Ty *>(nullptr);
+        if (v_wref.size() > i)
+            wrefY = reinterpret_cast<const _Ty *>(vsapi->getReadPtr(v_wref[i], 0));
+
         // Allocate memory for floating point Y data
         AlignedMalloc(srcYd[i], src_pcount[0]);
         if (d.rdef) AlignedMalloc(refYd[i], ref_pcount[0]);
         else refYd[i] = srcYd[i];
+        if (d.wdef) AlignedMalloc(wrefYd[i], wref_pcount[0]);
+        else wrefYd[i] = refYd[i];
 
         // Convert src and ref from integer Y data to floating point Y data
         Int2Float(srcYd[i], srcY, src_height[0], src_width[0], src_stride[0], src_stride[0], false, full, false);
         if (d.rdef) Int2Float(refYd[i], refY, ref_height[0], ref_width[0], ref_stride[0], ref_stride[0], false, full, false);
+        if (d.wdef) Int2Float(wrefYd[i], wrefY, wref_height[0], wref_width[0], wref_stride[0], wref_stride[0], false, full, false);
 
         // Store pointer to floating point Y data into corresponding frame of the vector
         dstYv.push_back(dstY + dst_pcount[0] * (i * 2));
         dstYv.push_back(dstY + dst_pcount[0] * (i * 2 + 1));
         srcYv.push_back(srcYd[i]);
         refYv.push_back(refYd[i]);
+        wrefYv.push_back(wrefYd[i]);
     }
 
     // Execute kernel
-    Kernel(dstYv, srcYv, refYv);
+    Kernel(dstYv, srcYv, refYv, wrefYv);
 
     // Free memory for floating point Y data
     for (int i = 0; i < frames; ++i)
     {
         AlignedFree(srcYd[i]);
         if (d.rdef) AlignedFree(refYd[i]);
+        if (d.wdef) AlignedFree(wrefYd[i]);
     }
 }
 
@@ -740,6 +751,7 @@ void VBM3D_Process_Base::process_core_gray<FLType>()
     std::vector<FLType *> dstYv;
     std::vector<const FLType *> srcYv;
     std::vector<const FLType *> refYv;
+    std::vector<const FLType *> wrefYv;
 
     // Get write pointer
     auto dstY = reinterpret_cast<FLType *>(vsapi->getWritePtr(dst, 0))
@@ -751,15 +763,20 @@ void VBM3D_Process_Base::process_core_gray<FLType>()
         auto srcY = reinterpret_cast<const FLType *>(vsapi->getReadPtr(v_src[i], 0));
         auto refY = reinterpret_cast<const FLType *>(vsapi->getReadPtr(v_ref[i], 0));
 
+        auto wrefY = static_cast<const FLType *>(nullptr);
+        if (v_wref.size() > i)
+            wrefY = reinterpret_cast<const FLType *>(vsapi->getReadPtr(v_wref[i], 0));
+
         // Store pointer to floating point Y data into corresponding frame of the vector
         dstYv.push_back(dstY + dst_pcount[0] * (i * 2));
         dstYv.push_back(dstY + dst_pcount[0] * (i * 2 + 1));
         srcYv.push_back(srcY);
         refYv.push_back(refY);
+        wrefYv.push_back(wrefY);
     }
 
     // Execute kernel
-    Kernel(dstYv, srcYv, refYv);
+    Kernel(dstYv, srcYv, refYv, wrefYv);
 }
 
 
@@ -775,11 +792,14 @@ void VBM3D_Process_Base::process_core_yuv()
     std::vector<const FLType *> srcVv;
 
     std::vector<const FLType *> refYv;
-    std::vector<const FLType *> refUv;
-    std::vector<const FLType *> refVv;
+
+    std::vector<const FLType *> wrefYv;
+    std::vector<const FLType *> wrefUv;
+    std::vector<const FLType *> wrefVv;
 
     std::vector<FLType *> srcYd(frames, nullptr), srcUd(frames, nullptr), srcVd(frames, nullptr);
-    std::vector<FLType *> refYd(frames, nullptr), refUd(frames, nullptr), refVd(frames, nullptr);
+    std::vector<FLType *> refYd(frames, nullptr);
+    std::vector<FLType *> wrefYd(frames, nullptr), wrefUd(frames, nullptr), wrefVd(frames, nullptr);
 
     // Get write pointer
     auto dstY = reinterpret_cast<FLType *>(vsapi->getWritePtr(dst, 0))
@@ -800,23 +820,32 @@ void VBM3D_Process_Base::process_core_yuv()
         auto refU = reinterpret_cast<const _Ty *>(vsapi->getReadPtr(v_ref[i], 1));
         auto refV = reinterpret_cast<const _Ty *>(vsapi->getReadPtr(v_ref[i], 2));
 
+        auto wrefY = static_cast<const _Ty *>(nullptr);
+        auto wrefU = static_cast<const _Ty *>(nullptr);
+        auto wrefV = static_cast<const _Ty *>(nullptr);
+
+        if (v_wref.size() > i) {
+            wrefY = reinterpret_cast<const _Ty *>(vsapi->getReadPtr(v_wref[i], 0));
+            wrefU = reinterpret_cast<const _Ty *>(vsapi->getReadPtr(v_wref[i], 1));
+            wrefV = reinterpret_cast<const _Ty *>(vsapi->getReadPtr(v_wref[i], 2));
+        }
+
         // Allocate memory for floating point YUV data
         if (d.process[0] || !d.rdef) AlignedMalloc(srcYd[i], src_pcount[0]);
         if (d.process[1]) AlignedMalloc(srcUd[i], src_pcount[1]);
         if (d.process[2]) AlignedMalloc(srcVd[i], src_pcount[2]);
 
         if (d.rdef)
-        {
             AlignedMalloc(refYd[i], ref_pcount[0]);
-            if (d.wiener && d.process[1]) AlignedMalloc(refUd[i], ref_pcount[1]);
-            if (d.wiener && d.process[2]) AlignedMalloc(refVd[i], ref_pcount[2]);
-        }
         else
-        {
             refYd[i] = srcYd[i];
-            refUd[i] = srcUd[i];
-            refVd[i] = srcVd[i];
-        }
+
+        if (d.wdef && d.process[0])
+            AlignedMalloc(wrefYd[i], wref_pcount[0]);
+        else
+            wrefYd[i] = refYd[i];
+        if (d.wiener && d.process[1]) AlignedMalloc(wrefUd[i], wref_pcount[1]);
+        if (d.wiener && d.process[2]) AlignedMalloc(wrefVd[i], wref_pcount[2]);
 
         // Convert src and ref from integer YUV data to floating point YUV data
         if (d.process[0] || !d.rdef) Int2Float(srcYd[i], srcY, src_height[0], src_width[0], src_stride[0], src_stride[0], false, full, false);
@@ -824,10 +853,16 @@ void VBM3D_Process_Base::process_core_yuv()
         if (d.process[2]) Int2Float(srcVd[i], srcV, src_height[2], src_width[2], src_stride[2], src_stride[2], true, full, false);
 
         if (d.rdef)
-        {
             Int2Float(refYd[i], refY, ref_height[0], ref_width[0], ref_stride[0], ref_stride[0], false, full, false);
-            if (d.wiener && d.process[1]) Int2Float(refUd[i], refU, ref_height[1], ref_width[1], ref_stride[1], ref_stride[1], true, full, false);
-            if (d.wiener && d.process[2]) Int2Float(refVd[i], refV, ref_height[2], ref_width[2], ref_stride[2], ref_stride[2], true, full, false);
+
+        if (d.wdef) {
+            if (d.process[0]) Int2Float(wrefYd[i], wrefY, wref_height[0], wref_width[0], wref_stride[0], wref_stride[0], false, full, false);
+            if (d.process[1]) Int2Float(wrefUd[i], wrefU, wref_height[1], wref_width[1], wref_stride[1], wref_stride[1], true, full, false);
+            if (d.process[2]) Int2Float(wrefVd[i], wrefV, wref_height[2], wref_width[2], wref_stride[2], wref_stride[2], true, full, false);
+        }
+        else if (d.wiener) {
+            if (d.process[1]) Int2Float(wrefUd[i], refU, ref_height[1], ref_width[1], ref_stride[1], ref_stride[1], true, full, false);
+            if (d.process[2]) Int2Float(wrefVd[i], refV, ref_height[2], ref_width[2], ref_stride[2], ref_stride[2], true, full, false);
         }
 
         // Store pointer to floating point YUV data into corresponding frame in the vector
@@ -844,12 +879,14 @@ void VBM3D_Process_Base::process_core_yuv()
         srcVv.push_back(srcVd[i]);
 
         refYv.push_back(refYd[i]);
-        refUv.push_back(refUd[i]);
-        refVv.push_back(refVd[i]);
+
+        wrefYv.push_back(wrefYd[i]);
+        wrefUv.push_back(wrefUd[i]);
+        wrefVv.push_back(wrefVd[i]);
     }
 
     // Execute kernel
-    Kernel(dstYv, dstUv, dstVv, srcYv, srcUv, srcVv, refYv, refUv, refVv);
+    Kernel(dstYv, dstUv, dstVv, srcYv, srcUv, srcVv, refYv, wrefYv, wrefUv, wrefVv);
 
     // Free memory for floating point YUV data
     for (int i = 0; i < frames; ++i)
@@ -858,12 +895,11 @@ void VBM3D_Process_Base::process_core_yuv()
         if (d.process[1]) AlignedFree(srcUd[i]);
         if (d.process[2]) AlignedFree(srcVd[i]);
 
-        if (d.rdef)
-        {
-            AlignedFree(refYd[i]);
-            if (d.wiener && d.process[1]) AlignedFree(refUd[i]);
-            if (d.wiener && d.process[2]) AlignedFree(refVd[i]);
-        }
+        if (d.rdef) AlignedFree(refYd[i]);
+
+        if (d.wdef && d.process[0]) AlignedFree(wrefYd[i]);
+        if (d.wiener && d.process[1]) AlignedFree(wrefUd[i]);
+        if (d.wiener && d.process[2]) AlignedFree(wrefVd[i]);
     }
 }
 
@@ -879,8 +915,10 @@ void VBM3D_Process_Base::process_core_yuv<FLType>()
     std::vector<const FLType *> srcVv;
 
     std::vector<const FLType *> refYv;
-    std::vector<const FLType *> refUv;
-    std::vector<const FLType *> refVv;
+
+    std::vector<const FLType *> wrefYv;
+    std::vector<const FLType *> wrefUv;
+    std::vector<const FLType *> wrefVv;
 
     // Get write/read pointer
     auto dstY = reinterpret_cast<FLType *>(vsapi->getWritePtr(dst, 0))
@@ -898,8 +936,16 @@ void VBM3D_Process_Base::process_core_yuv<FLType>()
         auto srcV = reinterpret_cast<const FLType *>(vsapi->getReadPtr(v_src[i], 2));
 
         auto refY = reinterpret_cast<const FLType *>(vsapi->getReadPtr(v_ref[i], 0));
-        auto refU = reinterpret_cast<const FLType *>(vsapi->getReadPtr(v_ref[i], 1));
-        auto refV = reinterpret_cast<const FLType *>(vsapi->getReadPtr(v_ref[i], 2));
+
+        auto wrefY = static_cast<const FLType *>(nullptr);
+        auto wrefU = static_cast<const FLType *>(nullptr);
+        auto wrefV = static_cast<const FLType *>(nullptr);
+
+        if (v_wref.size() > i) {
+            wrefY = reinterpret_cast<const FLType *>(vsapi->getReadPtr(v_wref[i], 0));
+            wrefU = reinterpret_cast<const FLType *>(vsapi->getReadPtr(v_wref[i], 1));
+            wrefV = reinterpret_cast<const FLType *>(vsapi->getReadPtr(v_wref[i], 2));
+        }
 
         // Store pointer to floating point YUV data into corresponding frame in the vector
         dstYv.push_back(dstY + dst_pcount[0] * (i * 2));
@@ -915,12 +961,14 @@ void VBM3D_Process_Base::process_core_yuv<FLType>()
         srcVv.push_back(srcV);
 
         refYv.push_back(refY);
-        refUv.push_back(refU);
-        refVv.push_back(refV);
+
+        wrefYv.push_back(wrefY);
+        wrefUv.push_back(wrefU);
+        wrefVv.push_back(wrefV);
     }
 
     // Execute kernel
-    Kernel(dstYv, dstUv, dstVv, srcYv, srcUv, srcVv, refYv, refUv, refVv);
+    Kernel(dstYv, dstUv, dstVv, srcYv, srcUv, srcVv, refYv, wrefYv, wrefUv, wrefVv);
 }
 
 
@@ -936,11 +984,14 @@ void VBM3D_Process_Base::process_core_rgb()
     std::vector<const FLType *> srcVv;
 
     std::vector<const FLType *> refYv;
-    std::vector<const FLType *> refUv;
-    std::vector<const FLType *> refVv;
+
+    std::vector<const FLType *> wrefYv;
+    std::vector<const FLType *> wrefUv;
+    std::vector<const FLType *> wrefVv;
 
     std::vector<FLType *> srcYd(frames, nullptr), srcUd(frames, nullptr), srcVd(frames, nullptr);
-    std::vector<FLType *> refYd(frames, nullptr), refUd(frames, nullptr), refVd(frames, nullptr);
+    std::vector<FLType *> refYd(frames, nullptr);
+    std::vector<FLType *> wrefYd(frames, nullptr), wrefUd(frames, nullptr), wrefVd(frames, nullptr);
 
     // Get write pointer
     auto dstY = reinterpret_cast<FLType *>(vsapi->getWritePtr(dst, 0))
@@ -961,23 +1012,32 @@ void VBM3D_Process_Base::process_core_rgb()
         auto refG = reinterpret_cast<const _Ty *>(vsapi->getReadPtr(v_ref[i], 1));
         auto refB = reinterpret_cast<const _Ty *>(vsapi->getReadPtr(v_ref[i], 2));
 
+        auto wrefR = static_cast<const _Ty *>(nullptr);
+        auto wrefG = static_cast<const _Ty *>(nullptr);
+        auto wrefB = static_cast<const _Ty *>(nullptr);
+
+        if (v_wref.size() > i) {
+            wrefR = reinterpret_cast<const _Ty *>(vsapi->getReadPtr(v_wref[i], 0));
+            wrefG = reinterpret_cast<const _Ty *>(vsapi->getReadPtr(v_wref[i], 1));
+            wrefB = reinterpret_cast<const _Ty *>(vsapi->getReadPtr(v_wref[i], 2));
+        }
+
         // Allocate memory for floating point YUV data
         AlignedMalloc(srcYd[i], src_pcount[0]);
         AlignedMalloc(srcUd[i], src_pcount[1]);
         AlignedMalloc(srcVd[i], src_pcount[2]);
 
         if (d.rdef)
-        {
             AlignedMalloc(refYd[i], ref_pcount[0]);
-            if (d.wiener) AlignedMalloc(refUd[i], ref_pcount[1]);
-            if (d.wiener) AlignedMalloc(refVd[i], ref_pcount[2]);
-        }
         else
-        {
             refYd[i] = srcYd[i];
-            refUd[i] = srcUd[i];
-            refVd[i] = srcVd[i];
-        }
+
+        if (d.wdef)
+            AlignedMalloc(wrefYd[i], wref_pcount[0]);
+        else
+            wrefYd[i] = refYd[i];
+        if (d.wiener) AlignedMalloc(wrefUd[i], wref_pcount[1]);
+        if (d.wiener) AlignedMalloc(wrefVd[i], wref_pcount[2]);
 
         // Convert src and ref from RGB data to floating point YUV data
         RGB2FloatYUV(srcYd[i], srcUd[i], srcVd[i], srcR, srcG, srcB,
@@ -985,20 +1045,18 @@ void VBM3D_Process_Base::process_core_rgb()
             ColorMatrix::OPP, true, false);
 
         if (d.rdef)
-        {
-            if (d.wiener)
-            {
-                RGB2FloatYUV(refYd[i], refUd[i], refVd[i], refR, refG, refB,
-                    ref_height[0], ref_width[0], ref_stride[0], ref_stride[0],
-                    ColorMatrix::OPP, true, false);
-            }
-            else
-            {
-                RGB2FloatY(refYd[i], refR, refG, refB,
-                    ref_height[0], ref_width[0], ref_stride[0], ref_stride[0],
-                    ColorMatrix::OPP, true, false);
-            }
-        }
+            RGB2FloatY(refYd[i], refR, refG, refB,
+                ref_height[0], ref_width[0], ref_stride[0], ref_stride[0],
+                ColorMatrix::OPP, true, false);
+
+        if (d.wdef)
+            RGB2FloatYUV(wrefYd[i], wrefUd[i], wrefVd[i], wrefR, wrefG, wrefB,
+                wref_height[0], wref_width[0], wref_stride[0], wref_stride[0],
+                ColorMatrix::OPP, true, false);
+        else if (d.wiener)
+            RGB2FloatYUV(wrefYd[i], wrefUd[i], wrefVd[i], refR, refG, refB,
+                ref_height[0], ref_width[0], ref_stride[0], ref_stride[0],
+                ColorMatrix::OPP, true, false);
 
         // Store pointer to floating point YUV data into corresponding frame in the vector
         dstYv.push_back(dstY + dst_pcount[0] * (i * 2));
@@ -1014,12 +1072,14 @@ void VBM3D_Process_Base::process_core_rgb()
         srcVv.push_back(srcVd[i]);
 
         refYv.push_back(refYd[i]);
-        refUv.push_back(refUd[i]);
-        refVv.push_back(refVd[i]);
+
+        wrefYv.push_back(wrefYd[i]);
+        wrefUv.push_back(wrefUd[i]);
+        wrefVv.push_back(wrefVd[i]);
     }
 
     // Execute kernel
-    Kernel(dstYv, dstUv, dstVv, srcYv, srcUv, srcVv, refYv, refUv, refVv);
+    Kernel(dstYv, dstUv, dstVv, srcYv, srcUv, srcVv, refYv, wrefYv, wrefUv, wrefVv);
 
     // Free memory for floating point YUV data
     for (int i = 0; i < frames; ++i)
@@ -1029,11 +1089,12 @@ void VBM3D_Process_Base::process_core_rgb()
         AlignedFree(srcVd[i]);
 
         if (d.rdef)
-        {
             AlignedFree(refYd[i]);
-            if (d.wiener) AlignedFree(refUd[i]);
-            if (d.wiener) AlignedFree(refVd[i]);
-        }
+
+        if (d.wdef)
+            AlignedFree(wrefYd[i]);
+        if (d.wiener) AlignedFree(wrefUd[i]);
+        if (d.wiener) AlignedFree(wrefVd[i]);
     }
 }
 

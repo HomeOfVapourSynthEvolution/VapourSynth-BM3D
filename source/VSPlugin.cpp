@@ -343,6 +343,7 @@ static const VSFrameRef *VS_CC VBM3D_Final_GetFrame(int n, int activationReason,
         {
             vsapi->requestFrameFilter(n + o, d->node, frameCtx);
             if (d->rdef) vsapi->requestFrameFilter(n + o, d->rnode, frameCtx);
+            if (d->wdef) vsapi->requestFrameFilter(n + o, d->wnode, frameCtx);
         }
     }
     else if (activationReason == arAllFramesReady)
@@ -514,6 +515,7 @@ VS_EXTERNAL_API(void) VapourSynthPluginInit(VSConfigPlugin configFunc, VSRegiste
     registerFunc("VFinal",
         "input:clip;"
         "ref:clip;"
+        "wref:clip:opt;"
         "profile:data:opt;"
         "sigma:float[]:opt;"
         "radius:int:opt;"
