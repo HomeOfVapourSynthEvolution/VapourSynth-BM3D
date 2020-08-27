@@ -196,7 +196,18 @@ bm3d.Final(clip input, clip ref[, clip wref=ref, string profile="fast", float[] 
     Alternatively, you can choose any other decent denoising filter as basic estimate, and take this final estimate as a refinement.
 
 - wref:<br />
-    placeholder
+    The reference clip for empirical Wiener filtering. If specified, wref will replace ref as the empirical estimate for Wiener filtering.<br />
+    You should specify this parameter if input and ref are sampled from different domains, e.g. input might be a difference image while ref could be a natural image.<br />
+    In such case you should assign something sampled from the input’s domain to wref.<br />
+    A common use case of wref would be to refine the denoising result of an alternative denoiser using BM3D.
+
+```python
+flt = some_filter(src)
+dif = core.std.MakeDiff(src, flt)
+ref_dif = core.bm3d.Basic(dif, flt)
+ref = core.std.MergeDiff(flt, ref_dif)
+dif = core.bm3d.Final(dif, ref, wref=ref_dif)
+flt = core.std.MergeDiff(flt, dif)
 
 - profile, sigma, block_size, block_step, group_size, bm_range, bm_step, th_mse, matrix:<br />
     Same as those in bm3d.Basic.
