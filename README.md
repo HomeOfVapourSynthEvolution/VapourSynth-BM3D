@@ -208,6 +208,7 @@ ref_dif = core.bm3d.Basic(dif, flt)
 ref = core.std.MergeDiff(flt, ref_dif)
 dif = core.bm3d.Final(dif, ref, wref=ref_dif)
 flt = core.std.MergeDiff(flt, dif)
+```
 
 - profile, sigma, block_size, block_step, group_size, bm_range, bm_step, th_mse, matrix:<br />
     Same as those in bm3d.Basic.
