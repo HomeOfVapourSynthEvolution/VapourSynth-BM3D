@@ -291,10 +291,10 @@ void BM3D_Data_Base::init_filter_data()
 // Functions of class BM3D_Process_Base
 
 
-void BM3D_Process_Base::Kernel(FLType *dst, const FLType *src, const FLType *ref) const
+void BM3D_Process_Base::Kernel(FLType* dst, const FLType* src, const FLType* ref, const FLType* wref) const
 {
     std::thread::id threadId = std::this_thread::get_id();
-    FLType *ResNum = dst, *ResDen = nullptr;
+    FLType* ResNum = dst, * ResDen = nullptr;
 
     if (!d.buffer0.count(threadId))
     {
@@ -340,26 +340,27 @@ void BM3D_Process_Base::Kernel(FLType *dst, const FLType *src, const FLType *ref
             PosPairCode matchCode = BlockMatching(ref, j, i);
 
             // Get the filtered result through collaborative filtering and aggregation of matched blocks
-            CollaborativeFilter(0, ResNum, ResDen, src, ref, matchCode);
+            CollaborativeFilter(0, ResNum, ResDen, src, wref, matchCode);
         }
     }
 
     // The filtered blocks are sumed and averaged to form the final filtered image
     LOOP_VH(dst_height[0], dst_width[0], dst_stride[0], [&](PCType i)
-    {
-        dst[i] = ResNum[i] / ResDen[i];
-    });
+        {
+            dst[i] = ResNum[i] / ResDen[i];
+        });
 }
 
 
-void BM3D_Process_Base::Kernel(FLType *dstY, FLType *dstU, FLType *dstV,
-    const FLType *srcY, const FLType *srcU, const FLType *srcV,
-    const FLType *refY, const FLType *refU, const FLType *refV) const
+void BM3D_Process_Base::Kernel(FLType* dstY, FLType* dstU, FLType* dstV,
+    const FLType* srcY, const FLType* srcU, const FLType* srcV,
+    const FLType* refY,
+    const FLType* wrefY, const FLType* wrefU, const FLType* wrefV) const
 {
     std::thread::id threadId = std::this_thread::get_id();
-    FLType *ResNumY = dstY, *ResDenY = nullptr;
-    FLType *ResNumU = dstU, *ResDenU = nullptr;
-    FLType *ResNumV = dstV, *ResDenV = nullptr;
+    FLType* ResNumY = dstY, * ResDenY = nullptr;
+    FLType* ResNumU = dstU, * ResDenU = nullptr;
+    FLType* ResNumV = dstV, * ResDenV = nullptr;
 
     if (d.process[0])
     {
@@ -440,27 +441,27 @@ void BM3D_Process_Base::Kernel(FLType *dstY, FLType *dstU, FLType *dstV,
             PosPairCode matchCode = BlockMatching(refY, j, i);
 
             // Get the filtered result through collaborative filtering and aggregation of matched blocks
-            if (d.process[0]) CollaborativeFilter(0, ResNumY, ResDenY, srcY, refY, matchCode);
-            if (d.process[1]) CollaborativeFilter(1, ResNumU, ResDenU, srcU, refU, matchCode);
-            if (d.process[2]) CollaborativeFilter(2, ResNumV, ResDenV, srcV, refV, matchCode);
+            if (d.process[0]) CollaborativeFilter(0, ResNumY, ResDenY, srcY, wrefY, matchCode);
+            if (d.process[1]) CollaborativeFilter(1, ResNumU, ResDenU, srcU, wrefU, matchCode);
+            if (d.process[2]) CollaborativeFilter(2, ResNumV, ResDenV, srcV, wrefV, matchCode);
         }
     }
 
     // The filtered blocks are sumed and averaged to form the final filtered image
     if (d.process[0]) LOOP_VH(dst_height[0], dst_width[0], dst_stride[0], [&](PCType i)
-    {
-        dstY[i] = ResNumY[i] / ResDenY[i];
-    });
+        {
+            dstY[i] = ResNumY[i] / ResDenY[i];
+        });
 
     if (d.process[1]) LOOP_VH(dst_height[1], dst_width[1], dst_stride[1], [&](PCType i)
-    {
-        dstU[i] = ResNumU[i] / ResDenU[i];
-    });
+        {
+            dstU[i] = ResNumU[i] / ResDenU[i];
+        });
 
     if (d.process[2]) LOOP_VH(dst_height[2], dst_width[2], dst_stride[2], [&](PCType i)
-    {
-        dstV[i] = ResNumV[i] / ResDenV[i];
-    });
+        {
+            dstV[i] = ResNumV[i] / ResDenV[i];
+        });
 }
 
 
@@ -512,25 +513,32 @@ void BM3D_Process_Base::process_core()
 template < typename _Ty >
 void BM3D_Process_Base::process_core_gray()
 {
-    FLType *dstYd = nullptr, *srcYd = nullptr, *refYd = nullptr;
+    FLType *dstYd = nullptr, *srcYd = nullptr, *refYd = nullptr, *wrefYd = nullptr;
 
     // Get write/read pointer
     auto dstY = reinterpret_cast<_Ty *>(vsapi->getWritePtr(dst, 0));
     auto srcY = reinterpret_cast<const _Ty *>(vsapi->getReadPtr(src, 0));
     auto refY = reinterpret_cast<const _Ty *>(vsapi->getReadPtr(ref, 0));
 
+    auto wrefY = static_cast<const _Ty *>(nullptr);
+    if (wref != nullptr)
+        wrefY = reinterpret_cast<const _Ty *>(vsapi->getReadPtr(wref, 0));
+
     // Allocate memory for floating point Y data
     AlignedMalloc(dstYd, dst_pcount[0]);
     AlignedMalloc(srcYd, src_pcount[0]);
     if (d.rdef) AlignedMalloc(refYd, ref_pcount[0]);
     else refYd = srcYd;
+    if (d.wdef) AlignedMalloc(wrefYd, wref_pcount[0]);
+    else wrefYd = refYd;
 
     // Convert src and ref from integer Y data to floating point Y data
     Int2Float(srcYd, srcY, src_height[0], src_width[0], src_stride[0], src_stride[0], false, full, false);
     if (d.rdef) Int2Float(refYd, refY, ref_height[0], ref_width[0], ref_stride[0], ref_stride[0], false, full, false);
+    if (d.wdef) Int2Float(wrefYd, wrefY, wref_height[0], wref_width[0], wref_stride[0], wref_stride[0], false, full, false);
 
     // Execute kernel
-    Kernel(dstYd, srcYd, refYd);
+    Kernel(dstYd, srcYd, refYd, wrefYd);
 
     // Convert dst from floating point Y data to integer Y data
     Float2Int(dstY, dstYd, dst_height[0], dst_width[0], dst_stride[0], dst_stride[0], false, full, !isFloat(_Ty));
@@ -539,6 +547,7 @@ void BM3D_Process_Base::process_core_gray()
     AlignedFree(dstYd);
     AlignedFree(srcYd);
     if (d.rdef) AlignedFree(refYd);
+    if (d.wdef) AlignedFree(wrefYd);
 }
 
 template <>
@@ -549,8 +558,12 @@ void BM3D_Process_Base::process_core_gray<FLType>()
     auto srcY = reinterpret_cast<const FLType *>(vsapi->getReadPtr(src, 0));
     auto refY = reinterpret_cast<const FLType *>(vsapi->getReadPtr(ref, 0));
 
+    auto wrefY = static_cast<const FLType *>(nullptr);
+    if (wref != nullptr)
+        wrefY = reinterpret_cast<const FLType *>(vsapi->getReadPtr(wref, 0));
+
     // Execute kernel
-    Kernel(dstY, srcY, refY);
+    Kernel(dstY, srcY, refY, wrefY);
 }
 
 
@@ -559,7 +572,8 @@ void BM3D_Process_Base::process_core_yuv()
 {
     FLType *dstYd = nullptr, *dstUd = nullptr, *dstVd = nullptr;
     FLType *srcYd = nullptr, *srcUd = nullptr, *srcVd = nullptr;
-    FLType *refYd = nullptr, *refUd = nullptr, *refVd = nullptr;
+    FLType *refYd = nullptr;
+    FLType *wrefYd = nullptr, *wrefUd = nullptr, *wrefVd = nullptr;
 
     // Get write/read pointer
     auto dstY = reinterpret_cast<_Ty *>(vsapi->getWritePtr(dst, 0));
@@ -574,6 +588,16 @@ void BM3D_Process_Base::process_core_yuv()
     auto refU = reinterpret_cast<const _Ty *>(vsapi->getReadPtr(ref, 1));
     auto refV = reinterpret_cast<const _Ty *>(vsapi->getReadPtr(ref, 2));
 
+    auto wrefY = static_cast<const _Ty *>(nullptr);
+    auto wrefU = static_cast<const _Ty *>(nullptr);
+    auto wrefV = static_cast<const _Ty *>(nullptr);
+
+    if (wref != nullptr) {
+        wrefY = reinterpret_cast<const _Ty *>(vsapi->getReadPtr(wref, 0));
+        wrefU = reinterpret_cast<const _Ty *>(vsapi->getReadPtr(wref, 1));
+        wrefV = reinterpret_cast<const _Ty *>(vsapi->getReadPtr(wref, 2));
+    }
+
     // Allocate memory for floating point YUV data
     if (d.process[0]) AlignedMalloc(dstYd, dst_pcount[0]);
     if (d.process[1]) AlignedMalloc(dstUd, dst_pcount[1]);
@@ -584,17 +608,16 @@ void BM3D_Process_Base::process_core_yuv()
     if (d.process[2]) AlignedMalloc(srcVd, src_pcount[2]);
 
     if (d.rdef)
-    {
         AlignedMalloc(refYd, ref_pcount[0]);
-        if (d.wiener && d.process[1]) AlignedMalloc(refUd, ref_pcount[1]);
-        if (d.wiener && d.process[2]) AlignedMalloc(refVd, ref_pcount[2]);
-    }
     else
-    {
         refYd = srcYd;
-        refUd = srcUd;
-        refVd = srcVd;
-    }
+
+    if (d.wdef && d.process[0])
+        AlignedMalloc(wrefYd, wref_pcount[0]);
+    else
+        wrefYd = refYd;
+    if (d.wiener && d.process[1]) AlignedMalloc(wrefUd, wref_pcount[1]);
+    if (d.wiener && d.process[2]) AlignedMalloc(wrefVd, wref_pcount[2]);
 
     // Convert src and ref from integer YUV data to floating point YUV data
     if (d.process[0] || !d.rdef) Int2Float(srcYd, srcY, src_height[0], src_width[0], src_stride[0], src_stride[0], false, full, false);
@@ -602,14 +625,20 @@ void BM3D_Process_Base::process_core_yuv()
     if (d.process[2]) Int2Float(srcVd, srcV, src_height[2], src_width[2], src_stride[2], src_stride[2], true, full, false);
 
     if (d.rdef)
-    {
         Int2Float(refYd, refY, ref_height[0], ref_width[0], ref_stride[0], ref_stride[0], false, full, false);
-        if (d.wiener && d.process[1]) Int2Float(refUd, refU, ref_height[1], ref_width[1], ref_stride[1], ref_stride[1], true, full, false);
-        if (d.wiener && d.process[2]) Int2Float(refVd, refV, ref_height[2], ref_width[2], ref_stride[2], ref_stride[2], true, full, false);
+    
+    if (d.wdef) {
+        if (d.process[0]) Int2Float(wrefYd, wrefY, wref_height[0], wref_width[0], wref_stride[0], wref_stride[0], false, full, false);
+        if (d.process[1]) Int2Float(wrefUd, wrefU, wref_height[1], wref_width[1], wref_stride[1], wref_stride[1], true, full, false);
+        if (d.process[2]) Int2Float(wrefVd, wrefV, wref_height[2], wref_width[2], wref_stride[2], wref_stride[2], true, full, false);
+    }
+    else if (d.wiener) {
+        if (d.process[1]) Int2Float(wrefUd, refU, ref_height[1], ref_width[1], ref_stride[1], ref_stride[1], true, full, false);
+        if (d.process[2]) Int2Float(wrefVd, refV, ref_height[2], ref_width[2], ref_stride[2], ref_stride[2], true, full, false);
     }
 
     // Execute kernel
-    Kernel(dstYd, dstUd, dstVd, srcYd, srcUd, srcVd, refYd, refUd, refVd);
+    Kernel(dstYd, dstUd, dstVd, srcYd, srcUd, srcVd, refYd, wrefYd, wrefUd, wrefVd);
 
     // Convert dst from floating point YUV data to integer YUV data
     if (d.process[0]) Float2Int(dstY, dstYd, dst_height[0], dst_width[0], dst_stride[0], dst_stride[0], false, full, !isFloat(_Ty));
@@ -625,12 +654,11 @@ void BM3D_Process_Base::process_core_yuv()
     if (d.process[1]) AlignedFree(srcUd);
     if (d.process[2]) AlignedFree(srcVd);
 
-    if (d.rdef)
-    {
-        AlignedFree(refYd);
-        if (d.wiener && d.process[1]) AlignedFree(refUd);
-        if (d.wiener && d.process[2]) AlignedFree(refVd);
-    }
+    if (d.rdef) AlignedFree(refYd);
+
+    if (d.wdef && d.process[0]) AlignedFree(wrefYd);
+    if (d.wiener && d.process[1]) AlignedFree(wrefUd);
+    if (d.wiener && d.process[2]) AlignedFree(wrefVd);
 }
 
 template <>
@@ -646,11 +674,19 @@ void BM3D_Process_Base::process_core_yuv<FLType>()
     auto srcV = reinterpret_cast<const FLType *>(vsapi->getReadPtr(src, 2));
 
     auto refY = reinterpret_cast<const FLType *>(vsapi->getReadPtr(ref, 0));
-    auto refU = reinterpret_cast<const FLType *>(vsapi->getReadPtr(ref, 1));
-    auto refV = reinterpret_cast<const FLType *>(vsapi->getReadPtr(ref, 2));
+
+    auto wrefY = static_cast<const FLType *>(nullptr);
+    auto wrefU = static_cast<const FLType *>(nullptr);
+    auto wrefV = static_cast<const FLType *>(nullptr);
+
+    if (wref != nullptr) {
+        wrefY = reinterpret_cast<const FLType *>(vsapi->getReadPtr(wref, 0));
+        wrefU = reinterpret_cast<const FLType *>(vsapi->getReadPtr(wref, 1));
+        wrefV = reinterpret_cast<const FLType *>(vsapi->getReadPtr(wref, 2));
+    }
 
     // Execute kernel
-    Kernel(dstY, dstU, dstV, srcY, srcU, srcV, refY, refU, refV);
+    Kernel(dstY, dstU, dstV, srcY, srcU, srcV, refY, wrefY, wrefU, wrefV);
 }
 
 
@@ -659,7 +695,8 @@ void BM3D_Process_Base::process_core_rgb()
 {
     FLType *dstYd = nullptr, *dstUd = nullptr, *dstVd = nullptr;
     FLType *srcYd = nullptr, *srcUd = nullptr, *srcVd = nullptr;
-    FLType *refYd = nullptr, *refUd = nullptr, *refVd = nullptr;
+    FLType *refYd = nullptr;
+    FLType *wrefYd = nullptr, *wrefUd = nullptr, *wrefVd = nullptr;
 
     // Get write/read pointer
     auto dstR = reinterpret_cast<_Ty *>(vsapi->getWritePtr(dst, 0));
@@ -674,6 +711,16 @@ void BM3D_Process_Base::process_core_rgb()
     auto refG = reinterpret_cast<const _Ty *>(vsapi->getReadPtr(ref, 1));
     auto refB = reinterpret_cast<const _Ty *>(vsapi->getReadPtr(ref, 2));
 
+    auto wrefR = static_cast<const _Ty *>(nullptr);
+    auto wrefG = static_cast<const _Ty *>(nullptr);
+    auto wrefB = static_cast<const _Ty *>(nullptr);
+
+    if (wref != nullptr) {
+        wrefR = reinterpret_cast<const _Ty *>(vsapi->getReadPtr(wref, 0));
+        wrefG = reinterpret_cast<const _Ty *>(vsapi->getReadPtr(wref, 1));
+        wrefB = reinterpret_cast<const _Ty *>(vsapi->getReadPtr(wref, 2));
+    }
+
     // Allocate memory for floating point YUV data
     AlignedMalloc(dstYd, dst_pcount[0]);
     AlignedMalloc(dstUd, dst_pcount[1]);
@@ -684,17 +731,16 @@ void BM3D_Process_Base::process_core_rgb()
     AlignedMalloc(srcVd, src_pcount[2]);
 
     if (d.rdef)
-    {
         AlignedMalloc(refYd, ref_pcount[0]);
-        if (d.wiener) AlignedMalloc(refUd, ref_pcount[1]);
-        if (d.wiener) AlignedMalloc(refVd, ref_pcount[2]);
-    }
     else
-    {
         refYd = srcYd;
-        refUd = srcUd;
-        refVd = srcVd;
-    }
+
+    if (d.wdef)
+        AlignedMalloc(wrefYd, wref_pcount[0]);
+    else
+        wrefYd = refYd;
+    if (d.wiener) AlignedMalloc(wrefUd, wref_pcount[1]);
+    if (d.wiener) AlignedMalloc(wrefVd, wref_pcount[2]);
 
     // Convert src and ref from RGB data to floating point YUV data
     RGB2FloatYUV(srcYd, srcUd, srcVd, srcR, srcG, srcB,
@@ -702,23 +748,21 @@ void BM3D_Process_Base::process_core_rgb()
         ColorMatrix::OPP, true, false);
 
     if (d.rdef)
-    {
-        if (d.wiener)
-        {
-            RGB2FloatYUV(refYd, refUd, refVd, refR, refG, refB,
-                ref_height[0], ref_width[0], ref_stride[0], ref_stride[0],
-                ColorMatrix::OPP, true, false);
-        }
-        else
-        {
-            RGB2FloatY(refYd, refR, refG, refB,
-                ref_height[0], ref_width[0], ref_stride[0], ref_stride[0],
-                ColorMatrix::OPP, true, false);
-        }
-    }
+        RGB2FloatY(refYd, refR, refG, refB,
+            ref_height[0], ref_width[0], ref_stride[0], ref_stride[0],
+            ColorMatrix::OPP, true, false);
+        
+    if (d.wdef)
+        RGB2FloatYUV(wrefYd, wrefUd, wrefVd, wrefR, wrefG, wrefB,
+            wref_height[0], wref_width[0], wref_stride[0], wref_stride[0],
+            ColorMatrix::OPP, true, false);
+    else if (d.wiener)
+        RGB2FloatYUV(wrefYd, wrefUd, wrefVd, refR, refG, refB,
+            ref_height[0], ref_width[0], ref_stride[0], ref_stride[0],
+            ColorMatrix::OPP, true, false);
 
     // Execute kernel
-    Kernel(dstYd, dstUd, dstVd, srcYd, srcUd, srcVd, refYd, refUd, refVd);
+    Kernel(dstYd, dstUd, dstVd, srcYd, srcUd, srcVd, refYd, wrefYd, wrefUd, wrefVd);
 
     // Convert dst from floating point YUV data to RGB data
     FloatYUV2RGB(dstR, dstG, dstB, dstYd, dstUd, dstVd,
@@ -735,11 +779,12 @@ void BM3D_Process_Base::process_core_rgb()
     AlignedFree(srcVd);
 
     if (d.rdef)
-    {
         AlignedFree(refYd);
-        if (d.wiener) AlignedFree(refUd);
-        if (d.wiener) AlignedFree(refVd);
-    }
+
+    if (d.wdef)
+        AlignedFree(wrefYd);
+    if (d.wiener) AlignedFree(wrefUd);
+    if (d.wiener) AlignedFree(wrefVd);
 }
 
 

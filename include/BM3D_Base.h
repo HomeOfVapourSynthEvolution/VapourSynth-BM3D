@@ -47,6 +47,10 @@ public:
     VSNodeRef *rnode = nullptr;
     const VSVideoInfo *rvi = nullptr;
 
+    bool wdef = false;
+    VSNodeRef* wnode = nullptr;
+    const VSVideoInfo* wvi = nullptr;
+
     bool wiener;
     ColorMatrix matrix;
 
@@ -126,10 +130,18 @@ protected:
     const VSFrameRef *ref = nullptr;
     const VSFormat *rfi = nullptr;
 
+    const VSFrameRef* wref = nullptr;
+    const VSFormat* wfi = nullptr;
+
     PCType ref_height[VSMaxPlaneCount];
     PCType ref_width[VSMaxPlaneCount];
     PCType ref_stride[VSMaxPlaneCount];
     PCType ref_pcount[VSMaxPlaneCount];
+
+    PCType wref_height[VSMaxPlaneCount];
+    PCType wref_width[VSMaxPlaneCount];
+    PCType wref_stride[VSMaxPlaneCount];
+    PCType wref_pcount[VSMaxPlaneCount];
 
     bool full = true;
 
@@ -220,11 +232,12 @@ protected:
         _NewFrame(width, height, dfi == fi);
     }
 
-    void Kernel(FLType *dst, const FLType *src, const FLType *ref) const;
+    void Kernel(FLType *dst, const FLType *src, const FLType *ref, const FLType *wref) const;
 
     void Kernel(FLType *dstY, FLType *dstU, FLType *dstV,
         const FLType *srcY, const FLType *srcU, const FLType *srcV,
-        const FLType *refY, const FLType *refU, const FLType *refV) const;
+        const FLType *refY,
+        const FLType *wrefY, const FLType *wrefU, const FLType *wrefV) const;
 
     PosPairCode BlockMatching(const FLType *ref, PCType j, PCType i) const;
 
