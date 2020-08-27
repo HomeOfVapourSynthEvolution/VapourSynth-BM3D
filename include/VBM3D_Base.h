@@ -63,6 +63,10 @@ public:
     VSNodeRef *rnode = nullptr;
     const VSVideoInfo *rvi = nullptr;
 
+    bool wdef = false;
+    VSNodeRef* wnode = nullptr;
+    const VSVideoInfo* wvi = nullptr;
+
     bool wiener;
     ColorMatrix matrix;
 
@@ -135,8 +139,10 @@ protected:
 
     std::vector<const VSFrameRef *> v_src;
     std::vector<const VSFrameRef *> v_ref;
-
+    std::vector<const VSFrameRef *> v_wref;
+    
     const VSFormat *rfi = nullptr;
+    const VSFormat* wfi = nullptr;
 
     PCType dst_height[VSMaxPlaneCount];
     PCType dst_pcount[VSMaxPlaneCount];
@@ -145,6 +151,11 @@ protected:
     PCType ref_width[VSMaxPlaneCount];
     PCType ref_stride[VSMaxPlaneCount];
     PCType ref_pcount[VSMaxPlaneCount];
+
+    PCType wref_height[VSMaxPlaneCount];
+    PCType wref_width[VSMaxPlaneCount];
+    PCType wref_stride[VSMaxPlaneCount];
+    PCType wref_pcount[VSMaxPlaneCount];
 
     bool full = true;
 
@@ -310,11 +321,12 @@ protected:
         vsapi->propSetIntArray(dst_map, "BM3D_V_process", process, VSMaxPlaneCount);
     }
 
-    void Kernel(const std::vector<FLType *> &dst, const std::vector<const FLType *> &src, const std::vector<const FLType *> &ref) const;
+    void Kernel(const std::vector<FLType *> &dst, const std::vector<const FLType *> &src, const std::vector<const FLType *> &ref, const std::vector<const FLType *> &wref) const;
 
     void Kernel(const std::vector<FLType *> &dstY, const std::vector<FLType *> &dstU, const std::vector<FLType *> &dstV,
         const std::vector<const FLType *> &srcY, const std::vector<const FLType *> &srcU, const std::vector<const FLType *> &srcV,
-        const std::vector<const FLType *> &refY, const std::vector<const FLType *> &refU, const std::vector<const FLType *> &refV) const;
+        const std::vector<const FLType *> &refY,
+        const std::vector<const FLType *> &wrefY, const std::vector<const FLType *> &wrefU, const std::vector<const FLType *> &wrefV) const;
 
     Pos3PairCode BlockMatching(const std::vector<const FLType *> &ref, PCType j, PCType i) const;
 

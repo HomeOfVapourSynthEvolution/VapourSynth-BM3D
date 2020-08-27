@@ -183,7 +183,7 @@ The input clip is processed in 3-step stages, For each reference block:<br />
 This final estimate can be realized as a refinement. It can significantly improve the denoising quality, keeping more details and fine structures that were removed in basic estimate.
 
 ```python
-bm3d.Final(clip input, clip ref[, string profile="fast", float[] sigma=[10,10,10], int block_size, int block_step, int group_size, int bm_range, int bm_step, float th_mse, int matrix=2])
+bm3d.Final(clip input, clip ref[, clip wref=ref, string profile="fast", float[] sigma=[10,10,10], int block_size, int block_step, int group_size, int bm_range, int bm_step, float th_mse, int matrix=2])
 ```
 
 - input:<br />
@@ -194,6 +194,21 @@ bm3d.Final(clip input, clip ref[, string profile="fast", float[] sigma=[10,10,10
     The reference clip, this clip is used in block-matching and as the reference in empirical Wiener filtering.<br />
     It must be specified. In original BM3D algorithm, it is the basic estimate.<br />
     Alternatively, you can choose any other decent denoising filter as basic estimate, and take this final estimate as a refinement.
+
+- wref:<br />
+    The reference clip for empirical Wiener filtering. If specified, wref will replace ref as the empirical estimate for Wiener filtering.<br />
+    You should specify this parameter if input and ref are sampled from different domains, e.g. input might be a difference image while ref could be a natural image.<br />
+    In such case you should assign something sampled from the input’s domain to wref.<br />
+    A common use case of wref would be to refine the denoising result of an alternative denoiser using BM3D.
+
+```python
+flt = some_filter(src)
+dif = core.std.MakeDiff(src, flt)
+ref_dif = core.bm3d.Basic(dif, flt)
+ref = core.std.MergeDiff(flt, ref_dif)
+dif = core.bm3d.Final(dif, ref, wref=ref_dif)
+flt = core.std.MergeDiff(flt, dif)
+```
 
 - profile, sigma, block_size, block_step, group_size, bm_range, bm_step, th_mse, matrix:<br />
     Same as those in bm3d.Basic.
@@ -252,10 +267,10 @@ bm3d.VBasic(clip input[, clip ref=input, string profile="fast", float[] sigma=[1
 #### final estimate of V-BM3D denoising filter
 
 ```python
-bm3d.VFinal(clip input, clip ref[, string profile="fast", float[] sigma=[10,10,10], int radius, int block_size, int block_step, int group_size, int bm_range, int bm_step, int ps_num, int ps_range, int ps_step, float th_mse, int matrix=2])
+bm3d.VFinal(clip input, clip ref[, clip wref=ref, string profile="fast", float[] sigma=[10,10,10], int radius, int block_size, int block_step, int group_size, int bm_range, int bm_step, int ps_num, int ps_range, int ps_step, float th_mse, int matrix=2])
 ```
 
-- input, ref:<br />
+- input, ref, wref:<br />
     Same as those in bm3d.Final.
 
 - profile, sigma, block_size, block_step, group_size, bm_range, bm_step, th_mse, matrix:<br />
