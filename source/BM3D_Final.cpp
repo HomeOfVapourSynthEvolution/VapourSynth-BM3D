@@ -21,7 +21,7 @@
 * SOFTWARE.
 */
 
-
+#include <limits>
 #include "BM3D_Final.h"
 
 
