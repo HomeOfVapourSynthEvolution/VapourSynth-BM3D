@@ -49,7 +49,9 @@ public:
     _Myt &operator=(const _Myt &right) = delete;
     _Myt &operator=(_Myt &&right) = delete;
 
-    virtual ~BM3D_Final_Data() override {}
+    virtual ~BM3D_Final_Data() override {
+        if (wdef && wnode) vsapi->freeNode(wnode);
+    }
 
     virtual int arguments_process(const VSMap *in, VSMap *out) override;
 };
@@ -70,11 +72,29 @@ private:
     const _Mydata &d;
 
 public:
-    BM3D_Final_Process(_Mydata &_d, int _n, VSFrameContext *_frameCtx, VSCore *_core, const VSAPI *_vsapi)
-        : _Mybase(_d, _n, _frameCtx, _core, _vsapi), d(_d)
-    {}
+    BM3D_Final_Process(_Mydata& _d, int _n, VSFrameContext* _frameCtx, VSCore* _core, const VSAPI* _vsapi)
+        : _Mybase(_d, _n, _frameCtx, _core, _vsapi), d(_d) {
+        if (d.wdef) {
+            wref = vsapi->getFrameFilter(n, d.wnode, frameCtx);
+            wfi = vsapi->getFrameFormat(wref);
+        }
+        else {
+            wref = ref;
+            wfi = rfi;
+        }
 
-    virtual ~BM3D_Final_Process() override {}
+        if (!skip)
+            for (int i = 0; i < PlaneCount; ++i) {
+                wref_height[i] = vsapi->getFrameHeight(wref, i);
+                wref_width[i] = vsapi->getFrameWidth(wref, i);
+                wref_stride[i] = vsapi->getStride(wref, i) / wfi->bytesPerSample;
+                wref_pcount[i] = wref_height[i] * wref_stride[i];
+            }
+    }
+
+    virtual ~BM3D_Final_Process() override {
+        if (d.wdef) vsapi->freeFrame(wref);
+    }
 
 protected:
     virtual void CollaborativeFilter(int plane,
