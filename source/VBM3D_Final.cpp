@@ -21,7 +21,7 @@
 * SOFTWARE.
 */
 
-
+#include <limits>
 #include "VBM3D_Final.h"
 
 
