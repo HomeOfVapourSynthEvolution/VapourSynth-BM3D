@@ -296,14 +296,17 @@ void BM3D_Process_Base::Kernel(FLType *dst, const FLType *src, const FLType *ref
     std::thread::id threadId = std::this_thread::get_id();
     FLType *ResNum = dst, *ResDen = nullptr;
 
-    if (!d.buffer0.count(threadId))
     {
-        AlignedMalloc(ResDen, dst_pcount[0]);
-        d.buffer0.emplace(threadId, ResDen);
-    }
-    else
-    {
-        ResDen = d.buffer0.at(threadId);
+        std::lock_guard<std::mutex> guard(d.mutex0);
+        if (!d.buffer0.count(threadId))
+        {
+            AlignedMalloc(ResDen, dst_pcount[0]);
+            d.buffer0.emplace(threadId, ResDen);
+        }
+        else
+        {
+            ResDen = d.buffer0.at(threadId);
+        }
     }
 
     memset(ResNum, 0, sizeof(FLType) * dst_pcount[0]);
@@ -363,14 +366,17 @@ void BM3D_Process_Base::Kernel(FLType *dstY, FLType *dstU, FLType *dstV,
 
     if (d.process[0])
     {
-        if (!d.buffer0.count(threadId))
         {
-            AlignedMalloc(ResDenY, dst_pcount[0]);
-            d.buffer0.emplace(threadId, ResDenY);
-        }
-        else
-        {
-            ResDenY = d.buffer0.at(threadId);
+            std::lock_guard<std::mutex> guard(d.mutex0);
+            if (!d.buffer0.count(threadId))
+            {
+                AlignedMalloc(ResDenY, dst_pcount[0]);
+                d.buffer0.emplace(threadId, ResDenY);
+            }
+            else
+            {
+                ResDenY = d.buffer0.at(threadId);
+            }
         }
 
         memset(ResNumY, 0, sizeof(FLType) * dst_pcount[0]);
@@ -379,30 +385,36 @@ void BM3D_Process_Base::Kernel(FLType *dstY, FLType *dstU, FLType *dstV,
 
     if (d.process[1])
     {
-        if (!d.buffer1.count(threadId))
         {
-            AlignedMalloc(ResDenU, dst_pcount[1]);
-            d.buffer1.emplace(threadId, ResDenU);
+            std::lock_guard<std::mutex> guard(d.mutex1);
+            if (!d.buffer1.count(threadId))
+            {
+                AlignedMalloc(ResDenU, dst_pcount[1]);
+                d.buffer1.emplace(threadId, ResDenU);
+            }
+            else
+            {
+                ResDenU = d.buffer1.at(threadId);
+            }
         }
-        else
-        {
-            ResDenU = d.buffer1.at(threadId);
-        }
-
+        
         memset(ResNumU, 0, sizeof(FLType) * dst_pcount[1]);
         memset(ResDenU, 0, sizeof(FLType) * dst_pcount[1]);
     }
 
     if (d.process[2])
     {
-        if (!d.buffer2.count(threadId))
         {
-            AlignedMalloc(ResDenV, dst_pcount[2]);
-            d.buffer2.emplace(threadId, ResDenV);
-        }
-        else
-        {
-            ResDenV = d.buffer2.at(threadId);
+            std::lock_guard<std::mutex> guard(d.mutex2);
+            if (!d.buffer2.count(threadId))
+            {
+                AlignedMalloc(ResDenV, dst_pcount[2]);
+                d.buffer2.emplace(threadId, ResDenV);
+            }
+            else
+            {
+                ResDenV = d.buffer2.at(threadId);
+            }
         }
 
         memset(ResNumV, 0, sizeof(FLType) * dst_pcount[2]);
