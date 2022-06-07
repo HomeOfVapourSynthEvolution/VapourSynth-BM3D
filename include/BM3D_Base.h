@@ -26,6 +26,7 @@
 #define BM3D_BASE_H_
 
 
+#include <mutex>
 #include <unordered_map>
 #include <thread>
 #include "BM3D.h"
@@ -54,6 +55,7 @@ public:
     _Mypara para;
     std::vector<BM3D_FilterData> f;
 
+    std::mutex mutex0, mutex1, mutex2;
     std::unordered_map<std::thread::id, FLType *> buffer0, buffer1, buffer2;
 
 public:
@@ -72,17 +74,26 @@ public:
     {
         if (rdef && rnode) vsapi->freeNode(rnode);
 
-        for (auto &e : buffer0)
         {
-            AlignedFree(e.second);
+            std::lock_guard<std::mutex> guard0(mutex0);
+            for (auto &e : buffer0)
+            {
+                AlignedFree(e.second);
+            }
         }
-        for (auto &e : buffer1)
         {
-            AlignedFree(e.second);
+            std::lock_guard<std::mutex> guard1(mutex1);
+            for (auto &e : buffer1)
+            {
+                AlignedFree(e.second);
+            }
         }
-        for (auto &e : buffer2)
         {
-            AlignedFree(e.second);
+            std::lock_guard<std::mutex> guard2(mutex2);
+            for (auto &e : buffer2)
+            {
+                AlignedFree(e.second);
+            }
         }
     }
 

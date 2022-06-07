@@ -132,6 +132,7 @@ void BM3D_Para::thMSE_Default()
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 // Functions of struct BM3D_FilterData
 
+std::mutex BM3D_FilterData::s_fftw_planner_mutex;
 
 BM3D_FilterData::BM3D_FilterData(bool wiener, double sigma, PCType GroupSize, PCType BlockSize, double lambda)
     : fp(GroupSize), bp(GroupSize), finalAMP(GroupSize), thrTable(wiener ? 0 : GroupSize),
@@ -143,6 +144,9 @@ BM3D_FilterData::BM3D_FilterData(bool wiener, double sigma, PCType GroupSize, PC
 
     FLType *temp = nullptr;
 
+    // Executing a plan is thread-safe, but creating a plan is not because it mutates the planner's "wisdom".
+    // Consider that any number of instances of the (V)BM3D filter may exist in a single VapourSynth pipeline.
+    std::lock_guard<std::mutex> guard(s_fftw_planner_mutex);
     for (PCType i = 1; i <= GroupSize; ++i)
     {
         AlignedMalloc(temp, i * BlockSize * BlockSize);
