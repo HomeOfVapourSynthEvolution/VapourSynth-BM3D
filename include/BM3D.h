@@ -94,6 +94,8 @@ struct BM3D_FilterData
 
         return *this;
     }
+    
+    static std::mutex s_fftw_planner_mutex;
 };
 
 
