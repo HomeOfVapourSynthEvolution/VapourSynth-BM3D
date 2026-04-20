@@ -32,8 +32,8 @@
 #include <vector>
 #include <cmath>
 #include <cassert>
-#include <vapoursynth/VapourSynth.h>
-#include <vapoursynth/VSHelper.h>
+#include <VapourSynth4.h>
+#include <VSHelper4.h>
 #include "Type.h"
 #include "Specification.h"
 
@@ -141,14 +141,14 @@ const size_t MEMORY_ALIGNMENT = 64;
 template < typename _Ty >
 void AlignedMalloc(_Ty *&Memory, size_t Count, size_t Alignment = MEMORY_ALIGNMENT)
 {
-    Memory = vs_aligned_malloc<_Ty>(sizeof(_Ty) * Count, Alignment);
+    Memory = vsh::vsh_aligned_malloc<_Ty>(sizeof(_Ty) * Count, Alignment);
 }
 
 
 template < typename _Ty >
 void AlignedFree(_Ty *&Memory)
 {
-    vs_aligned_free(Memory);
+    vsh::vsh_aligned_free(Memory);
     Memory = nullptr;
 }
 
@@ -510,7 +510,7 @@ protected:
 
 public:
     const VSAPI *vsapi = nullptr;
-    VSNodeRef *node = nullptr;
+    VSNode *node = nullptr;
     const VSVideoInfo *vi = nullptr;
 
     int process[VSMaxPlaneCount];
@@ -519,7 +519,7 @@ protected:
     void setError(VSMap *out, const char *error_msg) const
     {
         std::string str = NameSpace + "." + FunctionName + ": " + error_msg;
-        vsapi->setError(out, str.c_str());
+        vsapi->mapSetError(out, str.c_str());
     }
 
 public:
@@ -596,10 +596,11 @@ protected:
     VSCore *core = nullptr;
     const VSAPI *vsapi = nullptr;
 
-    const VSFrameRef *src = nullptr;
-    const VSFormat *fi = nullptr;
-    VSFrameRef *dst = nullptr;
-    const VSFormat *dfi = nullptr;
+    const VSFrame *src = nullptr;
+    const VSVideoFormat *fi = nullptr;
+    VSFrame *dst = nullptr;
+    const VSVideoFormat *dfi = nullptr;
+    VSVideoFormat _dfi;
 
     bool skip = true;
 
@@ -647,7 +648,7 @@ public:
         : d(_d), n(_n), frameCtx(_frameCtx), core(_core), vsapi(_vsapi)
     {
         src = vsapi->getFrameFilter(n, d.node, frameCtx);
-        fi = vsapi->getFrameFormat(src);
+        fi = vsapi->getVideoFrameFormat(src);
 
         PlaneCount = fi->numPlanes;
         Bps = fi->bytesPerSample;
@@ -691,7 +692,7 @@ public:
         vsapi->freeFrame(src);
     }
 
-    const VSFrameRef *process()
+    const VSFrame *process()
     {
         if (skip)
         {
@@ -723,10 +724,11 @@ public:
         return dst;
     }
 
-    static const VSFormat *NewFormat(const _Mydata &d, const VSFormat *f, VSCore *core, const VSAPI *vsapi)
+    const VSVideoFormat *NewFormat(const _Mydata &d, const VSVideoFormat *f, VSCore *core, const VSAPI *vsapi)
     {
-        return vsapi->registerFormat(f->colorFamily, f->sampleType, f->bitsPerSample,
+        vsapi->queryVideoFormat(&_dfi, f->colorFamily, f->sampleType, f->bitsPerSample,
             f->subSamplingW, f->subSamplingH, core);
+        return &_dfi;
     }
 
 protected:
@@ -747,7 +749,7 @@ protected:
             if (copy)
             {
                 int planes[VSMaxPlaneCount];
-                const VSFrameRef *cp_planes[VSMaxPlaneCount];
+                const VSFrame *cp_planes[VSMaxPlaneCount];
 
                 for (int i = 0; i < VSMaxPlaneCount; ++i)
                 {

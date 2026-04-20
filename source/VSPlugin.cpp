@@ -35,19 +35,9 @@
 // VapourSynth: bm3d.RGB2OPP
 
 
-static void VS_CC RGB2OPP_Init(VSMap *in, VSMap *out, void **instanceData, VSNode *node, VSCore *core, const VSAPI *vsapi)
+static const VSFrame *VS_CC RGB2OPP_GetFrame(int n, int activationReason, void *instanceData, void **frameData, VSFrameContext *frameCtx, VSCore *core, const VSAPI *vsapi)
 {
-    RGB2OPP_Data *d = reinterpret_cast<RGB2OPP_Data *>(*instanceData);
-
-    VSVideoInfo dvi = *(d->vi);
-    dvi.format = RGB2OPP_Process::NewFormat(*d, d->vi->format, core, vsapi);
-
-    vsapi->setVideoInfo(&dvi, 1, node);
-}
-
-static const VSFrameRef *VS_CC RGB2OPP_GetFrame(int n, int activationReason, void **instanceData, void **frameData, VSFrameContext *frameCtx, VSCore *core, const VSAPI *vsapi)
-{
-    const RGB2OPP_Data *d = reinterpret_cast<RGB2OPP_Data *>(*instanceData);
+    const RGB2OPP_Data *d = reinterpret_cast<RGB2OPP_Data *>(instanceData);
 
     if (activationReason == arInitial)
     {
@@ -81,8 +71,13 @@ static void VS_CC RGB2OPP_Create(const VSMap *in, VSMap *out, void *userData, VS
         return;
     }
 
+    VSVideoInfo dvi = *(d->vi);
+    vsapi->queryVideoFormat(&dvi.format, cfYUV, d->sample, d->sample == 1 ? 32 : 16, 0, 0, core);
+
+    VSFilterDependency deps[] = { {d->node, rpStrictSpatial} };
+
     // Create filter
-    vsapi->createFilter(in, out, "RGB2OPP", RGB2OPP_Init, RGB2OPP_GetFrame, RGB2OPP_Free, fmParallel, 0, d, core);
+    vsapi->createVideoFilter(out, "RGB2OPP", &dvi, RGB2OPP_GetFrame, RGB2OPP_Free, fmParallel, deps, 1, d, core);
 }
 
 
@@ -90,19 +85,9 @@ static void VS_CC RGB2OPP_Create(const VSMap *in, VSMap *out, void *userData, VS
 // VapourSynth: bm3d.OPP2RGB
 
 
-static void VS_CC OPP2RGB_Init(VSMap *in, VSMap *out, void **instanceData, VSNode *node, VSCore *core, const VSAPI *vsapi)
+static const VSFrame *VS_CC OPP2RGB_GetFrame(int n, int activationReason, void *instanceData, void **frameData, VSFrameContext *frameCtx, VSCore *core, const VSAPI *vsapi)
 {
-    OPP2RGB_Data *d = reinterpret_cast<OPP2RGB_Data *>(*instanceData);
-
-    VSVideoInfo dvi = *(d->vi);
-    dvi.format = OPP2RGB_Process::NewFormat(*d, d->vi->format, core, vsapi);
-
-    vsapi->setVideoInfo(&dvi, 1, node);
-}
-
-static const VSFrameRef *VS_CC OPP2RGB_GetFrame(int n, int activationReason, void **instanceData, void **frameData, VSFrameContext *frameCtx, VSCore *core, const VSAPI *vsapi)
-{
-    const OPP2RGB_Data *d = reinterpret_cast<OPP2RGB_Data *>(*instanceData);
+    const OPP2RGB_Data *d = reinterpret_cast<OPP2RGB_Data *>(instanceData);
 
     if (activationReason == arInitial)
     {
@@ -136,8 +121,13 @@ static void VS_CC OPP2RGB_Create(const VSMap *in, VSMap *out, void *userData, VS
         return;
     }
 
+    VSVideoInfo dvi = *(d->vi);
+    vsapi->queryVideoFormat(&dvi.format, cfRGB, d->sample, d->sample == 1 ? 32 : 16, 0, 0, core);
+
+    VSFilterDependency deps[] = { {d->node, rpStrictSpatial} };
+
     // Create filter
-    vsapi->createFilter(in, out, "OPP2RGB", OPP2RGB_Init, OPP2RGB_GetFrame, OPP2RGB_Free, fmParallel, 0, d, core);
+    vsapi->createVideoFilter(out, "OPP2RGB", &dvi, OPP2RGB_GetFrame, OPP2RGB_Free, fmParallel, deps, 1, d, core);
 }
 
 
@@ -145,16 +135,9 @@ static void VS_CC OPP2RGB_Create(const VSMap *in, VSMap *out, void *userData, VS
 // VapourSynth: bm3d.Basic
 
 
-static void VS_CC BM3D_Basic_Init(VSMap *in, VSMap *out, void **instanceData, VSNode *node, VSCore *core, const VSAPI *vsapi)
+static const VSFrame *VS_CC BM3D_Basic_GetFrame(int n, int activationReason, void *instanceData, void **frameData, VSFrameContext *frameCtx, VSCore *core, const VSAPI *vsapi)
 {
-    BM3D_Basic_Data *d = reinterpret_cast<BM3D_Basic_Data *>(*instanceData);
-
-    vsapi->setVideoInfo(d->vi, 1, node);
-}
-
-static const VSFrameRef *VS_CC BM3D_Basic_GetFrame(int n, int activationReason, void **instanceData, void **frameData, VSFrameContext *frameCtx, VSCore *core, const VSAPI *vsapi)
-{
-    BM3D_Basic_Data *d = reinterpret_cast<BM3D_Basic_Data *>(*instanceData);
+    BM3D_Basic_Data *d = reinterpret_cast<BM3D_Basic_Data *>(instanceData);
 
     if (activationReason == arInitial)
     {
@@ -189,8 +172,12 @@ static void VS_CC BM3D_Basic_Create(const VSMap *in, VSMap *out, void *userData,
         return;
     }
 
+    std::vector<VSFilterDependency> deps = { { d->node, rpStrictSpatial } };
+    if (d->rdef)
+        deps.push_back({ d->rnode, rpStrictSpatial });
+
     // Create filter
-    vsapi->createFilter(in, out, "Basic", BM3D_Basic_Init, BM3D_Basic_GetFrame, BM3D_Basic_Free, fmParallel, 0, d, core);
+    vsapi->createVideoFilter(out, "Basic", d->vi, BM3D_Basic_GetFrame, BM3D_Basic_Free, fmParallel, deps.data(), deps.size(), d, core);
 }
 
 
@@ -198,16 +185,9 @@ static void VS_CC BM3D_Basic_Create(const VSMap *in, VSMap *out, void *userData,
 // VapourSynth: bm3d.Final
 
 
-static void VS_CC BM3D_Final_Init(VSMap *in, VSMap *out, void **instanceData, VSNode *node, VSCore *core, const VSAPI *vsapi)
+static const VSFrame *VS_CC BM3D_Final_GetFrame(int n, int activationReason, void *instanceData, void **frameData, VSFrameContext *frameCtx, VSCore *core, const VSAPI *vsapi)
 {
-    BM3D_Final_Data *d = reinterpret_cast<BM3D_Final_Data *>(*instanceData);
-
-    vsapi->setVideoInfo(d->vi, 1, node);
-}
-
-static const VSFrameRef *VS_CC BM3D_Final_GetFrame(int n, int activationReason, void **instanceData, void **frameData, VSFrameContext *frameCtx, VSCore *core, const VSAPI *vsapi)
-{
-    BM3D_Final_Data *d = reinterpret_cast<BM3D_Final_Data *>(*instanceData);
+    BM3D_Final_Data *d = reinterpret_cast<BM3D_Final_Data *>(instanceData);
 
     if (activationReason == arInitial)
     {
@@ -242,8 +222,12 @@ static void VS_CC BM3D_Final_Create(const VSMap *in, VSMap *out, void *userData,
         return;
     }
 
+    std::vector<VSFilterDependency> deps = { { d->node, rpStrictSpatial } };
+    if (d->rdef)
+        deps.push_back({ d->rnode, rpStrictSpatial });
+
     // Create filter
-    vsapi->createFilter(in, out, "Final", BM3D_Final_Init, BM3D_Final_GetFrame, BM3D_Final_Free, fmParallel, 0, d, core);
+    vsapi->createVideoFilter(out, "Final", d->vi, BM3D_Final_GetFrame, BM3D_Final_Free, fmParallel, deps.data(), deps.size(), d, core);
 }
 
 
@@ -251,20 +235,9 @@ static void VS_CC BM3D_Final_Create(const VSMap *in, VSMap *out, void *userData,
 // VapourSynth: bm3d.VBasic
 
 
-static void VS_CC VBM3D_Basic_Init(VSMap *in, VSMap *out, void **instanceData, VSNode *node, VSCore *core, const VSAPI *vsapi)
+static const VSFrame *VS_CC VBM3D_Basic_GetFrame(int n, int activationReason, void *instanceData, void **frameData, VSFrameContext *frameCtx, VSCore *core, const VSAPI *vsapi)
 {
-    VBM3D_Basic_Data *d = reinterpret_cast<VBM3D_Basic_Data *>(*instanceData);
-
-    VSVideoInfo dvi = *(d->vi);
-    dvi.format = VBM3D_Basic_Process::NewFormat(*d, d->vi->format, core, vsapi);
-    dvi.height = d->vi->height * (d->para.radius * 2 + 1) * 2;
-
-    vsapi->setVideoInfo(&dvi, 1, node);
-}
-
-static const VSFrameRef *VS_CC VBM3D_Basic_GetFrame(int n, int activationReason, void **instanceData, void **frameData, VSFrameContext *frameCtx, VSCore *core, const VSAPI *vsapi)
-{
-    const VBM3D_Basic_Data *d = reinterpret_cast<VBM3D_Basic_Data *>(*instanceData);
+    const VBM3D_Basic_Data *d = reinterpret_cast<VBM3D_Basic_Data *>(instanceData);
 
     if (activationReason == arInitial)
     {
@@ -307,8 +280,17 @@ static void VS_CC VBM3D_Basic_Create(const VSMap *in, VSMap *out, void *userData
         return;
     }
 
+    VSVideoInfo dvi = *(d->vi);
+    vsapi->queryVideoFormat(&dvi.format, d->vi->format.colorFamily == cfRGB ? cfYUV : d->vi->format.colorFamily, stFloat, 32, d->vi->format.subSamplingW,
+        d->vi->format.subSamplingH, core);
+    dvi.height = d->vi->height * (d->para.radius * 2 + 1) * 2;
+
+    std::vector<VSFilterDependency> deps = { { d->node, rpGeneral } };
+    if (d->rdef)
+        deps.push_back({ d->rnode, rpGeneral });
+
     // Create filter
-    vsapi->createFilter(in, out, "VBasic", VBM3D_Basic_Init, VBM3D_Basic_GetFrame, VBM3D_Basic_Free, fmParallel, 0, d, core);
+    vsapi->createVideoFilter(out, "VBasic", &dvi, VBM3D_Basic_GetFrame, VBM3D_Basic_Free, fmParallel, deps.data(), deps.size(), d, core);
 }
 
 
@@ -316,20 +298,9 @@ static void VS_CC VBM3D_Basic_Create(const VSMap *in, VSMap *out, void *userData
 // VapourSynth: bm3d.VFinal
 
 
-static void VS_CC VBM3D_Final_Init(VSMap *in, VSMap *out, void **instanceData, VSNode *node, VSCore *core, const VSAPI *vsapi)
+static const VSFrame *VS_CC VBM3D_Final_GetFrame(int n, int activationReason, void *instanceData, void **frameData, VSFrameContext *frameCtx, VSCore *core, const VSAPI *vsapi)
 {
-    VBM3D_Final_Data *d = reinterpret_cast<VBM3D_Final_Data *>(*instanceData);
-
-    VSVideoInfo dvi = *(d->vi);
-    dvi.format = VBM3D_Final_Process::NewFormat(*d, d->vi->format, core, vsapi);
-    dvi.height = d->vi->height * (d->para.radius * 2 + 1) * 2;
-
-    vsapi->setVideoInfo(&dvi, 1, node);
-}
-
-static const VSFrameRef *VS_CC VBM3D_Final_GetFrame(int n, int activationReason, void **instanceData, void **frameData, VSFrameContext *frameCtx, VSCore *core, const VSAPI *vsapi)
-{
-    const VBM3D_Final_Data *d = reinterpret_cast<VBM3D_Final_Data *>(*instanceData);
+    const VBM3D_Final_Data *d = reinterpret_cast<VBM3D_Final_Data *>(instanceData);
 
     if (activationReason == arInitial)
     {
@@ -372,8 +343,17 @@ static void VS_CC VBM3D_Final_Create(const VSMap *in, VSMap *out, void *userData
         return;
     }
 
+    VSVideoInfo dvi = *(d->vi);
+    vsapi->queryVideoFormat(&dvi.format, d->vi->format.colorFamily == cfRGB ? cfYUV : d->vi->format.colorFamily, stFloat, 32, d->vi->format.subSamplingW,
+        d->vi->format.subSamplingH, core);
+    dvi.height = d->vi->height * (d->para.radius * 2 + 1) * 2;
+
+    std::vector<VSFilterDependency> deps = { { d->node, rpGeneral } };
+    if (d->rdef)
+        deps.push_back({ d->rnode, rpGeneral });
+
     // Create filter
-    vsapi->createFilter(in, out, "VFinal", VBM3D_Final_Init, VBM3D_Final_GetFrame, VBM3D_Final_Free, fmParallel, 0, d, core);
+    vsapi->createVideoFilter(out, "VFinal", &dvi, VBM3D_Final_GetFrame, VBM3D_Final_Free, fmParallel, deps.data(), deps.size(), d, core);
 }
 
 
@@ -381,20 +361,9 @@ static void VS_CC VBM3D_Final_Create(const VSMap *in, VSMap *out, void *userData
 // VapourSynth: bm3d.VAggregate
 
 
-static void VS_CC VAggregate_Init(VSMap *in, VSMap *out, void **instanceData, VSNode *node, VSCore *core, const VSAPI *vsapi)
+static const VSFrame *VS_CC VAggregate_GetFrame(int n, int activationReason, void *instanceData, void **frameData, VSFrameContext *frameCtx, VSCore *core, const VSAPI *vsapi)
 {
-    VAggregate_Data *d = reinterpret_cast<VAggregate_Data *>(*instanceData);
-
-    VSVideoInfo dvi = *(d->vi);
-    dvi.format = VAggregate_Process::NewFormat(*d, d->vi->format, core, vsapi);
-    dvi.height = d->vi->height / (d->radius * 2 + 1) / 2;
-
-    vsapi->setVideoInfo(&dvi, 1, node);
-}
-
-static const VSFrameRef *VS_CC VAggregate_GetFrame(int n, int activationReason, void **instanceData, void **frameData, VSFrameContext *frameCtx, VSCore *core, const VSAPI *vsapi)
-{
-    const VAggregate_Data *d = reinterpret_cast<VAggregate_Data *>(*instanceData);
+    const VAggregate_Data *d = reinterpret_cast<VAggregate_Data *>(instanceData);
 
     if (activationReason == arInitial)
     {
@@ -436,8 +405,15 @@ static void VS_CC VAggregate_Create(const VSMap *in, VSMap *out, void *userData,
         return;
     }
 
+    VSVideoInfo dvi = *(d->vi);
+    vsapi->queryVideoFormat(&dvi.format, d->vi->format.colorFamily, d->sample, d->sample == 1 ? 32 : 16, d->vi->format.subSamplingW, d->vi->format.subSamplingH,
+        core);
+    dvi.height = d->vi->height / (d->radius * 2 + 1) / 2;
+
+    VSFilterDependency deps[] = { {d->node, rpGeneral} };
+
     // Create filter
-    vsapi->createFilter(in, out, "VAggregate", VAggregate_Init, VAggregate_GetFrame, VAggregate_Free, fmParallel, 0, d, core);
+    vsapi->createVideoFilter(out, "VAggregate", &dvi, VAggregate_GetFrame, VAggregate_Free, fmParallel, deps, 1, d, core);
 }
 
 
@@ -445,25 +421,27 @@ static void VS_CC VAggregate_Create(const VSMap *in, VSMap *out, void *userData,
 // VapourSynth: plugin initialization
 
 
-VS_EXTERNAL_API(void) VapourSynthPluginInit(VSConfigPlugin configFunc, VSRegisterFunction registerFunc, VSPlugin *plugin)
+VS_EXTERNAL_API(void) VapourSynthPluginInit2(VSPlugin* plugin, const VSPLUGINAPI* vspapi)
 {
-    configFunc("com.vapoursynth.bm3d", "bm3d",
+    vspapi->configPlugin("com.vapoursynth.bm3d", "bm3d",
         "Implementation of BM3D denoising filter for VapourSynth.",
-        VAPOURSYNTH_API_VERSION, 1, plugin);
+        VS_MAKE_VERSION(9, 0), VAPOURSYNTH_API_VERSION, 0, plugin);
 
-    registerFunc("RGB2OPP",
-        "input:clip;"
+    vspapi->registerFunction("RGB2OPP",
+        "input:vnode;"
         "sample:int:opt;",
+        "clip:vnode;",
         RGB2OPP_Create, nullptr, plugin);
 
-    registerFunc("OPP2RGB",
-        "input:clip;"
+    vspapi->registerFunction("OPP2RGB",
+        "input:vnode;"
         "sample:int:opt;",
+        "clip:vnode;",
         OPP2RGB_Create, nullptr, plugin);
 
-    registerFunc("Basic",
-        "input:clip;"
-        "ref:clip:opt;"
+    vspapi->registerFunction("Basic",
+        "input:vnode;"
+        "ref:vnode:opt;"
         "profile:data:opt;"
         "sigma:float[]:opt;"
         "block_size:int:opt;"
@@ -474,11 +452,12 @@ VS_EXTERNAL_API(void) VapourSynthPluginInit(VSConfigPlugin configFunc, VSRegiste
         "th_mse:float:opt;"
         "hard_thr:float:opt;"
         "matrix:int:opt;",
+        "clip:vnode;",
         BM3D_Basic_Create, nullptr, plugin);
 
-    registerFunc("Final",
-        "input:clip;"
-        "ref:clip;"
+    vspapi->registerFunction("Final",
+        "input:vnode;"
+        "ref:vnode;"
         "profile:data:opt;"
         "sigma:float[]:opt;"
         "block_size:int:opt;"
@@ -488,11 +467,12 @@ VS_EXTERNAL_API(void) VapourSynthPluginInit(VSConfigPlugin configFunc, VSRegiste
         "bm_step:int:opt;"
         "th_mse:float:opt;"
         "matrix:int:opt;",
+        "clip:vnode;",
         BM3D_Final_Create, nullptr, plugin);
 
-    registerFunc("VBasic",
-        "input:clip;"
-        "ref:clip:opt;"
+    vspapi->registerFunction("VBasic",
+        "input:vnode;"
+        "ref:vnode:opt;"
         "profile:data:opt;"
         "sigma:float[]:opt;"
         "radius:int:opt;"
@@ -507,11 +487,12 @@ VS_EXTERNAL_API(void) VapourSynthPluginInit(VSConfigPlugin configFunc, VSRegiste
         "th_mse:float:opt;"
         "hard_thr:float:opt;"
         "matrix:int:opt;",
+        "clip:vnode;",
         VBM3D_Basic_Create, nullptr, plugin);
 
-    registerFunc("VFinal",
-        "input:clip;"
-        "ref:clip;"
+    vspapi->registerFunction("VFinal",
+        "input:vnode;"
+        "ref:vnode;"
         "profile:data:opt;"
         "sigma:float[]:opt;"
         "radius:int:opt;"
@@ -525,12 +506,14 @@ VS_EXTERNAL_API(void) VapourSynthPluginInit(VSConfigPlugin configFunc, VSRegiste
         "ps_step:int:opt;"
         "th_mse:float:opt;"
         "matrix:int:opt;",
+        "clip:vnode;",
         VBM3D_Final_Create, nullptr, plugin);
 
-    registerFunc("VAggregate",
-        "input:clip;"
+    vspapi->registerFunction("VAggregate",
+        "input:vnode;"
         "radius:int:opt;"
         "sample:int:opt;",
+        "clip:vnode;",
         VAggregate_Create, nullptr, plugin);
 }
 

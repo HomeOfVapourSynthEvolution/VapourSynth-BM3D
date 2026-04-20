@@ -72,7 +72,7 @@ protected:
     int cur;
     int frames;
 
-    std::vector<const VSFrameRef *> v_src;
+    std::vector<const VSFrame *> v_src;
 
     PCType src_height[VSMaxPlaneCount];
     PCType src_pcount[VSMaxPlaneCount];
@@ -131,10 +131,11 @@ public:
     }
 
     // Always output 16bit int or 32bit float Gray/YUV
-    static const VSFormat *NewFormat(const _Mydata &d, const VSFormat *f, VSCore *core, const VSAPI *vsapi)
+    const VSVideoFormat *NewFormat(const _Mydata &d, const VSVideoFormat *f, VSCore *core, const VSAPI *vsapi)
     {
-        return vsapi->registerFormat(f->colorFamily, d.sample, d.sample == 1 ? 32 : 16,
+        vsapi->queryVideoFormat(&_dfi, f->colorFamily, d.sample, d.sample == 1 ? 32 : 16,
             f->subSamplingW, f->subSamplingH, core);
+        return &_dfi;
     }
 
 protected:
@@ -147,15 +148,15 @@ protected:
     {
         // Get input frame properties
         int error;
-        const VSMap *src_map = vsapi->getFramePropsRO(src);
+        const VSMap *src_map = vsapi->getFramePropertiesRO(src);
 
-        int p_radius = int64ToIntS(vsapi->propGetInt(src_map, "BM3D_V_radius", 0, &error));
+        int p_radius = vsapi->mapGetIntSaturated(src_map, "BM3D_V_radius", 0, &error);
 
         if (error)
         {
             vsapi->logMessage(mtWarning, "bm3d.VAggregate - warning: "
                 "No frame property \"BM3D_V_radius\" exists in the input frame. "
-                "Make sure you call bm3d.VAggregate next to bm3d.VBasic or bm3d.VFinal. ");
+                "Make sure you call bm3d.VAggregate next to bm3d.VBasic or bm3d.VFinal.", core);
         }
         else if (d.radius != p_radius)
         {
@@ -167,17 +168,17 @@ protected:
             msg += std::to_string(p_radius);
             msg += "\" which indicates the radius used in previous filter (bm3d.VBasic or bm3d.VFinal).";
 
-            vsapi->logMessage(mtWarning, msg.c_str());
+            vsapi->logMessage(mtWarning, msg.c_str(), core);
         }
 
-        int m = vsapi->propNumElements(src_map, "BM3D_V_process");
-        const int64_t *p_process = vsapi->propGetIntArray(src_map, "BM3D_V_process", &error);
+        int m = vsapi->mapNumElements(src_map, "BM3D_V_process");
+        const int64_t *p_process = vsapi->mapGetIntArray(src_map, "BM3D_V_process", &error);
 
         if (error || m != VSMaxPlaneCount)
         {
             vsapi->logMessage(mtWarning, "bm3d.VAggregate - warning: "
                 "No frame property \"BM3D_V_process\" exists in the input frame. "
-                "Make sure you call bm3d.VAggregate next to bm3d.VBasic or bm3d.VFinal. ");
+                "Make sure you call bm3d.VAggregate next to bm3d.VBasic or bm3d.VFinal.", core);
 
             for (int i = 0; i < VSMaxPlaneCount; i++)
             {
@@ -188,20 +189,20 @@ protected:
         {
             for (int i = 0; i < VSMaxPlaneCount; i++)
             {
-                process_plane[i] = int64ToIntS(p_process[i]);
+                process_plane[i] = vsh::int64ToIntS(p_process[i]);
             }
         }
 
         // Determine OPP input
-        int64_t BM3D_OPP = vsapi->propGetInt(src_map, "BM3D_OPP", 0, &error);
+        int64_t BM3D_OPP = vsapi->mapGetInt(src_map, "BM3D_OPP", 0, &error);
 
         if (error)
         {
             BM3D_OPP = 0;
         }
 
-        // Determine color range of Gray/YUV/YCoCg input
-        int64_t _ColorRange = vsapi->propGetInt(src_map, "_ColorRange", 0, &error);
+        // Determine color range of Gray/YUV input
+        int64_t _Range = vsapi->mapGetInt(src_map, "_Range", 0, &error);
 
         if (error || BM3D_OPP == 1)
         {
@@ -209,7 +210,7 @@ protected:
         }
         else
         {
-            full = _ColorRange != 1;
+            full = _Range != 0;
         }
 
         // The output frame is of original frame size (same as input frame of VBasic or VFinal)
@@ -223,10 +224,10 @@ protected:
         }
 
         // Set output frame properties
-        VSMap *dst_map = vsapi->getFramePropsRW(dst);
+        VSMap *dst_map = vsapi->getFramePropertiesRW(dst);
 
-        vsapi->propDeleteKey(dst_map, "BM3D_V_radius");
-        vsapi->propDeleteKey(dst_map, "BM3D_V_process");
+        vsapi->mapDeleteKey(dst_map, "BM3D_V_radius");
+        vsapi->mapDeleteKey(dst_map, "BM3D_V_process");
     }
 
     void Kernel(FLType *dst, std::vector<const FLType *> ResNum, std::vector<const FLType *> ResDen);

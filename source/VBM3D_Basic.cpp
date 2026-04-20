@@ -41,7 +41,7 @@ int VBM3D_Basic_Data::arguments_process(const VSMap *in, VSMap *out)
         int error;
 
         // hard_thr - float
-        para.lambda = vsapi->propGetFloat(in, "hard_thr", 0, &error);
+        para.lambda = vsapi->mapGetFloat(in, "hard_thr", 0, &error);
 
         if (error)
         {

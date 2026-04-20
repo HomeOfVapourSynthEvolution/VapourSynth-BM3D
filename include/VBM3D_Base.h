@@ -60,7 +60,7 @@ public:
 
 public:
     bool rdef = false;
-    VSNodeRef *rnode = nullptr;
+    VSNode *rnode = nullptr;
     const VSVideoInfo *rvi = nullptr;
 
     bool wiener;
@@ -133,10 +133,10 @@ protected:
     int cur;
     int frames;
 
-    std::vector<const VSFrameRef *> v_src;
-    std::vector<const VSFrameRef *> v_ref;
+    std::vector<const VSFrame *> v_src;
+    std::vector<const VSFrame *> v_ref;
 
-    const VSFormat *rfi = nullptr;
+    const VSVideoFormat *rfi = nullptr;
 
     PCType dst_height[VSMaxPlaneCount];
     PCType dst_pcount[VSMaxPlaneCount];
@@ -197,7 +197,7 @@ public:
                 v_ref.push_back(vsapi->getFrameFilter(n + o, d.rnode, frameCtx));
             }
 
-            rfi = vsapi->getFrameFormat(v_ref[cur]);
+            rfi = vsapi->getVideoFrameFormat(v_ref[cur]);
         }
         else
         {
@@ -236,10 +236,11 @@ public:
         }
     }
 
-    static const VSFormat *NewFormat(const _Mydata &d, const VSFormat *f, VSCore *core, const VSAPI *vsapi)
+    const VSVideoFormat *NewFormat(const _Mydata &d, const VSVideoFormat *f, VSCore *core, const VSAPI *vsapi)
     {
-        return vsapi->registerFormat(d.vi->format->colorFamily == cmRGB ? cmYUV : d.vi->format->colorFamily,
+        vsapi->queryVideoFormat(&_dfi, d.vi->format.colorFamily == cfRGB ? cfYUV : d.vi->format.colorFamily,
             stFloat, 32, f->subSamplingW, f->subSamplingH, core);
+        return &_dfi;
     }
 
 protected:
@@ -252,24 +253,24 @@ protected:
     {
         // Get input frame properties
         int error;
-        const VSMap *src_map = vsapi->getFramePropsRO(src);
+        const VSMap *src_map = vsapi->getFramePropertiesRO(src);
 
         // Determine OPP input
-        int64_t BM3D_OPP = vsapi->propGetInt(src_map, "BM3D_OPP", 0, &error);
+        int64_t BM3D_OPP = vsapi->mapGetInt(src_map, "BM3D_OPP", 0, &error);
 
         if (error)
         {
             BM3D_OPP = 0;
         }
-        else if (BM3D_OPP == 1 && fi->colorFamily != cmRGB && d.matrix != ColorMatrix::OPP)
+        else if (BM3D_OPP == 1 && fi->colorFamily != cfRGB && d.matrix != ColorMatrix::OPP)
         {
             vsapi->logMessage(mtWarning, "bm3d.VBasic/bm3d.VFinal - warning: "
                 "There's a frame property \"BM3D_OPP=1\" indicating opponent color space input. "
-                "You should specify \"matrix=100\" in the filter's argument.");
+                "You should specify \"matrix=100\" in the filter's argument.", core);
         }
 
-        // Determine color range of Gray/YUV/YCoCg input
-        int64_t _ColorRange = vsapi->propGetInt(src_map, "_ColorRange", 0, &error);
+        // Determine color range of Gray/YUV input
+        int64_t _Range = vsapi->mapGetInt(src_map, "_Range", 0, &error);
 
         if (error || BM3D_OPP == 1)
         {
@@ -277,7 +278,7 @@ protected:
         }
         else
         {
-            full = _ColorRange != 1;
+            full = _Range != 0;
         }
 
         // The output frame is a stack of intermediate float data
@@ -291,14 +292,14 @@ protected:
         }
 
         // Set output frame properties
-        VSMap *dst_map = vsapi->getFramePropsRW(dst);
+        VSMap *dst_map = vsapi->getFramePropertiesRW(dst);
 
-        if (fi->colorFamily == cmRGB)
+        if (fi->colorFamily == cfRGB)
         {
-            vsapi->propSetInt(dst_map, "BM3D_OPP", 1, paReplace);
+            vsapi->mapSetInt(dst_map, "BM3D_OPP", 1, maReplace);
         }
 
-        vsapi->propSetInt(dst_map, "BM3D_V_radius", d.para.radius, paReplace);
+        vsapi->mapSetInt(dst_map, "BM3D_V_radius", d.para.radius, maReplace);
 
         int64_t process[VSMaxPlaneCount];
 
@@ -307,7 +308,7 @@ protected:
             process[i] = d.process[i];
         }
 
-        vsapi->propSetIntArray(dst_map, "BM3D_V_process", process, VSMaxPlaneCount);
+        vsapi->mapSetIntArray(dst_map, "BM3D_V_process", process, VSMaxPlaneCount);
     }
 
     void Kernel(const std::vector<FLType *> &dst, const std::vector<const FLType *> &src, const std::vector<const FLType *> &ref) const;

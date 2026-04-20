@@ -55,25 +55,25 @@ public:
             int error;
 
             // input - clip
-            node = vsapi->propGetNode(in, "input", 0, nullptr);
+            node = vsapi->mapGetNode(in, "input", 0, nullptr);
             vi = vsapi->getVideoInfo(node);
 
-            if (!isConstantFormat(vi))
+            if (!vsh::isConstantVideoFormat(vi))
             {
                 throw std::string("Invalid input clip, only constant format input supported");
             }
-            if ((vi->format->sampleType == stInteger && vi->format->bitsPerSample > 16)
-                || (vi->format->sampleType == stFloat && vi->format->bitsPerSample != 32))
+            if ((vi->format.sampleType == stInteger && vi->format.bitsPerSample > 16)
+                || (vi->format.sampleType == stFloat && vi->format.bitsPerSample != 32))
             {
                 throw std::string("Invalid input clip, only 8-16 bit int or 32 bit float formats supported");
             }
-            if (vi->format->colorFamily != cmYUV)
+            if (vi->format.colorFamily != cfYUV)
             {
                 throw std::string("Invalid input clip, must be of YUV color family");
             }
 
             // sample - int
-            sample = static_cast<VSSampleType>(vsapi->propGetInt(in, "sample", 0, &error));
+            sample = static_cast<VSSampleType>(vsapi->mapGetInt(in, "sample", 0, &error));
 
             if (error)
             {
@@ -156,9 +156,10 @@ public:
     {}
 
     // Always output RGB48 or RGBS
-    static const VSFormat *NewFormat(const _Mydata &d, const VSFormat *f, VSCore *core, const VSAPI *vsapi)
+    const VSVideoFormat *NewFormat(const _Mydata &d, const VSVideoFormat *f, VSCore *core, const VSAPI *vsapi)
     {
-        return vsapi->registerFormat(cmRGB, d.sample, d.sample == 1 ? 32 : 16, 0, 0, core);
+        vsapi->queryVideoFormat(&_dfi, cfRGB, d.sample, d.sample == 1 ? 32 : 16, 0, 0, core);
+        return &_dfi;
     }
 
 protected:
@@ -172,10 +173,10 @@ protected:
         _NewFrame(width, height, false);
 
         // Set output frame properties
-        VSMap *dst_map = vsapi->getFramePropsRW(dst);
+        VSMap *dst_map = vsapi->getFramePropertiesRW(dst);
 
-        vsapi->propSetInt(dst_map, "_Matrix", 0, paReplace);
-        vsapi->propDeleteKey(dst_map, "BM3D_OPP");
+        vsapi->mapSetInt(dst_map, "_Matrix", 0, maReplace);
+        vsapi->mapDeleteKey(dst_map, "BM3D_OPP");
     }
 };
 

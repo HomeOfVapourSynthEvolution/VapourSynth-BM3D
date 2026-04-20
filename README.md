@@ -20,7 +20,7 @@ functions: RGB2OPP, OPP2RGB, Basic, Final, VBasic, VFinal, VAggregate
 
 sample type & bps: 8-16 bit integer, 32 bit float.
 
-color family: Gray, RGB, YUV or YCoCg.
+color family: Gray, RGB or YUV.
 
 sub-sampling: when chroma is processed, sub-sampling is not supported, YUV444 only.
 
@@ -150,7 +150,7 @@ bm3d.Basic(clip input[, clip ref=input, string profile="fast", float[] sigma=[10
     Usually, to tweak denoising strength, it's better to adjust "sigma" rather than "hard_thr".
 
 - matrix:<br />
-    Matrix coefficients for Gray, YUV or YCoCg input, default 2.<br />
+    Matrix coefficients for Gray or YUV input, default 2.<br />
     Since the YUV color space is unnormalized, the actual sigma used inside BM3D will be normalized according to the matrix coefficients. This is important! It can significantly affect the final results.<br />
     This normalization only plays a part when initializing the filter, thus I cannot employ the frame properties such as "_Matrix" for it.<br />
     In case matrix is not properly set for BM3D with OPP input, bm3d.RGB2OPP attachs a property "BM3D_OPP=1" to its output frame. If this property is presented but matrix is not set to 100, the GetFrame function of BM3D will return an error message.<br />
@@ -162,7 +162,6 @@ bm3d.Basic(clip input[, clip ref=input, string profile="fast", float[] sigma=[10
       - 5 - bt470bg
       - 6 - smpte170m
       - 7 - smpte240m
-      - 8 - YCgCo, always set when color family is YCoCg
       - 9 - bt2020nc
       - 10 - bt2020c
       - 100 - OPP, opponent color space converted by bm3d.RGB2OPP, always set when color family is RGB

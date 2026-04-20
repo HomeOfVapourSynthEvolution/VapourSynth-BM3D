@@ -37,21 +37,21 @@ int BM3D_Data_Base::arguments_process(const VSMap *in, VSMap *out)
         int m;
 
         // input - clip
-        node = vsapi->propGetNode(in, "input", 0, nullptr);
+        node = vsapi->mapGetNode(in, "input", 0, nullptr);
         vi = vsapi->getVideoInfo(node);
 
-        if (!isConstantFormat(vi))
+        if (!vsh::isConstantVideoFormat(vi))
         {
             throw std::string("Invalid input clip, only constant format input supported");
         }
-        if ((vi->format->sampleType == stInteger && vi->format->bitsPerSample > 16)
-            || (vi->format->sampleType == stFloat && vi->format->bitsPerSample != 32))
+        if ((vi->format.sampleType == stInteger && vi->format.bitsPerSample > 16)
+            || (vi->format.sampleType == stFloat && vi->format.bitsPerSample != 32))
         {
             throw std::string("Invalid input clip, only 8-16 bit integer or 32 bit float formats supported");
         }
 
         // ref - clip
-        rnode = vsapi->propGetNode(in, "ref", 0, &error);
+        rnode = vsapi->mapGetNode(in, "ref", 0, &error);
 
         if (error)
         {
@@ -64,11 +64,11 @@ int BM3D_Data_Base::arguments_process(const VSMap *in, VSMap *out)
             rdef = true;
             rvi = vsapi->getVideoInfo(rnode);
 
-            if (!isConstantFormat(rvi))
+            if (!vsh::isConstantVideoFormat(rvi))
             {
                 throw std::string("Invalid clip \"ref\", only constant format input supported");
             }
-            if (rvi->format != vi->format)
+            if (!vsh::isSameVideoFormat(&rvi->format, &vi->format))
             {
                 throw std::string("input clip and clip \"ref\" must be of the same format");
             }
@@ -83,7 +83,7 @@ int BM3D_Data_Base::arguments_process(const VSMap *in, VSMap *out)
         }
 
         // profile - data
-        auto profile = vsapi->propGetData(in, "profile", 0, &error);
+        auto profile = vsapi->mapGetData(in, "profile", 0, &error);
 
         if (error)
         {
@@ -103,7 +103,7 @@ int BM3D_Data_Base::arguments_process(const VSMap *in, VSMap *out)
         get_default_para(para.profile);
 
         // sigma - float[]
-        m = vsapi->propNumElements(in, "sigma");
+        m = vsapi->mapNumElements(in, "sigma");
 
         if (m > 0)
         {
@@ -113,7 +113,7 @@ int BM3D_Data_Base::arguments_process(const VSMap *in, VSMap *out)
 
             for (i = 0; i < m; ++i)
             {
-                para.sigma[i] = vsapi->propGetFloat(in, "sigma", i, nullptr);
+                para.sigma[i] = vsapi->mapGetFloat(in, "sigma", i, nullptr);
 
                 if (para.sigma[i] < 0)
                 {
@@ -132,7 +132,7 @@ int BM3D_Data_Base::arguments_process(const VSMap *in, VSMap *out)
         }
 
         // block_size - int
-        para.BlockSize = int64ToIntS(vsapi->propGetInt(in, "block_size", 0, &error));
+        para.BlockSize = vsapi->mapGetIntSaturated(in, "block_size", 0, &error);
 
         if (error)
         {
@@ -148,7 +148,7 @@ int BM3D_Data_Base::arguments_process(const VSMap *in, VSMap *out)
         }
 
         // block_step - int
-        para.BlockStep = int64ToIntS(vsapi->propGetInt(in, "block_step", 0, &error));
+        para.BlockStep = vsapi->mapGetIntSaturated(in, "block_step", 0, &error);
 
         if (error)
         {
@@ -160,7 +160,7 @@ int BM3D_Data_Base::arguments_process(const VSMap *in, VSMap *out)
         }
 
         // group_size - int
-        para.GroupSize = int64ToIntS(vsapi->propGetInt(in, "group_size", 0, &error));
+        para.GroupSize = vsapi->mapGetIntSaturated(in, "group_size", 0, &error);
 
         if (error)
         {
@@ -172,7 +172,7 @@ int BM3D_Data_Base::arguments_process(const VSMap *in, VSMap *out)
         }
 
         // bm_range - int
-        para.BMrange = int64ToIntS(vsapi->propGetInt(in, "bm_range", 0, &error));
+        para.BMrange = vsapi->mapGetIntSaturated(in, "bm_range", 0, &error);
 
         if (error)
         {
@@ -184,7 +184,7 @@ int BM3D_Data_Base::arguments_process(const VSMap *in, VSMap *out)
         }
 
         // bm_step - int
-        para.BMstep = int64ToIntS(vsapi->propGetInt(in, "bm_step", 0, &error));
+        para.BMstep = vsapi->mapGetIntSaturated(in, "bm_step", 0, &error);
 
         if (error)
         {
@@ -196,7 +196,7 @@ int BM3D_Data_Base::arguments_process(const VSMap *in, VSMap *out)
         }
 
         // th_mse - float
-        para.thMSE = vsapi->propGetFloat(in, "th_mse", 0, &error);
+        para.thMSE = vsapi->mapGetFloat(in, "th_mse", 0, &error);
 
         if (error)
         {
@@ -208,15 +208,11 @@ int BM3D_Data_Base::arguments_process(const VSMap *in, VSMap *out)
         }
 
         // matrix - int
-        matrix = static_cast<ColorMatrix>(vsapi->propGetInt(in, "matrix", 0, &error));
+        matrix = static_cast<ColorMatrix>(vsapi->mapGetInt(in, "matrix", 0, &error));
 
-        if (vi->format->colorFamily == cmRGB)
+        if (vi->format.colorFamily == cfRGB)
         {
             matrix = ColorMatrix::OPP;
-        }
-        else if (vi->format->colorFamily == cmYCoCg)
-        {
-            matrix = ColorMatrix::YCgCo;
         }
         else if (error || matrix == ColorMatrix::Unspecified)
         {
@@ -233,7 +229,7 @@ int BM3D_Data_Base::arguments_process(const VSMap *in, VSMap *out)
         // process
         for (int i = 0; i < VSMaxPlaneCount; i++)
         {
-            if (vi->format->colorFamily != cmRGB && para.sigma[i] == 0)
+            if (vi->format.colorFamily != cfRGB && para.sigma[i] == 0)
             {
                 process[i] = 0;
             }
@@ -241,12 +237,12 @@ int BM3D_Data_Base::arguments_process(const VSMap *in, VSMap *out)
 
         if (process[1] || process[2])
         {
-            if (vi->format->subSamplingH || vi->format->subSamplingW)
+            if (vi->format.subSamplingH || vi->format.subSamplingW)
             {
                 throw std::string("input clip: sub-sampled format is not supported when chroma is processed, convert it to YUV444 or RGB first. "
                     "For the best quality, RGB colorspace is recommended as input.");
             }
-            if (rvi->format->subSamplingH || rvi->format->subSamplingW)
+            if (rvi->format.subSamplingH || rvi->format.subSamplingW)
             {
                 throw std::string("clip \"ref\": sub-sampled format is not supported when chroma is processed, convert it to YUV444 or RGB first. "
                     "For the best quality, RGB colorspace is recommended as input.");
@@ -491,18 +487,18 @@ BM3D_Process_Base::PosPairCode BM3D_Process_Base::BlockMatching(
 template < typename _Ty >
 void BM3D_Process_Base::process_core()
 {
-    if (fi->colorFamily == cmGray || (
-        (fi->colorFamily == cmYUV || fi->colorFamily == cmYCoCg)
+    if (fi->colorFamily == cfGray || (
+        fi->colorFamily == cfYUV
         && !d.process[1] && !d.process[2]
         ))
     {
         process_core_gray<_Ty>();
     }
-    else if (fi->colorFamily == cmYUV || fi->colorFamily == cmYCoCg)
+    else if (fi->colorFamily == cfYUV)
     {
         process_core_yuv<_Ty>();
     }
-    else if (fi->colorFamily == cmRGB)
+    else if (fi->colorFamily == cfRGB)
     {
         process_core_rgb<_Ty>();
     }

@@ -36,24 +36,24 @@ int VAggregate_Data::arguments_process(const VSMap *in, VSMap *out)
         int error;
 
         // input - clip
-        node = vsapi->propGetNode(in, "input", 0, nullptr);
+        node = vsapi->mapGetNode(in, "input", 0, nullptr);
         vi = vsapi->getVideoInfo(node);
 
-        if (!isConstantFormat(vi))
+        if (!vsh::isConstantVideoFormat(vi))
         {
             throw std::string("Invalid input clip, only constant format input supported");
         }
-        if (vi->format->sampleType != stFloat || vi->format->bitsPerSample != 32)
+        if (vi->format.sampleType != stFloat || vi->format.bitsPerSample != 32)
         {
             throw std::string("Invalid input clip, only accept 32 bit float format clip from bm3d.VBasic or bm3d.VFinal");
         }
-        if (vi->format->colorFamily == cmRGB)
+        if (vi->format.colorFamily == cfRGB)
         {
-            throw std::string("Invalid input clip, must be of Gray, YUV or YCoCg color family");
+            throw std::string("Invalid input clip, must be of Gray or YUV color family");
         }
 
         // radius - int
-        radius = int64ToIntS(vsapi->propGetInt(in, "radius", 0, &error));
+        radius = vsapi->mapGetIntSaturated(in, "radius", 0, &error);
 
         if (error)
         {
@@ -65,7 +65,7 @@ int VAggregate_Data::arguments_process(const VSMap *in, VSMap *out)
         }
 
         // sample - int
-        sample = static_cast<VSSampleType>(vsapi->propGetInt(in, "sample", 0, &error));
+        sample = static_cast<VSSampleType>(vsapi->mapGetInt(in, "sample", 0, &error));
 
         if (error)
         {
@@ -167,14 +167,14 @@ void VAggregate_Process::Kernel(FLType *dstY, FLType *dstU, FLType *dstV,
 template < typename _Dt1 >
 void VAggregate_Process::process_core()
 {
-    if (fi->colorFamily == cmGray || (
-        (fi->colorFamily == cmYUV || fi->colorFamily == cmYCoCg)
+    if (fi->colorFamily == cfGray || (
+        fi->colorFamily == cfYUV
         && !process_plane[1] && !process_plane[2]
         ))
     {
         process_core_gray<_Dt1>();
     }
-    else if (fi->colorFamily == cmYUV || fi->colorFamily == cmYCoCg)
+    else if (fi->colorFamily == cfYUV)
     {
         process_core_yuv<_Dt1>();
     }

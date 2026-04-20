@@ -44,7 +44,7 @@ public:
 
 public:
     bool rdef = false;
-    VSNodeRef *rnode = nullptr;
+    VSNode *rnode = nullptr;
     const VSVideoInfo *rvi = nullptr;
 
     bool wiener;
@@ -123,8 +123,8 @@ private:
     _Mydata &d;
 
 protected:
-    const VSFrameRef *ref = nullptr;
-    const VSFormat *rfi = nullptr;
+    const VSFrame *ref = nullptr;
+    const VSVideoFormat *rfi = nullptr;
 
     PCType ref_height[VSMaxPlaneCount];
     PCType ref_width[VSMaxPlaneCount];
@@ -158,7 +158,7 @@ public:
         if (d.rdef)
         {
             ref = vsapi->getFrameFilter(n, d.rnode, frameCtx);
-            rfi = vsapi->getFrameFormat(ref);
+            rfi = vsapi->getVideoFrameFormat(ref);
         }
         else
         {
@@ -188,24 +188,24 @@ protected:
     {
         // Get input frame properties
         int error;
-        const VSMap *src_map = vsapi->getFramePropsRO(src);
+        const VSMap *src_map = vsapi->getFramePropertiesRO(src);
 
         // Determine OPP input
-        int64_t BM3D_OPP = vsapi->propGetInt(src_map, "BM3D_OPP", 0, &error);
+        int64_t BM3D_OPP = vsapi->mapGetInt(src_map, "BM3D_OPP", 0, &error);
         
         if (error)
         {
             BM3D_OPP = 0;
         }
-        else if (BM3D_OPP == 1 && fi->colorFamily != cmRGB && d.matrix != ColorMatrix::OPP)
+        else if (BM3D_OPP == 1 && fi->colorFamily != cfRGB && d.matrix != ColorMatrix::OPP)
         {
             vsapi->logMessage(mtWarning, "bm3d.Basic/bm3d.Final - warning: "
                 "There's a frame property \"BM3D_OPP=1\" indicating opponent color space input. "
-                "You should specify \"matrix=100\" in the filter's argument.");
+                "You should specify \"matrix=100\" in the filter's argument.", core);
         }
 
-        // Determine color range of Gray/YUV/YCoCg input
-        int64_t _ColorRange = vsapi->propGetInt(src_map, "_ColorRange", 0, &error);
+        // Determine color range of Gray/YUV input
+        int64_t _Range = vsapi->mapGetInt(src_map, "_Range", 0, &error);
 
         if (error || BM3D_OPP == 1)
         {
@@ -213,7 +213,7 @@ protected:
         }
         else
         {
-            full = _ColorRange != 1;
+            full = _Range != 0;
         }
 
         // The output frame
