@@ -26,8 +26,9 @@
 #define BM3D_BASE_H_
 
 
-#include <unordered_map>
+#include <shared_mutex>
 #include <thread>
+#include <unordered_map>
 #include "BM3D.h"
 
 
@@ -54,6 +55,7 @@ public:
     _Mypara para;
     std::vector<BM3D_FilterData> f;
 
+    std::shared_mutex mutex0, mutex1, mutex2;
     std::unordered_map<std::thread::id, FLType *> buffer0, buffer1, buffer2;
 
 public:

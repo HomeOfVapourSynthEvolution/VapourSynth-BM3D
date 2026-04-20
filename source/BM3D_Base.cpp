@@ -292,14 +292,18 @@ void BM3D_Process_Base::Kernel(FLType *dst, const FLType *src, const FLType *ref
     std::thread::id threadId = std::this_thread::get_id();
     FLType *ResNum = dst, *ResDen = nullptr;
 
-    if (!d.buffer0.count(threadId))
     {
-        AlignedMalloc(ResDen, dst_pcount[0]);
-        d.buffer0.emplace(threadId, ResDen);
-    }
-    else
-    {
-        ResDen = d.buffer0.at(threadId);
+        if (!d.buffer0.count(threadId))
+        {
+            std::unique_lock<std::shared_mutex> lock(d.mutex0);
+            AlignedMalloc(ResDen, dst_pcount[0]);
+            d.buffer0.emplace(threadId, ResDen);
+        }
+        else
+        {
+            std::shared_lock<std::shared_mutex> lock(d.mutex0);
+            ResDen = d.buffer0.at(threadId);
+        }
     }
 
     memset(ResNum, 0, sizeof(FLType) * dst_pcount[0]);
@@ -361,11 +365,13 @@ void BM3D_Process_Base::Kernel(FLType *dstY, FLType *dstU, FLType *dstV,
     {
         if (!d.buffer0.count(threadId))
         {
+            std::unique_lock<std::shared_mutex> lock(d.mutex0);
             AlignedMalloc(ResDenY, dst_pcount[0]);
             d.buffer0.emplace(threadId, ResDenY);
         }
         else
         {
+            std::shared_lock<std::shared_mutex> lock(d.mutex0);
             ResDenY = d.buffer0.at(threadId);
         }
 
@@ -377,11 +383,13 @@ void BM3D_Process_Base::Kernel(FLType *dstY, FLType *dstU, FLType *dstV,
     {
         if (!d.buffer1.count(threadId))
         {
+            std::unique_lock<std::shared_mutex> lock(d.mutex1);
             AlignedMalloc(ResDenU, dst_pcount[1]);
             d.buffer1.emplace(threadId, ResDenU);
         }
         else
         {
+            std::shared_lock<std::shared_mutex> lock(d.mutex1);
             ResDenU = d.buffer1.at(threadId);
         }
 
@@ -393,11 +401,13 @@ void BM3D_Process_Base::Kernel(FLType *dstY, FLType *dstU, FLType *dstV,
     {
         if (!d.buffer2.count(threadId))
         {
+            std::unique_lock<std::shared_mutex> lock(d.mutex2);
             AlignedMalloc(ResDenV, dst_pcount[2]);
             d.buffer2.emplace(threadId, ResDenV);
         }
         else
         {
+            std::shared_lock<std::shared_mutex> lock(d.mutex2);
             ResDenV = d.buffer2.at(threadId);
         }
 

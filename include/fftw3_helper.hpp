@@ -26,7 +26,10 @@
 #define FFTW3_HELPER_HPP_
 
 
+#include <mutex>
 #include <fftw3.h>
+
+static std::mutex planMutex;
 
 
 template < typename R = double >
@@ -862,6 +865,7 @@ struct fftwh<float>
             r2r_kind kind0, r2r_kind kind1, r2r_kind kind2, unsigned flags = FFTW_MEASURE)
         {
             destroy_plan();
+            std::lock_guard<std::mutex> lock(planMutex);
             p = ::fftwf_plan_r2r_3d(n0, n1, n2, in, out, kind0, kind1, kind2, flags);
         }
 
@@ -884,6 +888,7 @@ struct fftwh<float>
         {
             if (p != nullptr)
             {
+                std::lock_guard<std::mutex> lock(planMutex);
                 ::fftwf_destroy_plan(p);
                 p = nullptr;
             }
