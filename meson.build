@@ -3,7 +3,7 @@ project('BM3D', 'cpp',
     license: 'MIT',
     license_files: 'LICENSE',
     meson_version: '>=1.2.3',
-    version: '9.0',
+    version: '10.0',
 )
 
 add_project_arguments('-Wno-unused-local-typedefs', language: 'cpp')
