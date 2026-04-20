@@ -127,7 +127,7 @@ bm3d.Basic(clip input[, clip ref=input, string profile="fast", float[] sigma=[10
 - group_size:<br />
     Maximum number of similar blocks in each group (the 3rd dimension), valid range [1,256].<br />
     Larger value allows more blocks in a single group. Thus, the sparsity in a transformed group raises, the filtering will be stronger, and also slower in the DCT/IDCT part.<br />
-    When set to 1, no block-matching will be performed and each group only consists of the referenc block, then basic estimate stage of BM3D will behave similar to the DFTTest denoising filter (without temporal filtering).
+    When set to 1, no block-matching will be performed and each group only consists of the reference block, then basic estimate stage of BM3D will behave similar to the DFTTest denoising filter (without temporal filtering).
 
 - bm_range:<br />
     Length of the side of the search neighborhood for block-matching, valid range [1, +inf).<br />
@@ -153,7 +153,7 @@ bm3d.Basic(clip input[, clip ref=input, string profile="fast", float[] sigma=[10
     Matrix coefficients for Gray or YUV input, default 2.<br />
     Since the YUV color space is unnormalized, the actual sigma used inside BM3D will be normalized according to the matrix coefficients. This is important! It can significantly affect the final results.<br />
     This normalization only plays a part when initializing the filter, thus I cannot employ the frame properties such as "_Matrix" for it.<br />
-    In case matrix is not properly set for BM3D with OPP input, bm3d.RGB2OPP attachs a property "BM3D_OPP=1" to its output frame. If this property is presented but matrix is not set to 100, the GetFrame function of BM3D will return an error message.<br />
+    In case matrix is not properly set for BM3D with OPP input, bm3d.RGB2OPP attaches a property "BM3D_OPP=1" to its output frame. If this property is presented but matrix is not set to 100, the GetFrame function of BM3D will return an error message.<br />
     The number is as specified in ISO/IEC 14496-10, with an additional one for OPP.<br />
       - 0 - GBR
       - 1 - bt709
@@ -217,7 +217,7 @@ Due to the float format and multiple times height of the output clip, as well as
 
 *For RGB color family input, the output clip is of opponent color space in YUV color family. You should manually call bm3d.OPP2RGB after bm3d.VAggregate if you want to convert it back to RGB color space.*
 
-*If specific plane is not processed (sigma is 0), then the result of that plane will be garbage, thus you should manually use std.ShufflePlanes to merge them. For the same reason, you should always convert RGB input to OPP first if you want to keep those unprocessed planes. Becanse the implementaion of V-BM3D is divided into 2 functions, it's not very convenient and efficient to pass through the unprocessed planes.*
+*If specific plane is not processed (sigma is 0), then the result of that plane will be garbage, thus you should manually use std.ShufflePlanes to merge them. For the same reason, you should always convert RGB input to OPP first if you want to keep those unprocessed planes. Becanse the implementation of V-BM3D is divided into 2 functions, it's not very convenient and efficient to pass through the unprocessed planes.*
 
 #### basic estimate of V-BM3D denoising filter
 
@@ -434,9 +434,8 @@ flt = core.bm3d.VFinal(src, ref, radius=1, matrix=100).bm3d.VAggregate(radius=1)
 flt = core.bm3d.OPP2RGB(flt)
 ```
 
-## Compilation
+## Installation
 
 ```
-meson build
-ninja -C build
+pip install -U vapoursynth-bm3d
 ```
