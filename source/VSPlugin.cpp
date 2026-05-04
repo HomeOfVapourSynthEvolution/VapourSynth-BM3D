@@ -425,7 +425,7 @@ VS_EXTERNAL_API(void) VapourSynthPluginInit2(VSPlugin* plugin, const VSPLUGINAPI
 {
     vspapi->configPlugin("com.vapoursynth.bm3d", "bm3d",
         "Implementation of BM3D denoising filter for VapourSynth.",
-        VS_MAKE_VERSION(10, 0), VAPOURSYNTH_API_VERSION, 0, plugin);
+        VS_MAKE_VERSION(10, 1), VAPOURSYNTH_API_VERSION, 0, plugin);
 
     vspapi->registerFunction("RGB2OPP",
         "input:vnode;"
