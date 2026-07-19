@@ -22,6 +22,7 @@
 */
 
 
+#include <limits>
 #include "BM3D.h"
 
 
@@ -155,7 +156,11 @@ BM3D_FilterData::BM3D_FilterData(bool wiener, double sigma, PCType GroupSize, PC
 
         if (wiener)
         {
-            wienerSigmaSqr[i - 1] = static_cast<FLType>(sigma * forwardAMP * sigma * forwardAMP);
+            // Floor at the smallest positive normal float so that refSquare + sigmaSquare
+            // can never be exactly zero in the Wiener filter (avoids 0/0 -> NaN when sigma
+            // is 0, which is reachable for RGB where the plane is always processed).
+            wienerSigmaSqr[i - 1] = Max(std::numeric_limits<FLType>::min(),
+                static_cast<FLType>(sigma * forwardAMP * sigma * forwardAMP));
         }
         else
         {
