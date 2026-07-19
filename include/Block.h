@@ -1059,8 +1059,8 @@ public:
     {
         if (Init)
         {
-            if (IsPos3()) posCode_.resize(GroupSize(), PosType(0, 0));
-            else pos3Code_.resize(GroupSize(), Pos3Type(0, 0, 0));
+            if (IsPos3()) pos3Code_.resize(GroupSize(), Pos3Type(0, 0, 0));
+            else posCode_.resize(GroupSize(), PosType(0, 0));
 
             for_each([&](value_type &x)
             {
@@ -1069,8 +1069,8 @@ public:
         }
         else
         {
-            if (IsPos3()) posCode_.resize(GroupSize());
-            else pos3Code_.resize(GroupSize());
+            if (IsPos3()) pos3Code_.resize(GroupSize());
+            else posCode_.resize(GroupSize());
         }
     }
 
