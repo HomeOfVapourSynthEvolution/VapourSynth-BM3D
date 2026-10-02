@@ -237,7 +237,7 @@ int VBM3D_Data_Base::arguments_process(const VSMap *in, VSMap *out)
 
         if (error)
         {
-            para.BlockStep = para_default.BlockStep;
+            para.BlockStep = Min(para_default.BlockStep, para.BlockSize);
         }
         else if (para.BlockStep < 1 || para.BlockStep > para.BlockSize)
         {
