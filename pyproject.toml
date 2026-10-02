@@ -1,5 +1,5 @@
 [build-system]
-requires = ["meson-python", "VapourSynth>=74"]
+requires = ["meson-python>=0.18.0", "VapourSynth>=74"]
 build-backend = "mesonpy"
 
 [project]
@@ -7,8 +7,6 @@ name = "vapoursynth-bm3d"
 description = "BM3D denoising filter for VapourSynth"
 readme = "README.md"
 requires-python = ">=3.12"
-license = "MIT"
-license-files = ["LICENSE"]
 keywords = ["vapoursynth", "bm3d"]
 classifiers = [
   "Development Status :: 5 - Production/Stable",
@@ -22,7 +20,7 @@ classifiers = [
   "Topic :: Multimedia :: Video",
 ]
 dependencies = ["VapourSynth>=74"]
-dynamic = ["version"]
+dynamic = ["license", "license-files", "version"]
 
 [project.urls]
 Repository = "https://github.com/HomeOfVapourSynthEvolution/VapourSynth-BM3D"

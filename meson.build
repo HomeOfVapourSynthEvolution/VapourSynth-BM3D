@@ -2,11 +2,9 @@ project('BM3D', 'cpp',
     default_options: ['buildtype=release', 'b_lto=true', 'b_ndebug=if-release', 'cpp_std=c++17'],
     license: 'MIT',
     license_files: 'LICENSE',
-    meson_version: '>=1.2.3',
+    meson_version: '>=1.6.0',
     version: '10.1',
 )
-
-add_project_arguments('-Wno-unused-local-typedefs', language: 'cpp')
 
 py = import('python').find_installation(pure: false)
 
@@ -14,6 +12,8 @@ incdir = include_directories(
     'include',
     run_command(py, '-c', 'import vapoursynth as vs; print(vs.get_include())', check: true).stdout().strip(),
 )
+
+add_project_arguments('-Wno-unused-local-typedefs', language: 'cpp')
 
 shared_module('bm3d',
     files(
