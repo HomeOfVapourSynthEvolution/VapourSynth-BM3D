@@ -288,7 +288,7 @@ void BM3D_Data_Base::init_filter_data()
 // Functions of class BM3D_Process_Base
 
 
-static FLType *GetThreadBuffer(std::shared_mutex &mutex, std::unordered_map<std::thread::id, FLType *> &buffers, PCType size)
+static FLType *GetThreadBuffer(std::shared_mutex &mutex, std::unordered_map<std::thread::id, FLType *> &buffers, ptrdiff_t size)
 {
     const auto threadId = std::this_thread::get_id();
 

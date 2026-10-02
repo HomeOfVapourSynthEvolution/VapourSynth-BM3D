@@ -139,12 +139,12 @@ protected:
     const VSVideoFormat *rfi = nullptr;
 
     PCType dst_height[VSMaxPlaneCount];
-    PCType dst_pcount[VSMaxPlaneCount];
+    ptrdiff_t dst_pcount[VSMaxPlaneCount];
 
     PCType ref_height[VSMaxPlaneCount];
     PCType ref_width[VSMaxPlaneCount];
-    PCType ref_stride[VSMaxPlaneCount];
-    PCType ref_pcount[VSMaxPlaneCount];
+    ptrdiff_t ref_stride[VSMaxPlaneCount];
+    ptrdiff_t ref_pcount[VSMaxPlaneCount];
 
     bool full = true;
 

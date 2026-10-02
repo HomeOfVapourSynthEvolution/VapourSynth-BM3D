@@ -75,7 +75,7 @@ protected:
     std::vector<const VSFrame *> v_src;
 
     PCType src_height[VSMaxPlaneCount];
-    PCType src_pcount[VSMaxPlaneCount];
+    ptrdiff_t src_pcount[VSMaxPlaneCount];
 
     int process_plane[VSMaxPlaneCount];
 

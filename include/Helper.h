@@ -611,18 +611,18 @@ protected:
 
     PCType height;
     PCType width;
-    PCType stride;
-    PCType pcount;
+    ptrdiff_t stride;
+    ptrdiff_t pcount;
 
     PCType src_height[VSMaxPlaneCount];
     PCType src_width[VSMaxPlaneCount];
-    PCType src_stride[VSMaxPlaneCount];
-    PCType src_pcount[VSMaxPlaneCount];
+    ptrdiff_t src_stride[VSMaxPlaneCount];
+    ptrdiff_t src_pcount[VSMaxPlaneCount];
 
     PCType dst_height[VSMaxPlaneCount];
     PCType dst_width[VSMaxPlaneCount];
-    PCType dst_stride[VSMaxPlaneCount];
-    PCType dst_pcount[VSMaxPlaneCount];
+    ptrdiff_t dst_stride[VSMaxPlaneCount];
+    ptrdiff_t dst_pcount[VSMaxPlaneCount];
 
 private:
     template < typename _Ty >
