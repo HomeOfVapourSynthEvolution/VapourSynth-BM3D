@@ -219,7 +219,7 @@ protected:
         }
 
         // The output frame
-        _NewFrame(width, height, dfi == fi);
+        _NewFrame(width, height, vsh::isSameVideoFormat(dfi, fi));
     }
 
     void Kernel(FLType *dst, const FLType *src, const FLType *ref) const;
