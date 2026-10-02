@@ -287,24 +287,33 @@ void BM3D_Data_Base::init_filter_data()
 // Functions of class BM3D_Process_Base
 
 
-void BM3D_Process_Base::Kernel(FLType *dst, const FLType *src, const FLType *ref) const
+static FLType *GetThreadBuffer(std::shared_mutex &mutex, std::unordered_map<std::thread::id, FLType *> &buffers, PCType size)
 {
-    std::thread::id threadId = std::this_thread::get_id();
-    FLType *ResNum = dst, *ResDen = nullptr;
+    const auto threadId = std::this_thread::get_id();
 
     {
-        if (!d.buffer0.count(threadId))
+        std::shared_lock lock(mutex);
+
+        if (const auto it = buffers.find(threadId); it != buffers.end())
         {
-            std::unique_lock<std::shared_mutex> lock(d.mutex0);
-            AlignedMalloc(ResDen, dst_pcount[0]);
-            d.buffer0.emplace(threadId, ResDen);
-        }
-        else
-        {
-            std::shared_lock<std::shared_mutex> lock(d.mutex0);
-            ResDen = d.buffer0.at(threadId);
+            return it->second;
         }
     }
+
+    // Only the current thread inserts its own key, so no other thread can have added it since the lookup
+    FLType *buffer = nullptr;
+    AlignedMalloc(buffer, size);
+
+    std::unique_lock lock(mutex);
+    buffers.emplace(threadId, buffer);
+
+    return buffer;
+}
+
+
+void BM3D_Process_Base::Kernel(FLType *dst, const FLType *src, const FLType *ref) const
+{
+    FLType *ResNum = dst, *ResDen = GetThreadBuffer(d.mutex0, d.buffer0, dst_pcount[0]);
 
     memset(ResNum, 0, sizeof(FLType) * dst_pcount[0]);
     memset(ResDen, 0, sizeof(FLType) * dst_pcount[0]);
@@ -356,24 +365,13 @@ void BM3D_Process_Base::Kernel(FLType *dstY, FLType *dstU, FLType *dstV,
     const FLType *srcY, const FLType *srcU, const FLType *srcV,
     const FLType *refY, const FLType *refU, const FLType *refV) const
 {
-    std::thread::id threadId = std::this_thread::get_id();
     FLType *ResNumY = dstY, *ResDenY = nullptr;
     FLType *ResNumU = dstU, *ResDenU = nullptr;
     FLType *ResNumV = dstV, *ResDenV = nullptr;
 
     if (d.process[0])
     {
-        if (!d.buffer0.count(threadId))
-        {
-            std::unique_lock<std::shared_mutex> lock(d.mutex0);
-            AlignedMalloc(ResDenY, dst_pcount[0]);
-            d.buffer0.emplace(threadId, ResDenY);
-        }
-        else
-        {
-            std::shared_lock<std::shared_mutex> lock(d.mutex0);
-            ResDenY = d.buffer0.at(threadId);
-        }
+        ResDenY = GetThreadBuffer(d.mutex0, d.buffer0, dst_pcount[0]);
 
         memset(ResNumY, 0, sizeof(FLType) * dst_pcount[0]);
         memset(ResDenY, 0, sizeof(FLType) * dst_pcount[0]);
@@ -381,17 +379,7 @@ void BM3D_Process_Base::Kernel(FLType *dstY, FLType *dstU, FLType *dstV,
 
     if (d.process[1])
     {
-        if (!d.buffer1.count(threadId))
-        {
-            std::unique_lock<std::shared_mutex> lock(d.mutex1);
-            AlignedMalloc(ResDenU, dst_pcount[1]);
-            d.buffer1.emplace(threadId, ResDenU);
-        }
-        else
-        {
-            std::shared_lock<std::shared_mutex> lock(d.mutex1);
-            ResDenU = d.buffer1.at(threadId);
-        }
+        ResDenU = GetThreadBuffer(d.mutex1, d.buffer1, dst_pcount[1]);
 
         memset(ResNumU, 0, sizeof(FLType) * dst_pcount[1]);
         memset(ResDenU, 0, sizeof(FLType) * dst_pcount[1]);
@@ -399,17 +387,7 @@ void BM3D_Process_Base::Kernel(FLType *dstY, FLType *dstU, FLType *dstV,
 
     if (d.process[2])
     {
-        if (!d.buffer2.count(threadId))
-        {
-            std::unique_lock<std::shared_mutex> lock(d.mutex2);
-            AlignedMalloc(ResDenV, dst_pcount[2]);
-            d.buffer2.emplace(threadId, ResDenV);
-        }
-        else
-        {
-            std::shared_lock<std::shared_mutex> lock(d.mutex2);
-            ResDenV = d.buffer2.at(threadId);
-        }
+        ResDenV = GetThreadBuffer(d.mutex2, d.buffer2, dst_pcount[2]);
 
         memset(ResNumV, 0, sizeof(FLType) * dst_pcount[2]);
         memset(ResDenV, 0, sizeof(FLType) * dst_pcount[2]);
