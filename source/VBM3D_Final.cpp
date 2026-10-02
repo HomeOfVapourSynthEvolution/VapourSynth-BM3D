@@ -91,7 +91,7 @@ void VBM3D_Final_Process::CollaborativeFilter(int plane,
         const __m128 r1 = _mm_load_ps(refp);
         const __m128 r1sqr = _mm_mul_ps(r1, r1);
 
-        const __m128 wiener = _mm_mul_ps(r1sqr, _mm_rcp_ps(_mm_add_ps(r1sqr, sgm_sqr)));
+        const __m128 wiener = _mm_div_ps(r1sqr, _mm_add_ps(r1sqr, sgm_sqr));
 
         const __m128 d1 = _mm_mul_ps(s1, wiener);
         _mm_store_ps(srcp, d1);
