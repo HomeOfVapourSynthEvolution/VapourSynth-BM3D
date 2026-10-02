@@ -209,13 +209,13 @@ protected:
         // Determine color range of Gray/YUV input
         int64_t _Range = vsapi->mapGetInt(src_map, "_Range", 0, &error);
 
-        if (error || BM3D_OPP == 1)
+        if (BM3D_OPP == 1)
         {
             full = true;
         }
         else
         {
-            full = _Range != 0;
+            full = !error && _Range != 0;
         }
 
         // The output frame
