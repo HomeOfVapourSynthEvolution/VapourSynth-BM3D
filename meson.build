@@ -1,5 +1,5 @@
 project('BM3D', 'cpp',
-    default_options: ['buildtype=release', 'b_lto=true', 'b_ndebug=if-release', 'cpp_std=c++17'],
+    default_options: ['buildtype=release', 'b_lto=true', 'b_ndebug=if-release', 'cpp_std=c++20'],
     license: 'MIT',
     license_files: 'LICENSE',
     meson_version: '>=1.6.0',
