@@ -706,6 +706,8 @@ public:
             }
         }
 
+        search_pos.resize(index);
+
         PosPairCode match_code;
         if (excludeCurPos == 1) match_code.push_back(PosPair(static_cast<KeyType>(0), PosType(PosY(), PosX())));
 
