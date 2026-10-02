@@ -29,7 +29,7 @@
 #include <mutex>
 #include <fftw3.h>
 
-static std::mutex planMutex;
+inline std::mutex planMutex;
 
 
 template < typename R = double >
