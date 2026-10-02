@@ -696,7 +696,7 @@ public:
     {
         if (skip)
         {
-            return src;
+            return vsapi->addFrameRef(src);
         }
         else
         {

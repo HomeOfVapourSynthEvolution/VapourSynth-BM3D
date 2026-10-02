@@ -355,6 +355,11 @@ int VBM3D_Data_Base::arguments_process(const VSMap *in, VSMap *out)
             }
         }
 
+        if (std::none_of(process, process + vi->format.numPlanes, [](int p) { return p != 0; }))
+        {
+            throw std::string("Invalid \"sigma\" assigned, no plane of the input clip would be processed");
+        }
+
         if (process[1] || process[2])
         {
             if (vi->format.subSamplingH || vi->format.subSamplingW)
