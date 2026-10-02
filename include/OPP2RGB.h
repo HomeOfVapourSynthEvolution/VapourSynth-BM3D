@@ -71,6 +71,10 @@ public:
             {
                 throw std::string("Invalid input clip, must be of YUV color family");
             }
+            if (vi->format.subSamplingW || vi->format.subSamplingH)
+            {
+                throw std::string("Invalid input clip, sub-sampled format is not supported");
+            }
 
             // sample - int
             sample = static_cast<VSSampleType>(vsapi->mapGetInt(in, "sample", 0, &error));
