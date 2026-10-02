@@ -28,5 +28,5 @@ dynamic = ["version"]
 Repository = "https://github.com/HomeOfVapourSynthEvolution/VapourSynth-BM3D"
 Issues = "https://github.com/HomeOfVapourSynthEvolution/VapourSynth-BM3D/issues"
 
-[tool.meson-python.wheel]
-exclude = ["*.dll.a"]
+[tool.meson-python.args]
+install = ["--tags=runtime"]
