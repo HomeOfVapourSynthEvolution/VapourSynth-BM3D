@@ -778,6 +778,8 @@ public:
         const PCType t = _SearchBoundary(ref_pos.y, PCType(0), range, step);
         const PCType b = _SearchBoundary(ref_pos.y, src_height - Height(), range, step);
 
+        search_pos.resize(index + ((r - l) / step + 1) * ((b - t) / step + 1));
+
         for (PCType j = t; j <= b; j += step)
         {
             for (PCType i = l; i <= r; i += step)
@@ -792,7 +794,7 @@ public:
     {
         range = range / step * step;
         
-        PosCode new_search_pos((range / step * 2 + 1) * (range / step * 2 + 1));
+        PosCode new_search_pos;
         size_t index = 0;
         AddSearchPos(new_search_pos, index, ref_pos, src_height, src_width, range, step);
 
