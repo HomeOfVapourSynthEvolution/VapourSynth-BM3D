@@ -279,8 +279,8 @@ void ColorMatrix_YUV2RGB_Parameter(ColorMatrix _ColorMatrix, T &Ry, T &Ru, T &Rv
 
         // E'G = E'Y - 2 * Kb * ( 1 - Kb ) / ( 1 - Kr - Kb ) * E'Pb - 2 * Kr * ( 1 - Kr ) / ( 1 - Kr - Kb ) * E'Pr
         Gy = static_cast<T>(1.0L);
-        Gu = static_cast<T>(2.0L * Kb * (1.0L - Kb) / Kg);
-        Gv = static_cast<T>(2.0L * Kr * (1.0L - Kr) / Kg);
+        Gu = static_cast<T>(-2.0L * Kb * (1.0L - Kb) / Kg);
+        Gv = static_cast<T>(-2.0L * Kr * (1.0L - Kr) / Kg);
 
         // E'B = E'Y + 2 * ( 1 - Kb ) * E'Pb
         By = static_cast<T>(1.0L);
