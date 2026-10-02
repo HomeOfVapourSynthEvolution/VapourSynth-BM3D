@@ -642,8 +642,7 @@ public:
             }
 #endif
 
-            // Only match similar blocks but not identical blocks
-            if (dist <= thSSE && dist != 0)
+            if (dist <= thSSE)
             {
                 match_code[index++] = PosPair(static_cast<KeyType>(dist * distMul), pos);
             }
