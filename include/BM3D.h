@@ -47,7 +47,7 @@ struct BM3D_Para
     PCType BMrange;
     PCType BMstep;
     double thMSE;
-    double lambda;
+    double lambda = 0;
 
     explicit BM3D_Para(bool _wiener, std::string _profile = "fast");
 
