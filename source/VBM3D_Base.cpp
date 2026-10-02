@@ -226,9 +226,10 @@ int VBM3D_Data_Base::arguments_process(const VSMap *in, VSMap *out)
         {
             throw std::string("Invalid \"block_size\" assigned, must be an integer in [1, 64]");
         }
-        else if (para.BlockSize > vi->width || para.BlockSize > vi->height)
+
+        if (para.BlockSize > vi->width || para.BlockSize > vi->height)
         {
-            throw std::string("Invalid \"block_size\" assigned, must not exceed width or height of the frame");
+            throw std::string("Invalid \"block_size\", must not exceed width or height of the frame");
         }
 
         // block_step - int
