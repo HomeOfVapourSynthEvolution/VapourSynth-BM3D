@@ -162,6 +162,12 @@ public:
             return *this;
         }
 
+        if (PixelCount_ != src.PixelCount_)
+        {
+            AlignedFree(Data_);
+            AlignedMalloc(Data_, src.size());
+        }
+
         Height_ = src.Height_;
         Width_ = src.Width_;
         PixelCount_ = src.PixelCount_;
@@ -319,7 +325,7 @@ public:
         {
             for (const auto upper = dstp + Width(); dstp < upper; ++dstp, ++srcp)
             {
-                *dstp = static_cast<value_type>(*srcp);
+                *dstp += static_cast<value_type>(*srcp);
             }
 
             srcp += src_stride0;
@@ -337,7 +343,7 @@ public:
         {
             for (const auto upper = dstp + Width(); dstp < upper; ++dstp, ++srcp)
             {
-                *dstp = static_cast<value_type>(*srcp * gain);
+                *dstp += static_cast<value_type>(*srcp * gain);
             }
 
             srcp += src_stride0;
@@ -355,7 +361,7 @@ public:
         {
             for (const auto upper = srcp + Width(); srcp < upper; ++srcp, ++dstp)
             {
-                *dstp = static_cast<_Dt1>(*srcp);
+                *dstp += static_cast<_Dt1>(*srcp);
             }
 
             dstp += dst_stride0;
@@ -373,7 +379,7 @@ public:
         {
             for (const auto upper = srcp + Width(); srcp < upper; ++srcp, ++dstp)
             {
-                *dstp = static_cast<_Dt1>(*srcp * gain);
+                *dstp += static_cast<_Dt1>(*srcp * gain);
             }
 
             dstp += dst_stride0;
@@ -964,6 +970,12 @@ public:
             return *this;
         }
 
+        if (PixelCount_ != src.PixelCount_)
+        {
+            AlignedFree(Data_);
+            AlignedMalloc(Data_, src.size());
+        }
+
         GroupSize_ = src.GroupSize_;
         Height_ = src.Height_;
         Width_ = src.Width_;
@@ -1038,8 +1050,8 @@ public:
     {
         if (Init)
         {
-            if (IsPos3()) posCode_.resize(GroupSize(), PosType(0, 0));
-            else pos3Code_.resize(GroupSize(), Pos3Type(0, 0, 0));
+            if (IsPos3()) pos3Code_.resize(GroupSize(), Pos3Type(0, 0, 0));
+            else posCode_.resize(GroupSize(), PosType(0, 0));
 
             for_each([&](value_type &x)
             {
@@ -1048,8 +1060,8 @@ public:
         }
         else
         {
-            if (IsPos3()) posCode_.resize(GroupSize());
-            else pos3Code_.resize(GroupSize());
+            if (IsPos3()) pos3Code_.resize(GroupSize());
+            else posCode_.resize(GroupSize());
         }
     }
 
