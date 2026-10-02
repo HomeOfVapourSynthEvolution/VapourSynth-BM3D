@@ -734,34 +734,10 @@ public:
 
     static PCType _SearchBoundary(PCType pos, PCType plane_boundary, PCType search_range, PCType search_step)
     {
-        PCType search_boundary;
+        // Clamp to the distance to the boundary first so a huge search_range cannot overflow
+        search_range = Min(search_range, Abs(pos - plane_boundary)) / search_step * search_step;
 
-        search_range = search_range / search_step * search_step;
-
-        if (pos == plane_boundary)
-        {
-            search_boundary = plane_boundary;
-        }
-        else if (pos > plane_boundary)
-        {
-            search_boundary = pos - search_range;
-
-            while (search_boundary < plane_boundary)
-            {
-                search_boundary += search_step;
-            }
-        }
-        else
-        {
-            search_boundary = pos + search_range;
-
-            while (search_boundary > plane_boundary)
-            {
-                search_boundary -= search_step;
-            }
-        }
-
-        return search_boundary;
+        return pos > plane_boundary ? pos - search_range : pos + search_range;
     }
 
     PCType SearchBoundary(PCType plane_boundary, PCType search_range, PCType search_step, bool vertical) const
