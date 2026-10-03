@@ -150,25 +150,13 @@ protected:
         int error;
         const VSMap *src_map = vsapi->getFramePropertiesRO(src);
 
-        int p_radius = vsapi->mapGetIntSaturated(src_map, "BM3D_V_radius", 0, &error);
+        vsapi->mapGetIntSaturated(src_map, "BM3D_V_radius", 0, &error);
 
         if (error)
         {
             vsapi->logMessage(mtWarning, "bm3d.VAggregate - warning: "
                 "No frame property \"BM3D_V_radius\" exists in the input frame. "
                 "Make sure you call bm3d.VAggregate next to bm3d.VBasic or bm3d.VFinal.", core);
-        }
-        else if (d.radius != p_radius)
-        {
-            std::string msg;
-
-            msg += "bm3d.VAggregate - warning: Mismatch between argument \"radius=";
-            msg += std::to_string(d.radius);
-            msg += "\" and the input frame property \"BM3D_V_radius=";
-            msg += std::to_string(p_radius);
-            msg += "\" which indicates the radius used in previous filter (bm3d.VBasic or bm3d.VFinal).";
-
-            vsapi->logMessage(mtWarning, msg.c_str(), core);
         }
 
         int m = vsapi->mapNumElements(src_map, "BM3D_V_process");

@@ -379,6 +379,20 @@ static const VSFrame *VS_CC VAggregate_GetFrame(int n, int activationReason, voi
     }
     else if (activationReason == arAllFramesReady)
     {
+        const VSFrame *src = vsapi->getFrameFilter(n, d->node, frameCtx);
+        int error;
+        const int p_radius = vsapi->mapGetIntSaturated(vsapi->getFramePropertiesRO(src), "BM3D_V_radius", 0, &error);
+        vsapi->freeFrame(src);
+
+        if (!error && p_radius != d->radius)
+        {
+            const std::string msg = "bm3d.VAggregate: argument \"radius=" + std::to_string(d->radius)
+                + "\" mismatches the input frame property \"BM3D_V_radius=" + std::to_string(p_radius)
+                + "\" which indicates the radius used in bm3d.VBasic or bm3d.VFinal";
+            vsapi->setFilterError(msg.c_str(), frameCtx);
+            return nullptr;
+        }
+
         VAggregate_Process p(*d, n, frameCtx, core, vsapi);
 
         return p.process();
