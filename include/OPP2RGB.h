@@ -180,6 +180,7 @@ protected:
         VSMap *dst_map = vsapi->getFramePropertiesRW(dst);
 
         vsapi->mapSetInt(dst_map, "_Matrix", 0, maReplace);
+        vsapi->mapSetInt(dst_map, "_Range", 1, maReplace);
         vsapi->mapDeleteKey(dst_map, "BM3D_OPP");
     }
 };
