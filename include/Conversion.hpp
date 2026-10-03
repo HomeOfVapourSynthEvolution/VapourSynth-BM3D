@@ -33,12 +33,13 @@
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 
+// clipFloor/clipCeil bound the clipped output, they can be wider than the nominal dFloor/dCeil used for scaling
 template < typename _Dt1, typename _St1 >
 void RangeConvert(_Dt1 *dst, const _St1 *src,
     const PCType height, const PCType width, const PCType dst_stride, const PCType src_stride,
     _Dt1 dFloor, _Dt1 dNeutral, _Dt1 dCeil,
     _St1 sFloor, _St1 sNeutral, _St1 sCeil,
-    bool clip = false)
+    bool clip, _Dt1 clipFloor, _Dt1 clipCeil)
 {
     typedef _St1 srcType;
     typedef _Dt1 dstType;
@@ -60,8 +61,8 @@ void RangeConvert(_Dt1 *dst, const _St1 *src,
 
     if (clip)
     {
-        const FLType lowerL = static_cast<FLType>(dFloor);
-        const FLType upperL = static_cast<FLType>(dCeil);
+        const FLType lowerL = static_cast<FLType>(clipFloor);
+        const FLType upperL = static_cast<FLType>(clipCeil);
 
         LOOP_VH(height, width, dst_stride, src_stride, [&](PCType i0, PCType i1)
         {
@@ -75,6 +76,16 @@ void RangeConvert(_Dt1 *dst, const _St1 *src,
             dst[i0] = static_cast<dstType>(static_cast<FLType>(src[i1]) * gain + offset);
         });
     }
+}
+
+template < typename _Dt1, typename _St1 >
+void RangeConvert(_Dt1 *dst, const _St1 *src,
+    const PCType height, const PCType width, const PCType dst_stride, const PCType src_stride,
+    _Dt1 dFloor, _Dt1 dNeutral, _Dt1 dCeil,
+    _St1 sFloor, _St1 sNeutral, _St1 sCeil,
+    bool clip = false)
+{
+    RangeConvert(dst, src, height, width, dst_stride, src_stride, dFloor, dNeutral, dCeil, sFloor, sNeutral, sCeil, clip, dFloor, dCeil);
 }
 
 
@@ -292,7 +303,7 @@ void MatrixConvert_YUV2RGB(_Dt1 *dstR, _Dt1 *dstG, _Dt1 *dstB,
     const _St1 *srcY, const _St1 *srcU, const _St1 *srcV,
     const PCType height, const PCType width, const PCType dst_stride, const PCType src_stride,
     _Dt1 dFloor, _Dt1 dCeil, _St1 sFloorY, _St1 sCeilY, _St1 sFloorC, _St1 sNeutralC, _St1 sCeilC,
-    ColorMatrix matrix = ColorMatrix::OPP, bool clip = false)
+    ColorMatrix matrix, bool clip, _Dt1 clipFloor, _Dt1 clipCeil)
 {
     typedef _St1 srcType;
     typedef _Dt1 dstType;
@@ -303,14 +314,14 @@ void MatrixConvert_YUV2RGB(_Dt1 *dstR, _Dt1 *dstG, _Dt1 *dstB,
     const auto sRangeC = sCeilC - sFloorC;
     const auto dRange = dCeil - dFloor;
 
-    const FLType lowerL = static_cast<FLType>(dFloor);
-    const FLType upperL = static_cast<FLType>(dCeil);
+    const FLType lowerL = static_cast<FLType>(clipFloor);
+    const FLType upperL = static_cast<FLType>(clipCeil);
 
     if (matrix == ColorMatrix::GBR)
     {
-        RangeConvert(dstG, srcY, height, width, dst_stride, src_stride, dFloor, dFloor, dCeil, sFloorY, sFloorY, sCeilY, clip);
-        RangeConvert(dstB, srcU, height, width, dst_stride, src_stride, dFloor, dFloor, dCeil, sFloorY, sFloorY, sCeilY, clip);
-        RangeConvert(dstR, srcV, height, width, dst_stride, src_stride, dFloor, dFloor, dCeil, sFloorY, sFloorY, sCeilY, clip);
+        RangeConvert(dstG, srcY, height, width, dst_stride, src_stride, dFloor, dFloor, dCeil, sFloorY, sFloorY, sCeilY, clip, clipFloor, clipCeil);
+        RangeConvert(dstB, srcU, height, width, dst_stride, src_stride, dFloor, dFloor, dCeil, sFloorY, sFloorY, sCeilY, clip, clipFloor, clipCeil);
+        RangeConvert(dstR, srcV, height, width, dst_stride, src_stride, dFloor, dFloor, dCeil, sFloorY, sFloorY, sCeilY, clip, clipFloor, clipCeil);
     }
     else if (matrix == ColorMatrix::Minimum || matrix == ColorMatrix::Maximum)
     {
@@ -416,6 +427,17 @@ void MatrixConvert_YUV2RGB(_Dt1 *dstR, _Dt1 *dstG, _Dt1 *dstB,
     }
 }
 
+template < typename _Dt1, typename _St1 >
+void MatrixConvert_YUV2RGB(_Dt1 *dstR, _Dt1 *dstG, _Dt1 *dstB,
+    const _St1 *srcY, const _St1 *srcU, const _St1 *srcV,
+    const PCType height, const PCType width, const PCType dst_stride, const PCType src_stride,
+    _Dt1 dFloor, _Dt1 dCeil, _St1 sFloorY, _St1 sCeilY, _St1 sFloorC, _St1 sNeutralC, _St1 sCeilC,
+    ColorMatrix matrix = ColorMatrix::OPP, bool clip = false)
+{
+    MatrixConvert_YUV2RGB(dstR, dstG, dstB, srcY, srcU, srcV, height, width, dst_stride, src_stride,
+        dFloor, dCeil, sFloorY, sCeilY, sFloorC, sNeutralC, sCeilC, matrix, clip, dFloor, dCeil);
+}
+
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 // Template functions of class VSProcess
@@ -447,8 +469,12 @@ void VSProcess::Float2Int(_Ty *dst, const FLType *src,
     GetQuanPara(dFloor, dNeutral, dCeil, dfi->bitsPerSample, full, chroma);
     GetQuanPara(sFloor, sNeutral, sCeil, 32, true, chroma);
 
+    // Clip to the whole code range so limited range output keeps its headroom and footroom
+    _Ty clipFloor, clipCeil;
+    GetQuanPara(clipFloor, clipCeil, dfi->bitsPerSample, true);
+
     RangeConvert(dst, src, height, width, dst_stride, src_stride,
-        dFloor, dNeutral, dCeil, sFloor, sNeutral, sCeil, clip);
+        dFloor, dNeutral, dCeil, sFloor, sNeutral, sCeil, clip, clipFloor, clipCeil);
 }
 
 template < typename _Ty >
@@ -499,10 +525,14 @@ void VSProcess::FloatYUV2RGB(_Ty *dstR, _Ty *dstG, _Ty *dstB,
     GetQuanPara(dFloor, dCeil, dfi->bitsPerSample, full);
     GetQuanPara(sFloorY, sCeilY, sFloorC, sNeutralC, sCeilC, 32, true);
 
+    // Clip to the whole code range so limited range output keeps its headroom and footroom
+    _Ty clipFloor, clipCeil;
+    GetQuanPara(clipFloor, clipCeil, dfi->bitsPerSample, true);
+
     MatrixConvert_YUV2RGB(dstR, dstG, dstB, srcY, srcU, srcV,
         height, width, dst_stride, src_stride,
         dFloor, dCeil, sFloorY, sCeilY, sFloorC, sNeutralC, sCeilC,
-        matrix, clip);
+        matrix, clip, clipFloor, clipCeil);
 }
 
 
