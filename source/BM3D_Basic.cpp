@@ -47,7 +47,7 @@ int BM3D_Basic_Data::arguments_process(const VSMap *in, VSMap *out)
         {
             para.lambda = para_default.lambda;
         }
-        else if (para.lambda <= 0)
+        else if (!std::isfinite(para.lambda) || para.lambda <= 0)
         {
             throw std::string("Invalid \"hard_thr\" assigned, must be a positive floating point number");
         }

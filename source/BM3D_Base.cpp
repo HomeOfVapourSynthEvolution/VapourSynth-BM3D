@@ -115,7 +115,7 @@ int BM3D_Data_Base::arguments_process(const VSMap *in, VSMap *out)
             {
                 para.sigma[i] = vsapi->mapGetFloat(in, "sigma", i, nullptr);
 
-                if (para.sigma[i] < 0)
+                if (!std::isfinite(para.sigma[i]) || para.sigma[i] < 0)
                 {
                     throw std::string("Invalid \"sigma\" assigned, must be a non-negative floating point number");
                 }
@@ -203,7 +203,7 @@ int BM3D_Data_Base::arguments_process(const VSMap *in, VSMap *out)
         {
             para.thMSE_Default();
         }
-        else if (para.thMSE < 0)
+        else if (!std::isfinite(para.thMSE) || para.thMSE < 0)
         {
             throw std::string("Invalid \"th_mse\" assigned, must be a non-negative floating point number");
         }
