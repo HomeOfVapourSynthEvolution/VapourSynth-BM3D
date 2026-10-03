@@ -153,51 +153,58 @@ BM3D_FilterData::BM3D_FilterData(bool wiener, double sigma, PCType GroupSize, PC
         finalAMP[i - 1] = 2 * i * 2 * BlockSize * 2 * BlockSize;
         double forwardAMP = sqrt(finalAMP[i - 1]);
 
+        // Unnormalized DCT-II doubles the noise variance of zero-frequency coefficients along each axis, indexed by flag below
+        std::vector<double> coef(4);
+
         if (wiener)
         {
             // Floor keeps the Wiener coefficient finite when sigma is 0 and the reference coefficient is 0
-            wienerSigmaSqr[i - 1] = std::max(static_cast<FLType>(sigma * forwardAMP * sigma * forwardAMP), std::numeric_limits<FLType>::min());
+            const double sigmaSqrBase = std::max(sigma * forwardAMP * sigma * forwardAMP, double(std::numeric_limits<FLType>::min()));
+
+            for (int flag = 0; flag < 4; ++flag)
+            {
+                coef[flag] = sigmaSqrBase * (1 << flag);
+            }
         }
         else
         {
             double thrBase = sigma * lambda * forwardAMP;
-            std::vector<double> thr(4);
-            
-            thr[0] = thrBase;
-            thr[1] = thrBase * sqrt(double(2));
-            thr[2] = thrBase * double(2);
-            thr[3] = thrBase * sqrt(double(8));
 
-            FLType *thrp = nullptr;
-            AlignedMalloc(thrp, i * BlockSize * BlockSize);
-            thrTable[i - 1].reset(thrp, [](FLType *memory)
-            {
-                AlignedFree(memory);
-            });
+            coef[0] = thrBase;
+            coef[1] = thrBase * sqrt(double(2));
+            coef[2] = thrBase * double(2);
+            coef[3] = thrBase * sqrt(double(8));
+        }
 
-            for (PCType z = 0; z < i; ++z)
+        FLType *coefp = nullptr;
+        AlignedMalloc(coefp, i * BlockSize * BlockSize);
+        (wiener ? wienerSigmaSqr : thrTable)[i - 1].reset(coefp, [](FLType *memory)
+        {
+            AlignedFree(memory);
+        });
+
+        for (PCType z = 0; z < i; ++z)
+        {
+            for (PCType y = 0; y < BlockSize; ++y)
             {
-                for (PCType y = 0; y < BlockSize; ++y)
+                for (PCType x = 0; x < BlockSize; ++x, ++coefp)
                 {
-                    for (PCType x = 0; x < BlockSize; ++x, ++thrp)
+                    int flag = 0;
+
+                    if (x == 0)
                     {
-                        int flag = 0;
-
-                        if (x == 0)
-                        {
-                            ++flag;
-                        }
-                        if (y == 0)
-                        {
-                            ++flag;
-                        }
-                        if (z == 0)
-                        {
-                            ++flag;
-                        }
-
-                        *thrp = static_cast<FLType>(thr[flag]);
+                        ++flag;
                     }
+                    if (y == 0)
+                    {
+                        ++flag;
+                    }
+                    if (z == 0)
+                    {
+                        ++flag;
+                    }
+
+                    *coefp = static_cast<FLType>(coef[flag]);
                 }
             }
         }

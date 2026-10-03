@@ -79,10 +79,9 @@ void BM3D_Final_Process::CollaborativeFilter(int plane,
     d.f[plane].fp[GroupSize - 1].execute_r2r(refGroup.data(), refGroup.data());
 
     // Apply empirical Wiener filtering to the source group guided by the reference group
-    const FLType sigmaSquare = d.f[plane].wienerSigmaSqr[GroupSize - 1];
-
     auto srcp = srcGroup.data();
     auto refp = refGroup.data();
+    auto sgmp = d.f[plane].wienerSigmaSqr[GroupSize - 1].get();
     const auto upper = srcp + srcGroup.size();
 
 #if defined(__SSE2__)
@@ -90,13 +89,13 @@ void BM3D_Final_Process::CollaborativeFilter(int plane,
     const ptrdiff_t simd_residue = srcGroup.size() % simd_step;
     const ptrdiff_t simd_width = srcGroup.size() - simd_residue;
 
-    const __m128 sgm_sqr = _mm_set_ps1(sigmaSquare);
     __m128 l2wiener_sum = _mm_setzero_ps();
 
-    for (const auto upper1 = srcp + simd_width; srcp < upper1; srcp += simd_step, refp += simd_step)
+    for (const auto upper1 = srcp + simd_width; srcp < upper1; srcp += simd_step, refp += simd_step, sgmp += simd_step)
     {
         const __m128 s1 = _mm_load_ps(srcp);
         const __m128 r1 = _mm_load_ps(refp);
+        const __m128 sgm_sqr = _mm_load_ps(sgmp);
         const __m128 r1sqr = _mm_mul_ps(r1, r1);
 
         const __m128 wiener = _mm_div_ps(r1sqr, _mm_add_ps(r1sqr, sgm_sqr));
@@ -111,10 +110,10 @@ void BM3D_Final_Process::CollaborativeFilter(int plane,
     L2Wiener += l2wiener_sum_f32[0] + l2wiener_sum_f32[1] + l2wiener_sum_f32[2] + l2wiener_sum_f32[3];
 #endif
 
-    for (; srcp < upper; ++srcp, ++refp)
+    for (; srcp < upper; ++srcp, ++refp, ++sgmp)
     {
         const FLType refSquare = *refp * *refp;
-        const FLType wienerCoef = refSquare / (refSquare + sigmaSquare);
+        const FLType wienerCoef = refSquare / (refSquare + *sgmp);
         *srcp *= wienerCoef;
         L2Wiener += wienerCoef * wienerCoef;
     }

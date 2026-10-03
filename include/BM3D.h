@@ -68,7 +68,7 @@ struct BM3D_FilterData
     std::vector<fftw::plan> bp;
     std::vector<double> finalAMP;
     std::vector<std::shared_ptr<const FLType>> thrTable;
-    std::vector<FLType> wienerSigmaSqr;
+    std::vector<std::shared_ptr<const FLType>> wienerSigmaSqr;
 
     BM3D_FilterData() {}
 
