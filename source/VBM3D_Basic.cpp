@@ -59,7 +59,15 @@ int VBM3D_Basic_Data::arguments_process(const VSMap *in, VSMap *out)
     }
 
     // Initialize filter data for hard-threshold filtering
-    init_filter_data();
+    try
+    {
+        init_filter_data();
+    }
+    catch (const std::bad_alloc &)
+    {
+        setError(out, "failed to allocate memory");
+        return 1;
+    }
 
     return 0;
 }

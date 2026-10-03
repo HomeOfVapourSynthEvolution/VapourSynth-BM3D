@@ -32,6 +32,8 @@
 #include <vector>
 #include <cmath>
 #include <cassert>
+#include <memory>
+#include <new>
 #include <VapourSynth4.h>
 #include <VSHelper4.h>
 #include "Type.h"
@@ -142,6 +144,11 @@ template < typename _Ty >
 void AlignedMalloc(_Ty *&Memory, size_t Count, size_t Alignment = MEMORY_ALIGNMENT)
 {
     Memory = vsh::vsh_aligned_malloc<_Ty>(sizeof(_Ty) * Count, Alignment);
+
+    if (!Memory)
+    {
+        throw std::bad_alloc();
+    }
 }
 
 
@@ -150,6 +157,26 @@ void AlignedFree(_Ty *&Memory)
 {
     vsh::vsh_aligned_free(Memory);
     Memory = nullptr;
+}
+
+
+struct AlignedDeleter
+{
+    void operator()(void *Memory) const
+    {
+        vsh::vsh_aligned_free(Memory);
+    }
+};
+
+template < typename _Ty >
+using AlignedPtr = std::unique_ptr<_Ty[], AlignedDeleter>;
+
+template < typename _Ty >
+AlignedPtr<_Ty> MakeAligned(size_t Count)
+{
+    _Ty *Memory = nullptr;
+    AlignedMalloc(Memory, Count);
+    return AlignedPtr<_Ty>(Memory);
 }
 
 
@@ -704,21 +731,30 @@ public:
             NewFrame();
         }
 
-        if (flt == 1)
+        try
         {
-            process_coreH();
+            if (flt == 1)
+            {
+                process_coreH();
+            }
+            else if (flt == 2)
+            {
+                process_coreS();
+            }
+            else if (Bps == 1)
+            {
+                process_core8();
+            }
+            else if (Bps == 2)
+            {
+                process_core16();
+            }
         }
-        else if (flt == 2)
+        catch (const std::bad_alloc &)
         {
-            process_coreS();
-        }
-        else if (Bps == 1)
-        {
-            process_core8();
-        }
-        else if (Bps == 2)
-        {
-            process_core16();
+            vsapi->freeFrame(dst);
+            vsapi->setFilterError("bm3d: failed to allocate memory", frameCtx);
+            return nullptr;
         }
 
         return dst;

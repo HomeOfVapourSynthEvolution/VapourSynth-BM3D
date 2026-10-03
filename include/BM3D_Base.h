@@ -56,7 +56,7 @@ public:
     std::vector<BM3D_FilterData> f;
 
     std::shared_mutex mutex0, mutex1, mutex2;
-    std::unordered_map<std::thread::id, FLType *> buffer0, buffer1, buffer2;
+    std::unordered_map<std::thread::id, AlignedPtr<FLType>> buffer0, buffer1, buffer2;
 
 public:
     explicit BM3D_Data_Base(bool _wiener,
@@ -73,19 +73,6 @@ public:
     virtual ~BM3D_Data_Base() override
     {
         if (rdef && rnode) vsapi->freeNode(rnode);
-
-        for (auto &e : buffer0)
-        {
-            AlignedFree(e.second);
-        }
-        for (auto &e : buffer1)
-        {
-            AlignedFree(e.second);
-        }
-        for (auto &e : buffer2)
-        {
-            AlignedFree(e.second);
-        }
     }
 
     virtual int arguments_process(const VSMap *in, VSMap *out) override;

@@ -1078,9 +1078,9 @@ public:
 
         PixelCount_ = GroupSize_ * Height_ * Width_;
 
-        AlignedMalloc(Data_, size());
-
         posCode_.resize(GroupSize());
+
+        AlignedMalloc(Data_, size());
 
         for (int i = 0; i < GroupSize(); ++i)
         {
@@ -1101,9 +1101,9 @@ public:
 
         PixelCount_ = GroupSize_ * Height_ * Width_;
 
-        AlignedMalloc(Data_, size());
-
         pos3Code_.resize(GroupSize());
+
+        AlignedMalloc(Data_, size());
 
         for (int i = 0; i < GroupSize(); ++i)
         {
