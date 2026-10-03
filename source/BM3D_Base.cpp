@@ -646,10 +646,10 @@ void BM3D_Process_Base::process_core_rgb()
         if (d.wiener) refVd = MakeAligned<FLType>(ref_pcount[2]);
     }
 
-    // Convert src and ref from RGB data to floating point YUV data
+    // Convert src and ref from RGB data to floating point YUV data, each with its own color range
     RGB2FloatYUV(srcYd.get(), srcUd.get(), srcVd.get(), srcR, srcG, srcB,
         src_height[0], src_width[0], src_stride[0], src_stride[0],
-        ColorMatrix::OPP, true, false);
+        ColorMatrix::OPP, full, false);
 
     if (d.rdef)
     {
@@ -657,13 +657,13 @@ void BM3D_Process_Base::process_core_rgb()
         {
             RGB2FloatYUV(refYd.get(), refUd.get(), refVd.get(), refR, refG, refB,
                 ref_height[0], ref_width[0], ref_stride[0], ref_stride[0],
-                ColorMatrix::OPP, true, false);
+                ColorMatrix::OPP, ref_full, false);
         }
         else
         {
             RGB2FloatY(refYd.get(), refR, refG, refB,
                 ref_height[0], ref_width[0], ref_stride[0], ref_stride[0],
-                ColorMatrix::OPP, true, false);
+                ColorMatrix::OPP, ref_full, false);
         }
     }
 
@@ -674,7 +674,7 @@ void BM3D_Process_Base::process_core_rgb()
     // Convert dst from floating point YUV data to RGB data
     FloatYUV2RGB(dstR, dstG, dstB, dstYd.get(), dstUd.get(), dstVd.get(),
         dst_height[0], dst_width[0], dst_stride[0], dst_stride[0],
-        ColorMatrix::OPP, true, !isFloat(_Ty));
+        ColorMatrix::OPP, full, !isFloat(_Ty));
 }
 
 

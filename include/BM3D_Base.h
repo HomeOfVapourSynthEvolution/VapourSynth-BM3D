@@ -188,7 +188,8 @@ protected:
             BM3D_OPP = 0;
         }
 
-        // Determine color range of Gray/YUV input
+        // Determine color range of input, untagged RGB is full range while untagged Gray/YUV is limited range
+        const bool rgb = fi->colorFamily == cfRGB;
         int64_t _Range = vsapi->mapGetInt(src_map, "_Range", 0, &error);
 
         if (BM3D_OPP == 1)
@@ -197,16 +198,16 @@ protected:
         }
         else
         {
-            full = !error && _Range != 0;
+            full = rgb ? error || _Range != 0 : !error && _Range != 0;
         }
 
-        // Determine color range of Gray/YUV ref
+        // Determine color range of ref
         if (d.rdef)
         {
             const VSMap *ref_map = vsapi->getFramePropertiesRO(ref);
             const bool ref_OPP = vsapi->mapGetInt(ref_map, "BM3D_OPP", 0, &error) == 1;
             const int64_t ref_Range = vsapi->mapGetInt(ref_map, "_Range", 0, &error);
-            ref_full = ref_OPP || (!error && ref_Range != 0);
+            ref_full = ref_OPP || (rgb ? error || ref_Range != 0 : !error && ref_Range != 0);
         }
         else
         {
