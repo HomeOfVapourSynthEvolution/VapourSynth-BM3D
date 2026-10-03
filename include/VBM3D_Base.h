@@ -257,6 +257,14 @@ protected:
         return OPP || (!error && range != 0);
     }
 
+    // Color range of an RGB frame, untagged RGB is full range
+    bool IsFullRangeRGB(const VSFrame *frame) const
+    {
+        int error;
+        const int64_t range = vsapi->mapGetInt(vsapi->getFramePropertiesRO(frame), "_Range", 0, &error);
+        return error || range != 0;
+    }
+
     virtual void NewFrame() override
     {
         // The output frame is a stack of intermediate float data

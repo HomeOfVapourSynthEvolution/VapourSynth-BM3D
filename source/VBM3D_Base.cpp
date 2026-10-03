@@ -952,10 +952,13 @@ void VBM3D_Process_Base::process_core_rgb()
             if (d.wiener) refVd[i] = MakeAligned<FLType>(ref_pcount[2]);
         }
 
-        // Convert src and ref from RGB data to floating point YUV data
+        // Convert src and ref from RGB data to floating point YUV data, each frame with its own color range
+        const bool full = IsFullRangeRGB(v_src[i]);
+        const bool ref_full = d.rdef ? IsFullRangeRGB(v_ref[i]) : full;
+
         RGB2FloatYUV(srcYd[i].get(), srcUd[i].get(), srcVd[i].get(), srcR, srcG, srcB,
             src_height[0], src_width[0], src_stride[0], src_stride[0],
-            ColorMatrix::OPP, true, false);
+            ColorMatrix::OPP, full, false);
 
         if (d.rdef)
         {
@@ -963,13 +966,13 @@ void VBM3D_Process_Base::process_core_rgb()
             {
                 RGB2FloatYUV(refYd[i].get(), refUd[i].get(), refVd[i].get(), refR, refG, refB,
                     ref_height[0], ref_width[0], ref_stride[0], ref_stride[0],
-                    ColorMatrix::OPP, true, false);
+                    ColorMatrix::OPP, ref_full, false);
             }
             else
             {
                 RGB2FloatY(refYd[i].get(), refR, refG, refB,
                     ref_height[0], ref_width[0], ref_stride[0], ref_stride[0],
-                    ColorMatrix::OPP, true, false);
+                    ColorMatrix::OPP, ref_full, false);
             }
         }
 
