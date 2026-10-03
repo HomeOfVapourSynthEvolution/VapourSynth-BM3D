@@ -713,7 +713,10 @@ void VBM3D_Process_Base::process_core_gray()
         srcYd[i] = MakeAligned<FLType>(src_pcount[0]);
         if (d.rdef) refYd[i] = MakeAligned<FLType>(ref_pcount[0]);
 
-        // Convert src and ref from integer Y data to floating point Y data
+        // Convert src and ref from integer Y data to floating point Y data, each frame with its own color range
+        const bool full = IsFullRange(v_src[i]);
+        const bool ref_full = d.rdef ? IsFullRange(v_ref[i]) : full;
+
         Int2Float(srcYd[i].get(), srcY, src_height[0], src_width[0], src_stride[0], src_stride[0], false, full, false);
         if (d.rdef) Int2Float(refYd[i].get(), refY, ref_height[0], ref_width[0], ref_stride[0], ref_stride[0], false, ref_full, false);
 
@@ -806,7 +809,10 @@ void VBM3D_Process_Base::process_core_yuv()
             if (d.wiener && d.process[2]) refVd[i] = MakeAligned<FLType>(ref_pcount[2]);
         }
 
-        // Convert src and ref from integer YUV data to floating point YUV data
+        // Convert src and ref from integer YUV data to floating point YUV data, each frame with its own color range
+        const bool full = IsFullRange(v_src[i]);
+        const bool ref_full = d.rdef ? IsFullRange(v_ref[i]) : full;
+
         if (d.process[0] || !d.rdef) Int2Float(srcYd[i].get(), srcY, src_height[0], src_width[0], src_stride[0], src_stride[0], false, full, false);
         if (d.process[1]) Int2Float(srcUd[i].get(), srcU, src_height[1], src_width[1], src_stride[1], src_stride[1], true, full, false);
         if (d.process[2]) Int2Float(srcVd[i].get(), srcV, src_height[2], src_width[2], src_stride[2], src_stride[2], true, full, false);

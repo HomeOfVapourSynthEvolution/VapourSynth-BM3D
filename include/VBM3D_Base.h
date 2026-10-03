@@ -146,9 +146,6 @@ protected:
     ptrdiff_t ref_stride[VSMaxPlaneCount];
     ptrdiff_t ref_pcount[VSMaxPlaneCount];
 
-    bool full = true;
-    bool ref_full = true;
-
 private:
     template < typename _Ty >
     void process_core();
@@ -250,45 +247,18 @@ protected:
         dfi = NewFormat(d, fi, core, vsapi);
     }
 
+    // Color range of a Gray/YUV frame, OPP is always full range
+    bool IsFullRange(const VSFrame *frame) const
+    {
+        int error;
+        const VSMap *map = vsapi->getFramePropertiesRO(frame);
+        const bool OPP = vsapi->mapGetInt(map, "BM3D_OPP", 0, &error) == 1;
+        const int64_t range = vsapi->mapGetInt(map, "_Range", 0, &error);
+        return OPP || (!error && range != 0);
+    }
+
     virtual void NewFrame() override
     {
-        // Get input frame properties
-        int error;
-        const VSMap *src_map = vsapi->getFramePropertiesRO(src);
-
-        // Determine OPP input
-        int64_t BM3D_OPP = vsapi->mapGetInt(src_map, "BM3D_OPP", 0, &error);
-
-        if (error)
-        {
-            BM3D_OPP = 0;
-        }
-
-        // Determine color range of Gray/YUV input
-        int64_t _Range = vsapi->mapGetInt(src_map, "_Range", 0, &error);
-
-        if (BM3D_OPP == 1)
-        {
-            full = true;
-        }
-        else
-        {
-            full = !error && _Range != 0;
-        }
-
-        // Determine color range of Gray/YUV ref
-        if (d.rdef)
-        {
-            const VSMap *ref_map = vsapi->getFramePropertiesRO(v_ref[cur]);
-            const bool ref_OPP = vsapi->mapGetInt(ref_map, "BM3D_OPP", 0, &error) == 1;
-            const int64_t ref_Range = vsapi->mapGetInt(ref_map, "_Range", 0, &error);
-            ref_full = ref_OPP || (!error && ref_Range != 0);
-        }
-        else
-        {
-            ref_full = full;
-        }
-
         // The output frame is a stack of intermediate float data
         _NewFrame(width, height * (d.para.radius * 2 + 1) * 2, false);
 
