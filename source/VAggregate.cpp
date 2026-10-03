@@ -64,6 +64,12 @@ int VAggregate_Data::arguments_process(const VSMap *in, VSMap *out)
             throw std::string("Invalid \"radius\" assigned, must be an integer in [1, 16]");
         }
 
+        if (vi->height % ((radius * 2 + 1) * 2) != 0)
+        {
+            throw std::string("Invalid input clip, its height is not a multiple of (radius * 2 + 1) * 2. "
+                "Make sure \"radius\" matches the one used in bm3d.VBasic or bm3d.VFinal");
+        }
+
         // sample - int
         sample = static_cast<VSSampleType>(vsapi->mapGetInt(in, "sample", 0, &error));
 
