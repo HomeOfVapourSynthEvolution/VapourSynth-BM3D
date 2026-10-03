@@ -109,6 +109,8 @@ public:
 private:
     const _Mydata &d;
 
+    bool full = true;
+
 private:
     template < typename _Dt1, typename _St1 >
     void process_core();
@@ -170,6 +172,11 @@ protected:
 
     virtual void NewFrame() override
     {
+        // Untagged RGB is full range
+        int error;
+        const int64_t _Range = vsapi->mapGetInt(vsapi->getFramePropertiesRO(src), "_Range", 0, &error);
+        full = error || _Range != 0;
+
         _NewFrame(width, height, false);
 
         // Set output frame properties
@@ -203,7 +210,7 @@ void RGB2OPP_Process::process_core()
     _St1 sFloor, sCeil;
 
     GetQuanPara(dFloorY, dCeilY, dFloorC, dNeutralC, dCeilC, dfi->bitsPerSample, true);
-    GetQuanPara(sFloor, sCeil, fi->bitsPerSample, true);
+    GetQuanPara(sFloor, sCeil, fi->bitsPerSample, full);
 
     MatrixConvert_RGB2YUV(dstY, dstU, dstV, srcR, srcG, srcB, height, width, dst_stride[0], src_stride[0],
         dFloorY, dCeilY, dFloorC, dNeutralC, dCeilC, sFloor, sCeil, ColorMatrix::OPP, !isFloat(_Dt1));
