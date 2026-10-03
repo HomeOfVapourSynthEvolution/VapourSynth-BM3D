@@ -297,6 +297,7 @@ protected:
         if (fi->colorFamily == cfRGB)
         {
             vsapi->mapSetInt(dst_map, "_Matrix", 2, maReplace);
+            vsapi->mapSetInt(dst_map, "_Range", 1, maReplace);
             vsapi->mapSetInt(dst_map, "BM3D_OPP", 1, maReplace);
         }
 
