@@ -323,9 +323,9 @@ int VBM3D_Data_Base::arguments_process(const VSMap *in, VSMap *out)
         {
             para.thMSE_Default();
         }
-        else if (para.thMSE <= 0)
+        else if (para.thMSE < 0)
         {
-            throw std::string("Invalid \"th_mse\" assigned, must be a positive floating point number");
+            throw std::string("Invalid \"th_mse\" assigned, must be a non-negative floating point number");
         }
 
         // matrix - int
