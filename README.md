@@ -62,6 +62,7 @@ bm3d.OPP2RGB(clip input[, int sample=0])
 
 - input:<br />
     The input clip, must be of YUV color family.<br />
+    The input frame must carry the property "BM3D_OPP=1" attached by bm3d.RGB2OPP, otherwise the GetFrame function will return an error message.<br />
     The output clip is of RGB color family, 16 bit integer or 32 bit float.
 
 - sample:<br />

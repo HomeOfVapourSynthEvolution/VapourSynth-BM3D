@@ -95,6 +95,17 @@ static const VSFrame *VS_CC OPP2RGB_GetFrame(int n, int activationReason, void *
     }
     else if (activationReason == arAllFramesReady)
     {
+        const VSFrame *src = vsapi->getFrameFilter(n, d->node, frameCtx);
+        int error;
+        const int64_t BM3D_OPP = vsapi->mapGetInt(vsapi->getFramePropertiesRO(src), "BM3D_OPP", 0, &error);
+        vsapi->freeFrame(src);
+
+        if (BM3D_OPP != 1)
+        {
+            vsapi->setFilterError("bm3d.OPP2RGB: the input frame property \"BM3D_OPP=1\" is missing, only opponent color space input is supported", frameCtx);
+            return nullptr;
+        }
+
         OPP2RGB_Process p(*d, n, frameCtx, core, vsapi);
 
         return p.process();
