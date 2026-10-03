@@ -135,6 +135,26 @@ static void VS_CC OPP2RGB_Create(const VSMap *in, VSMap *out, void *userData, VS
 // VapourSynth: bm3d.Basic
 
 
+// Sigma is normalized by matrix at filter creation, so OPP input can't be filtered with another matrix
+static bool RejectOPPMatrixMismatch(const char *func, ColorMatrix matrix, int n, VSNode *node, VSFrameContext *frameCtx, const VSAPI *vsapi)
+{
+    const VSFrame *src = vsapi->getFrameFilter(n, node, frameCtx);
+    int error;
+    const int64_t BM3D_OPP = vsapi->mapGetInt(vsapi->getFramePropertiesRO(src), "BM3D_OPP", 0, &error);
+    vsapi->freeFrame(src);
+
+    if (BM3D_OPP != 1 || matrix == ColorMatrix::OPP)
+    {
+        return false;
+    }
+
+    const std::string msg = std::string(func) + ": the input frame property \"BM3D_OPP=1\" indicates opponent color space input, "
+        "\"matrix=100\" must be specified";
+    vsapi->setFilterError(msg.c_str(), frameCtx);
+    return true;
+}
+
+
 static const VSFrame *VS_CC BM3D_Basic_GetFrame(int n, int activationReason, void *instanceData, void **frameData, VSFrameContext *frameCtx, VSCore *core, const VSAPI *vsapi)
 {
     BM3D_Basic_Data *d = reinterpret_cast<BM3D_Basic_Data *>(instanceData);
@@ -146,6 +166,11 @@ static const VSFrame *VS_CC BM3D_Basic_GetFrame(int n, int activationReason, voi
     }
     else if (activationReason == arAllFramesReady)
     {
+        if (RejectOPPMatrixMismatch("bm3d.Basic", d->matrix, n, d->node, frameCtx, vsapi))
+        {
+            return nullptr;
+        }
+
         BM3D_Basic_Process p(*d, n, frameCtx, core, vsapi);
 
         return p.process();
@@ -196,6 +221,11 @@ static const VSFrame *VS_CC BM3D_Final_GetFrame(int n, int activationReason, voi
     }
     else if (activationReason == arAllFramesReady)
     {
+        if (RejectOPPMatrixMismatch("bm3d.Final", d->matrix, n, d->node, frameCtx, vsapi))
+        {
+            return nullptr;
+        }
+
         BM3D_Final_Process p(*d, n, frameCtx, core, vsapi);
 
         return p.process();
@@ -254,6 +284,11 @@ static const VSFrame *VS_CC VBM3D_Basic_GetFrame(int n, int activationReason, vo
     }
     else if (activationReason == arAllFramesReady)
     {
+        if (RejectOPPMatrixMismatch("bm3d.VBasic", d->matrix, n, d->node, frameCtx, vsapi))
+        {
+            return nullptr;
+        }
+
         VBM3D_Basic_Process p(*d, n, frameCtx, core, vsapi);
 
         return p.process();
@@ -317,6 +352,11 @@ static const VSFrame *VS_CC VBM3D_Final_GetFrame(int n, int activationReason, vo
     }
     else if (activationReason == arAllFramesReady)
     {
+        if (RejectOPPMatrixMismatch("bm3d.VFinal", d->matrix, n, d->node, frameCtx, vsapi))
+        {
+            return nullptr;
+        }
+
         VBM3D_Final_Process p(*d, n, frameCtx, core, vsapi);
 
         return p.process();

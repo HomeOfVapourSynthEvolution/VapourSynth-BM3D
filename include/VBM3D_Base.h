@@ -262,12 +262,6 @@ protected:
         {
             BM3D_OPP = 0;
         }
-        else if (BM3D_OPP == 1 && fi->colorFamily != cfRGB && d.matrix != ColorMatrix::OPP)
-        {
-            vsapi->logMessage(mtWarning, "bm3d.VBasic/bm3d.VFinal - warning: "
-                "There's a frame property \"BM3D_OPP=1\" indicating opponent color space input. "
-                "You should specify \"matrix=100\" in the filter's argument.", core);
-        }
 
         // Determine color range of Gray/YUV input
         int64_t _Range = vsapi->mapGetInt(src_map, "_Range", 0, &error);
