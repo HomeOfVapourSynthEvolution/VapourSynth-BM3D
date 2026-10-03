@@ -230,7 +230,7 @@ int BM3D_Data_Base::arguments_process(const VSMap *in, VSMap *out)
         // process
         for (int i = 0; i < VSMaxPlaneCount; i++)
         {
-            if (vi->format.colorFamily != cfRGB && para.sigma[i] == 0)
+            if (i >= vi->format.numPlanes || (vi->format.colorFamily != cfRGB && para.sigma[i] == 0))
             {
                 process[i] = 0;
             }
