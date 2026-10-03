@@ -546,10 +546,10 @@ void BM3D_Process_Base::process_core_yuv()
     FLType *srcYd = nullptr, *srcUd = nullptr, *srcVd = nullptr;
     FLType *refYd = nullptr, *refUd = nullptr, *refVd = nullptr;
 
-    // Get write/read pointer
-    auto dstY = reinterpret_cast<_Ty *>(vsapi->getWritePtr(dst, 0));
-    auto dstU = reinterpret_cast<_Ty *>(vsapi->getWritePtr(dst, 1));
-    auto dstV = reinterpret_cast<_Ty *>(vsapi->getWritePtr(dst, 2));
+    // Get write/read pointer, getWritePtr would copy an unprocessed plane shared with src
+    auto dstY = d.process[0] ? reinterpret_cast<_Ty *>(vsapi->getWritePtr(dst, 0)) : nullptr;
+    auto dstU = d.process[1] ? reinterpret_cast<_Ty *>(vsapi->getWritePtr(dst, 1)) : nullptr;
+    auto dstV = d.process[2] ? reinterpret_cast<_Ty *>(vsapi->getWritePtr(dst, 2)) : nullptr;
 
     auto srcY = reinterpret_cast<const _Ty *>(vsapi->getReadPtr(src, 0));
     auto srcU = reinterpret_cast<const _Ty *>(vsapi->getReadPtr(src, 1));
@@ -621,10 +621,10 @@ void BM3D_Process_Base::process_core_yuv()
 template <>
 void BM3D_Process_Base::process_core_yuv<FLType>()
 {
-    // Get write/read pointer
-    auto dstY = reinterpret_cast<FLType *>(vsapi->getWritePtr(dst, 0));
-    auto dstU = reinterpret_cast<FLType *>(vsapi->getWritePtr(dst, 1));
-    auto dstV = reinterpret_cast<FLType *>(vsapi->getWritePtr(dst, 2));
+    // Get write/read pointer, getWritePtr would copy an unprocessed plane shared with src
+    auto dstY = d.process[0] ? reinterpret_cast<FLType *>(vsapi->getWritePtr(dst, 0)) : nullptr;
+    auto dstU = d.process[1] ? reinterpret_cast<FLType *>(vsapi->getWritePtr(dst, 1)) : nullptr;
+    auto dstV = d.process[2] ? reinterpret_cast<FLType *>(vsapi->getWritePtr(dst, 2)) : nullptr;
 
     auto srcY = reinterpret_cast<const FLType *>(vsapi->getReadPtr(src, 0));
     auto srcU = reinterpret_cast<const FLType *>(vsapi->getReadPtr(src, 1));
