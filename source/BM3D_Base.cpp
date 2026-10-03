@@ -509,7 +509,7 @@ void BM3D_Process_Base::process_core_gray()
 
     // Convert src and ref from integer Y data to floating point Y data
     Int2Float(srcYd.get(), srcY, src_height[0], src_width[0], src_stride[0], src_stride[0], false, full, false);
-    if (d.rdef) Int2Float(refYd.get(), refY, ref_height[0], ref_width[0], ref_stride[0], ref_stride[0], false, full, false);
+    if (d.rdef) Int2Float(refYd.get(), refY, ref_height[0], ref_width[0], ref_stride[0], ref_stride[0], false, ref_full, false);
 
     // Execute kernel
     Kernel(dstYd.get(), srcYd.get(), d.rdef ? refYd.get() : srcYd.get());
@@ -574,9 +574,9 @@ void BM3D_Process_Base::process_core_yuv()
 
     if (d.rdef)
     {
-        Int2Float(refYd.get(), refY, ref_height[0], ref_width[0], ref_stride[0], ref_stride[0], false, full, false);
-        if (d.wiener && d.process[1]) Int2Float(refUd.get(), refU, ref_height[1], ref_width[1], ref_stride[1], ref_stride[1], true, full, false);
-        if (d.wiener && d.process[2]) Int2Float(refVd.get(), refV, ref_height[2], ref_width[2], ref_stride[2], ref_stride[2], true, full, false);
+        Int2Float(refYd.get(), refY, ref_height[0], ref_width[0], ref_stride[0], ref_stride[0], false, ref_full, false);
+        if (d.wiener && d.process[1]) Int2Float(refUd.get(), refU, ref_height[1], ref_width[1], ref_stride[1], ref_stride[1], true, ref_full, false);
+        if (d.wiener && d.process[2]) Int2Float(refVd.get(), refV, ref_height[2], ref_width[2], ref_stride[2], ref_stride[2], true, ref_full, false);
     }
 
     // Execute kernel

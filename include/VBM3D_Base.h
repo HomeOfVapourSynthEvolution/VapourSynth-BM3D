@@ -147,6 +147,7 @@ protected:
     ptrdiff_t ref_pcount[VSMaxPlaneCount];
 
     bool full = true;
+    bool ref_full = true;
 
 private:
     template < typename _Ty >
@@ -273,6 +274,19 @@ protected:
         else
         {
             full = !error && _Range != 0;
+        }
+
+        // Determine color range of Gray/YUV ref
+        if (d.rdef)
+        {
+            const VSMap *ref_map = vsapi->getFramePropertiesRO(v_ref[cur]);
+            const bool ref_OPP = vsapi->mapGetInt(ref_map, "BM3D_OPP", 0, &error) == 1;
+            const int64_t ref_Range = vsapi->mapGetInt(ref_map, "_Range", 0, &error);
+            ref_full = ref_OPP || (!error && ref_Range != 0);
+        }
+        else
+        {
+            ref_full = full;
         }
 
         // The output frame is a stack of intermediate float data
