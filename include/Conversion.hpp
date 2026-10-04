@@ -26,11 +26,17 @@
 #define CONVERSION_HPP_
 
 
+#include <type_traits>
 #include "Helper.h"
 #include "Specification.h"
 
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+
+// Integer output is computed in double, float would absorb the 0.499999 PC chroma tie-break into the neutral value
+template < typename _Dt1 >
+using CalcType = std::conditional_t<isFloat(_Dt1), FLType, double>;
 
 
 // clipFloor/clipCeil bound the clipped output, they can be wider than the nominal dFloor/dCeil used for scaling
@@ -43,37 +49,34 @@ void RangeConvert(_Dt1 *dst, const _St1 *src,
 {
     typedef _St1 srcType;
     typedef _Dt1 dstType;
+    typedef CalcType<dstType> calcType;
 
     const bool dstFloat = isFloat(dstType);
 
     const auto sRange = sCeil - sFloor;
     const auto dRange = dCeil - dFloor;
 
-    bool srcPCChroma = isPCChroma(sFloor, sNeutral, sCeil);
     bool dstPCChroma = isPCChroma(dFloor, dNeutral, dCeil);
 
-    // Always apply clipping if source is PC range chroma
-    if (srcPCChroma) clip = true;
-
-    FLType gain = static_cast<FLType>(dRange) / sRange;
-    FLType offset = -static_cast<FLType>(sNeutral) * gain + dNeutral;
-    if (!dstFloat) offset += FLType(dstPCChroma ? 0.499999 : 0.5);
+    calcType gain = static_cast<calcType>(dRange) / sRange;
+    calcType offset = -static_cast<calcType>(sNeutral) * gain + dNeutral;
+    if (!dstFloat) offset += calcType(dstPCChroma ? 0.499999 : 0.5);
 
     if (clip)
     {
-        const FLType lowerL = static_cast<FLType>(clipFloor);
-        const FLType upperL = static_cast<FLType>(clipCeil);
+        const calcType lowerL = static_cast<calcType>(clipFloor);
+        const calcType upperL = static_cast<calcType>(clipCeil);
 
         LOOP_VH(height, width, dst_stride, src_stride, [&](PCType i0, PCType i1)
         {
-            dst[i0] = static_cast<dstType>(Clip(static_cast<FLType>(src[i1]) * gain + offset, lowerL, upperL));
+            dst[i0] = static_cast<dstType>(Clip(static_cast<calcType>(src[i1]) * gain + offset, lowerL, upperL));
         });
     }
     else
     {
         LOOP_VH(height, width, dst_stride, src_stride, [&](PCType i0, PCType i1)
         {
-            dst[i0] = static_cast<dstType>(static_cast<FLType>(src[i1]) * gain + offset);
+            dst[i0] = static_cast<dstType>(static_cast<calcType>(src[i1]) * gain + offset);
         });
     }
 }
@@ -193,6 +196,7 @@ void MatrixConvert_RGB2YUV(_Dt1 *dstY, _Dt1 *dstU, _Dt1 *dstV,
 {
     typedef _St1 srcType;
     typedef _Dt1 dstType;
+    typedef CalcType<dstType> calcType;
 
     const bool dstFloat = isFloat(dstType);
 
@@ -202,10 +206,10 @@ void MatrixConvert_RGB2YUV(_Dt1 *dstY, _Dt1 *dstU, _Dt1 *dstV,
     const auto dRangeY = dCeilY - dFloorY;
     const auto dRangeC = dCeilC - dFloorC;
 
-    const FLType lowerLY = static_cast<FLType>(dFloorY);
-    const FLType upperLY = static_cast<FLType>(dCeilY);
-    const FLType lowerLC = static_cast<FLType>(dFloorC);
-    const FLType upperLC = static_cast<FLType>(dCeilC);
+    const calcType lowerLY = static_cast<calcType>(dFloorY);
+    const calcType upperLY = static_cast<calcType>(dCeilY);
+    const calcType lowerLC = static_cast<calcType>(dFloorC);
+    const calcType upperLC = static_cast<calcType>(dCeilC);
 
     if (matrix == ColorMatrix::GBR)
     {
@@ -215,32 +219,32 @@ void MatrixConvert_RGB2YUV(_Dt1 *dstY, _Dt1 *dstU, _Dt1 *dstV,
     }
     else if (matrix == ColorMatrix::OPP)
     {
-        FLType gainY = static_cast<FLType>(dRangeY) / (sRange * FLType(3));
-        FLType offsetY = -static_cast<FLType>(sFloor) * FLType(3) * gainY + dFloorY;
-        if (!dstFloat) offsetY += FLType(0.5);
-        FLType gainU = static_cast<FLType>(dRangeC) / (sRange * FLType(2));
-        FLType gainV = static_cast<FLType>(dRangeC) / (sRange * FLType(4));
-        FLType offsetC = static_cast<FLType>(dNeutralC);
-        if (!dstFloat) offsetC += FLType(dstPCChroma ? 0.499999 : 0.5);
+        calcType gainY = static_cast<calcType>(dRangeY) / (sRange * calcType(3));
+        calcType offsetY = -static_cast<calcType>(sFloor) * calcType(3) * gainY + dFloorY;
+        if (!dstFloat) offsetY += calcType(0.5);
+        calcType gainU = static_cast<calcType>(dRangeC) / (sRange * calcType(2));
+        calcType gainV = static_cast<calcType>(dRangeC) / (sRange * calcType(4));
+        calcType offsetC = static_cast<calcType>(dNeutralC);
+        if (!dstFloat) offsetC += calcType(dstPCChroma ? 0.499999 : 0.5);
 
         LOOP_VH(height, width, dst_stride, src_stride, [&](PCType i0, PCType i1)
         {
-            FLType temp;
+            calcType temp;
 
-            temp = (static_cast<FLType>(srcR[i1])
-                + static_cast<FLType>(srcG[i1])
-                + static_cast<FLType>(srcB[i1]))
+            temp = (static_cast<calcType>(srcR[i1])
+                + static_cast<calcType>(srcG[i1])
+                + static_cast<calcType>(srcB[i1]))
                 * gainY + offsetY;
             dstY[i0] = static_cast<dstType>(clip ? Clip(temp, lowerLY, upperLY) : temp);
 
-            temp = (static_cast<FLType>(srcR[i1])
-                - static_cast<FLType>(srcB[i1]))
+            temp = (static_cast<calcType>(srcR[i1])
+                - static_cast<calcType>(srcB[i1]))
                 * gainU + offsetC;
             dstU[i0] = static_cast<dstType>(clip ? Clip(temp, lowerLC, upperLC) : temp);
 
-            temp = (static_cast<FLType>(srcR[i1])
-                - static_cast<FLType>(srcG[i1]) * FLType(2)
-                + static_cast<FLType>(srcB[i1]))
+            temp = (static_cast<calcType>(srcR[i1])
+                - static_cast<calcType>(srcG[i1]) * calcType(2)
+                + static_cast<calcType>(srcB[i1]))
                 * gainV + offsetC;
             dstV[i0] = static_cast<dstType>(clip ? Clip(temp, lowerLC, upperLC) : temp);
         });
@@ -252,14 +256,14 @@ void MatrixConvert_RGB2YUV(_Dt1 *dstY, _Dt1 *dstU, _Dt1 *dstV,
     }
     else
     {
-        FLType gainY = static_cast<FLType>(dRangeY) / sRange;
-        FLType offsetY = -static_cast<FLType>(sFloor) * gainY + dFloorY;
-        if (!dstFloat) offsetY += FLType(0.5);
-        FLType gainC = static_cast<FLType>(dRangeC) / sRange;
-        FLType offsetC = static_cast<FLType>(dNeutralC);
-        if (!dstFloat) offsetC += FLType(dstPCChroma ? 0.499999 : 0.5);
+        calcType gainY = static_cast<calcType>(dRangeY) / sRange;
+        calcType offsetY = -static_cast<calcType>(sFloor) * gainY + dFloorY;
+        if (!dstFloat) offsetY += calcType(0.5);
+        calcType gainC = static_cast<calcType>(dRangeC) / sRange;
+        calcType offsetC = static_cast<calcType>(dNeutralC);
+        if (!dstFloat) offsetC += calcType(dstPCChroma ? 0.499999 : 0.5);
 
-        FLType Yr, Yg, Yb, Ur, Ug, Ub, Vr, Vg, Vb;
+        calcType Yr, Yg, Yb, Ur, Ug, Ub, Vr, Vg, Vb;
         ColorMatrix_RGB2YUV_Parameter(matrix, Yr, Yg, Yb, Ur, Ug, Ub, Vr, Vg, Vb);
 
         Yr *= gainY;
@@ -274,23 +278,23 @@ void MatrixConvert_RGB2YUV(_Dt1 *dstY, _Dt1 *dstU, _Dt1 *dstV,
 
         LOOP_VH(height, width, dst_stride, src_stride, [&](PCType i0, PCType i1)
         {
-            FLType temp;
+            calcType temp;
 
-            temp = Yr * static_cast<FLType>(srcR[i1])
-                + Yg * static_cast<FLType>(srcG[i1])
-                + Yb * static_cast<FLType>(srcB[i1])
+            temp = Yr * static_cast<calcType>(srcR[i1])
+                + Yg * static_cast<calcType>(srcG[i1])
+                + Yb * static_cast<calcType>(srcB[i1])
                 + offsetY;
             dstY[i0] = static_cast<dstType>(clip ? Clip(temp, lowerLY, upperLY) : temp);
 
-            temp = Ur * static_cast<FLType>(srcR[i1])
-                + Ug * static_cast<FLType>(srcG[i1])
-                + Ub * static_cast<FLType>(srcB[i1])
+            temp = Ur * static_cast<calcType>(srcR[i1])
+                + Ug * static_cast<calcType>(srcG[i1])
+                + Ub * static_cast<calcType>(srcB[i1])
                 + offsetC;
             dstU[i0] = static_cast<dstType>(clip ? Clip(temp, lowerLC, upperLC) : temp);
 
-            temp = Vr * static_cast<FLType>(srcR[i1])
-                + Vg * static_cast<FLType>(srcG[i1])
-                + Vb * static_cast<FLType>(srcB[i1])
+            temp = Vr * static_cast<calcType>(srcR[i1])
+                + Vg * static_cast<calcType>(srcG[i1])
+                + Vb * static_cast<calcType>(srcB[i1])
                 + offsetC;
             dstV[i0] = static_cast<dstType>(clip ? Clip(temp, lowerLC, upperLC) : temp);
         });
