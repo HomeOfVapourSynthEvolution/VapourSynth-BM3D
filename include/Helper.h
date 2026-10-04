@@ -32,6 +32,7 @@
 #include <vector>
 #include <cmath>
 #include <cassert>
+#include <cstring>
 #include <memory>
 #include <new>
 #include <VapourSynth4.h>
