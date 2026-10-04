@@ -21,7 +21,7 @@
 * SOFTWARE.
 */
 
-
+#include <limits>
 #include "VBM3D_Base.h"
 
 
@@ -213,6 +213,11 @@ int VBM3D_Data_Base::arguments_process(const VSMap *in, VSMap *out)
         else if (para.radius < 1 || para.radius > 16)
         {
             throw std::string("Invalid \"radius\" assigned, must be an integer in [1, 16]");
+        }
+
+        if (vi->height > std::numeric_limits<int>::max() / ((para.radius * 2 + 1) * 2))
+        {
+            throw std::string("Invalid input clip, its height multiplied by (radius * 2 + 1) * 2 must not exceed 2147483647");
         }
 
         // block_size - int
