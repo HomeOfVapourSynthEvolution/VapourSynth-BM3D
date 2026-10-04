@@ -694,14 +694,20 @@ public:
         const PCType r = SearchBoundary(src_width - Width(), range, step, false);
         const PCType t = SearchBoundary(PCType(0), range, step, true);
         const PCType b = SearchBoundary(src_height - Height(), range, step, true);
+        const PCType rows = (b - t) / step + 1;
+        const PCType cols = (r - l) / step + 1;
 
-        PosCode search_pos(((r - l) / step + 1) * ((b - t) / step + 1));
+        PosCode search_pos(rows * cols);
         size_t index = 0;
 
-        for (PCType j = t; j <= b; j += step)
+        for (PCType y = 0; y < rows; ++y)
         {
-            for (PCType i = l; i <= r; i += step)
+            const PCType j = t + y * step;
+
+            for (PCType x = 0; x < cols; ++x)
             {
+                const PCType i = l + x * step;
+
                 if (excludeCurPos > 0 && j == PosY() && i == PosX())
                 {
                     continue;
@@ -759,14 +765,16 @@ public:
         const PCType r = _SearchBoundary(ref_pos.x, src_width - Width(), range, step);
         const PCType t = _SearchBoundary(ref_pos.y, PCType(0), range, step);
         const PCType b = _SearchBoundary(ref_pos.y, src_height - Height(), range, step);
+        const PCType rows = (b - t) / step + 1;
+        const PCType cols = (r - l) / step + 1;
 
-        search_pos.resize(index + ((r - l) / step + 1) * ((b - t) / step + 1));
+        search_pos.resize(index + rows * cols);
 
-        for (PCType j = t; j <= b; j += step)
+        for (PCType y = 0; y < rows; ++y)
         {
-            for (PCType i = l; i <= r; i += step)
+            for (PCType x = 0; x < cols; ++x)
             {
-                search_pos[index++] = PosType(j, i);
+                search_pos[index++] = PosType(t + y * step, l + x * step);
             }
         }
     }
