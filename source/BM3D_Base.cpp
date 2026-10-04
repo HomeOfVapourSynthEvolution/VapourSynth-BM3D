@@ -209,7 +209,7 @@ int BM3D_Data_Base::arguments_process(const VSMap *in, VSMap *out)
         }
 
         // matrix - int
-        matrix = static_cast<ColorMatrix>(vsapi->mapGetInt(in, "matrix", 0, &error));
+        matrix = static_cast<ColorMatrix>(vsapi->mapGetIntSaturated(in, "matrix", 0, &error));
 
         if (vi->format.colorFamily == cfRGB)
         {

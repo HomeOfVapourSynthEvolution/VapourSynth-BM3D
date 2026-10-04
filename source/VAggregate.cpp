@@ -71,15 +71,19 @@ int VAggregate_Data::arguments_process(const VSMap *in, VSMap *out)
         }
 
         // sample - int
-        sample = static_cast<VSSampleType>(vsapi->mapGetInt(in, "sample", 0, &error));
+        const int64_t sample_arg = vsapi->mapGetInt(in, "sample", 0, &error);
 
         if (error)
         {
             sample = stInteger;
         }
-        else if (sample != stInteger && sample != stFloat)
+        else if (sample_arg != stInteger && sample_arg != stFloat)
         {
             throw std::string("Invalid \'sample\' assigned, must be 0 (integer sample type) or 1 (float sample type)");
+        }
+        else
+        {
+            sample = static_cast<VSSampleType>(sample_arg);
         }
     }
     catch (const std::string &error_msg)
