@@ -357,31 +357,7 @@ void MatrixConvert_YUV2RGB(_Dt1 *dstR, _Dt1 *dstG, _Dt1 *dstB,
         FLType offsetB = -static_cast<FLType>(sFloorY) * By - sNeutralC * (Bu + Bv) + dFloor;
         if (!dstFloat) offsetB += FLType(0.5);
 
-        if (matrix == ColorMatrix::YCgCo)
-        {
-            LOOP_VH(height, width, dst_stride, src_stride, [&](PCType i0, PCType i1)
-            {
-                FLType temp;
-
-                temp = Ry * static_cast<FLType>(srcY[i1])
-                    + Ru * static_cast<FLType>(srcU[i1])
-                    + Rv * static_cast<FLType>(srcV[i1])
-                    + offsetR;
-                dstR[i0] = static_cast<dstType>(clip ? Clip(temp, lowerL, upperL) : temp);
-
-                temp = Gy * static_cast<FLType>(srcY[i1])
-                    + Gu * static_cast<FLType>(srcU[i1])
-                    + offsetG;
-                dstG[i0] = static_cast<dstType>(clip ? Clip(temp, lowerL, upperL) : temp);
-
-                temp = By * static_cast<FLType>(srcY[i1])
-                    + Bu * static_cast<FLType>(srcU[i1])
-                    + Bv * static_cast<FLType>(srcV[i1])
-                    + offsetB;
-                dstB[i0] = static_cast<dstType>(clip ? Clip(temp, lowerL, upperL) : temp);
-            });
-        }
-        else if (matrix == ColorMatrix::OPP)
+        if (matrix == ColorMatrix::OPP)
         {
             LOOP_VH(height, width, dst_stride, src_stride, [&](PCType i0, PCType i1)
             {

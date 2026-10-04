@@ -59,7 +59,6 @@ enum class ColorMatrix
     bt470bg = 5,
     smpte170m = 6,
     smpte240m = 7,
-    YCgCo = 8,
     bt2020nc = 9,
     bt2020c = 10,
     OPP = 100, // opponent colorspace
@@ -107,11 +106,6 @@ void ColorMatrix_Parameter(ColorMatrix _ColorMatrix, T &Kr, T &Kg, T &Kb)
         Kg = T(0.701);
         Kb = T(0.087);
         break;
-    case ColorMatrix::YCgCo:
-        Kr = T(0.25);
-        Kg = T(0.50);
-        Kb = T(0.25);
-        break;
     case ColorMatrix::bt2020nc:
         Kr = T(0.2627);
         Kg = T(0.6780);
@@ -155,23 +149,6 @@ void ColorMatrix_RGB2YUV_Parameter(ColorMatrix _ColorMatrix, T &Yr, T &Yg, T &Yb
         Vr = static_cast<T>(1.0L);
         Vg = static_cast<T>(0.0L);
         Vb = static_cast<T>(0.0L);
-    }
-    else if (_ColorMatrix == ColorMatrix::YCgCo)
-    {
-        // E'Y  =   1 / 4 * E'R + 1 / 2 * E'G + 1 / 4 * E'B
-        Yr = static_cast<T>(1.0L / 4.0L);
-        Yg = static_cast<T>(1.0L / 2.0L);
-        Yb = static_cast<T>(1.0L / 4.0L);
-
-        // E'Pg = - 1 / 4 * E'R + 1 / 2 * E'G - 1 / 4 * E'B
-        Ur = static_cast<T>(-1.0L / 4.0L);
-        Ug = static_cast<T>(1.0L / 2.0L);
-        Ub = static_cast<T>(-1.0L / 4.0L);
-
-        // E'Po = 1 / 2 * E'R                 - 1 / 2 * E'B
-        Vr = static_cast<T>(1.0L / 2.0L);
-        Vg = static_cast<T>(0.0L);
-        Vb = static_cast<T>(-1.0L / 2.0L);
     }
     else if (_ColorMatrix == ColorMatrix::OPP)
     {
@@ -232,23 +209,6 @@ void ColorMatrix_YUV2RGB_Parameter(ColorMatrix _ColorMatrix, T &Ry, T &Ru, T &Rv
         By = static_cast<T>(0.0L);
         Bu = static_cast<T>(1.0L);
         Bv = static_cast<T>(0.0L);
-    }
-    else if (_ColorMatrix == ColorMatrix::YCgCo)
-    {
-        // E'R = E'Y - E'Pg + E'Po
-        Ry = static_cast<T>(1.0L);
-        Ru = static_cast<T>(-1.0L);
-        Rv = static_cast<T>(1.0L);
-
-        // E'G = E'Y + E'Pg
-        Gy = static_cast<T>(1.0L);
-        Gu = static_cast<T>(1.0L);
-        Gv = static_cast<T>(0.0L);
-
-        // E'B = E'Y - E'Pg - E'Po
-        By = static_cast<T>(1.0L);
-        Bu = static_cast<T>(-1.0L);
-        Bv = static_cast<T>(-1.0L);
     }
     else if (_ColorMatrix == ColorMatrix::OPP)
     {

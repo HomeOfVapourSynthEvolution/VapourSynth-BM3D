@@ -26,7 +26,7 @@ sub-sampling: when chroma is processed, sub-sampling is not supported, YUV444 on
 
 ## Important Note
 
-- The denoising quality is best when filtering in opponent color space (abbr. OPP, a kind of YUV color space with simple and intuitive matrix coefficients), which significantly outperforms the quality when filtering in RGB, YCbCr, YCgCo, etc. Thus RGB input is recommended, this filter will convert it to OPP internally and convert back to RGB for output.
+- The denoising quality is best when filtering in opponent color space (abbr. OPP, a kind of YUV color space with simple and intuitive matrix coefficients), which significantly outperforms the quality when filtering in RGB, YCbCr, etc. Thus RGB input is recommended, this filter will convert it to OPP internally and convert back to RGB for output.
 
 - Sub-sampling support is not implemented for simplicity and also for the sake of quality. In fact, the computational cost of conversion between YUV4xx and RGB can be ignored when comparing with that of the filtering kernel.
 

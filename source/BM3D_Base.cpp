@@ -219,10 +219,9 @@ int BM3D_Data_Base::arguments_process(const VSMap *in, VSMap *out)
         {
             matrix = ColorMatrix_Default(vi->width, vi->height);
         }
-        else if (matrix != ColorMatrix::GBR && matrix != ColorMatrix::bt709
-            && matrix != ColorMatrix::fcc && matrix != ColorMatrix::bt470bg && matrix != ColorMatrix::smpte170m
-            && matrix != ColorMatrix::smpte240m && matrix != ColorMatrix::YCgCo && matrix != ColorMatrix::bt2020nc
-            && matrix != ColorMatrix::bt2020c && matrix != ColorMatrix::OPP)
+        else if (matrix != ColorMatrix::GBR && matrix != ColorMatrix::bt709 && matrix != ColorMatrix::fcc && matrix != ColorMatrix::bt470bg
+            && matrix != ColorMatrix::smpte170m && matrix != ColorMatrix::smpte240m && matrix != ColorMatrix::bt2020nc && matrix != ColorMatrix::bt2020c
+            && matrix != ColorMatrix::OPP)
         {
             throw std::string("Unsupported \"matrix\" specified");
         }
