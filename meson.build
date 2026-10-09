@@ -3,7 +3,7 @@ project('BM3D', 'cpp',
     license: 'MIT',
     license_files: 'LICENSE',
     meson_version: '>=1.6.0',
-    version: '10.1',
+    version: '11.0',
 )
 
 py = import('python').find_installation(pure: false)
