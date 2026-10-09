@@ -13,7 +13,7 @@ incdir = include_directories(
     run_command(py, '-c', 'import vapoursynth as vs; print(vs.get_include())', check: true).stdout().strip(),
 )
 
-add_project_arguments('-Wno-unused-local-typedefs', language: 'cpp')
+add_project_arguments('-DVS_USE_API_42', '-Wno-unused-local-typedefs', language: 'cpp')
 
 shared_module('bm3d',
     files(
