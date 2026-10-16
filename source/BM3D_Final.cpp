@@ -69,6 +69,15 @@ void BM3D_Final_Process::CollaborativeFilter(int plane,
 
     // Construct source group and reference group guided by matched pos code
     block_group srcGroup(src, src_stride[plane], code, GroupSize, d.para.BlockSize, d.para.BlockSize);
+
+    // A zero sigma plane (only reachable for RGB input) must stay unfiltered, so pass the source blocks through
+    if (d.para.sigma[plane] == 0)
+    {
+        srcGroup.AddTo(ResNum, dst_stride[plane]);
+        srcGroup.CountTo(ResDen, dst_stride[plane]);
+        return;
+    }
+
     block_group refGroup(ref, ref_stride[plane], code, GroupSize, d.para.BlockSize, d.para.BlockSize);
 
     // Initialize L2-norm of Wiener coefficients

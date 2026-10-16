@@ -158,7 +158,7 @@ BM3D_FilterData::BM3D_FilterData(bool wiener, double sigma, PCType GroupSize, PC
 
         if (wiener)
         {
-            // Floor keeps the Wiener coefficient finite when sigma is 0 and the reference coefficient is 0
+            // Floor keeps the Wiener coefficient finite when sigma squared underflows to 0 and the reference coefficient is 0
             const double sigmaSqrBase = std::max(sigma * forwardAMP * sigma * forwardAMP, double(std::numeric_limits<FLType>::min()));
 
             for (int flag = 0; flag < 4; ++flag)
