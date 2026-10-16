@@ -666,6 +666,11 @@ VBM3D_Process_Base::Pos3PairCode VBM3D_Process_Base::BlockMatching(
         std::partial_sort(matchCode.begin() + 1, matchCode.begin() + d.para.GroupSize, matchCode.end(), Pos3Pair::KeyThenValueLess());
         matchCode.resize(d.para.GroupSize);
     }
+    else
+    {
+        // Sort an untruncated group the same way, so the 3D transform sees blocks in order of similarity
+        std::sort(matchCode.begin() + 1, matchCode.end(), Pos3Pair::KeyThenValueLess());
+    }
 
     return matchCode;
 }
