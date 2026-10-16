@@ -22,6 +22,7 @@
 */
 
 
+#include <array>
 #include "VAggregate.h"
 
 
@@ -54,14 +55,38 @@ int VAggregate_Data::arguments_process(const VSMap *in, VSMap *out)
 
         // radius - int
         radius = vsapi->mapGetIntSaturated(in, "radius", 0, &error);
+        const bool radius_assigned = !error;
 
-        if (error)
-        {
-            radius = 1;
-        }
-        else if (radius < 1 || radius > 16)
+        if (radius_assigned && (radius < 1 || radius > 16))
         {
             throw std::string("Invalid \"radius\" assigned, must be an integer in [1, 16]");
+        }
+
+        // The stacked height can't tell a wrong radius apart, so check the one attached by bm3d.VBasic or bm3d.VFinal
+        std::array<char, 1024> frame_error;
+        const VSFrame *frame = vsapi->getFrame(0, node, frame_error.data(), static_cast<int>(frame_error.size()));
+
+        if (!frame)
+        {
+            throw std::string("failed to get the first frame of input clip: ") + frame_error.data();
+        }
+
+        const int p_radius = vsapi->mapGetIntSaturated(vsapi->getFramePropertiesRO(frame), "BM3D_V_radius", 0, &error);
+        vsapi->freeFrame(frame);
+
+        if (!radius_assigned)
+        {
+            if (!error && (p_radius < 1 || p_radius > 16))
+            {
+                throw std::string("Invalid input frame property \"BM3D_V_radius=") + std::to_string(p_radius) + "\", must be an integer in [1, 16]";
+            }
+
+            radius = error ? 1 : p_radius;
+        }
+        else if (!error && radius != p_radius)
+        {
+            throw std::string("argument \"radius=") + std::to_string(radius) + "\" mismatches the input frame property \"BM3D_V_radius="
+                + std::to_string(p_radius) + "\" which indicates the radius used in bm3d.VBasic or bm3d.VFinal";
         }
 
         // The output height must also stay a multiple of the vertical sub-sampling

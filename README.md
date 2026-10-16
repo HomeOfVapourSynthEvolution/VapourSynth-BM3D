@@ -269,14 +269,15 @@ bm3d.VFinal(clip input, clip ref[, string profile="fast", float[] sigma=[10,10,1
 *If your input clip of bm3d.VBasic or bm3d.VFinal is of RGB color family, you will need to manually call bm3d.OPP2RGB after bm3d.VAggregate to convert it back to RGB.*
 
 ```python
-bm3d.VAggregate(clip input[, int radius=1, int sample=0])
+bm3d.VAggregate(clip input[, int radius, int sample=0])
 ```
 
 - input:<br />
     The clip output by bm3d.VBasic or bm3d.VFinal.
 
 - radius:<br />
-    Must be of the same radius as used in previous function bm3d.VBasic or bm3d.VFinal.
+    Must be of the same radius as used in previous function bm3d.VBasic or bm3d.VFinal.<br />
+    If not specified, it is read from the frame property "BM3D_V_radius" of the first input frame, or 1 if the property is absent.
 
 - sample:<br />
   - 0 - 16 bit integer output (default)
