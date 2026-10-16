@@ -473,6 +473,15 @@ struct KeyPair
     {
         return this->first >= _Right.first;
     }
+
+    // Ties of key are broken by value, so std::partial_sort keeps the same elements with any standard library
+    struct KeyThenValueLess
+    {
+        bool operator()(const _Myt &_Left, const _Myt &_Right) const
+        {
+            return _Left.first != _Right.first ? _Left.first < _Right.first : _Left.second < _Right.second;
+        }
+    };
 };
 
 

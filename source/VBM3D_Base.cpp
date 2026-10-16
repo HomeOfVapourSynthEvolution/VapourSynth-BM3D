@@ -653,7 +653,7 @@ VBM3D_Process_Base::Pos3PairCode VBM3D_Process_Base::BlockMatching(
     // Limit the number of matched code to GroupSize
     if (d.para.GroupSize > 0 && static_cast<PCType>(matchCode.size()) > d.para.GroupSize)
     {
-        std::partial_sort(matchCode.begin() + 1, matchCode.begin() + d.para.GroupSize, matchCode.end());
+        std::partial_sort(matchCode.begin() + 1, matchCode.begin() + d.para.GroupSize, matchCode.end(), Pos3Pair::KeyThenValueLess());
         matchCode.resize(d.para.GroupSize);
     }
 
