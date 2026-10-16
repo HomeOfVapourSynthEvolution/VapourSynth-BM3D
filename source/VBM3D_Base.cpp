@@ -584,6 +584,7 @@ VBM3D_Process_Base::Pos3PairCode VBM3D_Process_Base::BlockMatching(
 
     // Predictive Search Block Matching in backward frames
     f = cur - 1;
+    prePosCode = curPosCode;
 
     for (; f >= 0; --f)
     {
@@ -594,13 +595,17 @@ VBM3D_Process_Base::Pos3PairCode VBM3D_Process_Base::BlockMatching(
         }
         else
         {
-            PCType nextPosNum = Min(d.para.PSnum, static_cast<PCType>(frameMatch.size()));
-            prePosCode.resize(nextPosNum);
-            std::transform(frameMatch.begin(), frameMatch.begin() + nextPosNum,
-                prePosCode.begin(), [](const PosPair &x)
+            // Keep the last matched locations when the previous frame has no match, so the predictive search goes on
+            if (!frameMatch.empty())
             {
-                return x.second;
-            });
+                PCType nextPosNum = Min(d.para.PSnum, static_cast<PCType>(frameMatch.size()));
+                prePosCode.resize(nextPosNum);
+                std::transform(frameMatch.begin(), frameMatch.begin() + nextPosNum,
+                    prePosCode.begin(), [](const PosPair &x)
+                {
+                    return x.second;
+                });
+            }
 
             PosCode searchPos = refBlock.GenSearchPos(prePosCode,
                 ref_height[0], ref_width[0], d.para.PSrange, d.para.PSstep);
@@ -618,6 +623,7 @@ VBM3D_Process_Base::Pos3PairCode VBM3D_Process_Base::BlockMatching(
 
     // Predictive Search Block Matching in forward frames
     f = cur + 1;
+    prePosCode = curPosCode;
 
     for (; f < frames; ++f)
     {
@@ -628,13 +634,17 @@ VBM3D_Process_Base::Pos3PairCode VBM3D_Process_Base::BlockMatching(
         }
         else
         {
-            PCType nextPosNum = Min(d.para.PSnum, static_cast<PCType>(frameMatch.size()));
-            prePosCode.resize(nextPosNum);
-            std::transform(frameMatch.begin(), frameMatch.begin() + nextPosNum,
-                prePosCode.begin(), [](const PosPair &x)
+            // Keep the last matched locations when the previous frame has no match, so the predictive search goes on
+            if (!frameMatch.empty())
             {
-                return x.second;
-            });
+                PCType nextPosNum = Min(d.para.PSnum, static_cast<PCType>(frameMatch.size()));
+                prePosCode.resize(nextPosNum);
+                std::transform(frameMatch.begin(), frameMatch.begin() + nextPosNum,
+                    prePosCode.begin(), [](const PosPair &x)
+                {
+                    return x.second;
+                });
+            }
 
             PosCode searchPos = refBlock.GenSearchPos(prePosCode,
                 ref_height[0], ref_width[0], d.para.PSrange, d.para.PSstep);
