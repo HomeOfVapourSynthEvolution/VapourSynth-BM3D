@@ -300,9 +300,18 @@ static const VSFrame *VS_CC VBM3D_Basic_GetFrame(int n, int activationReason, vo
             return nullptr;
         }
 
-        VBM3D_Basic_Process p(*d, n, frameCtx, core, vsapi);
+        // The constructor allocates outside the bad_alloc handling of process()
+        try
+        {
+            VBM3D_Basic_Process p(*d, n, frameCtx, core, vsapi);
 
-        return p.process();
+            return p.process();
+        }
+        catch (const std::bad_alloc &)
+        {
+            vsapi->setFilterError("bm3d: failed to allocate memory", frameCtx);
+            return nullptr;
+        }
     }
 
     return nullptr;
@@ -368,9 +377,18 @@ static const VSFrame *VS_CC VBM3D_Final_GetFrame(int n, int activationReason, vo
             return nullptr;
         }
 
-        VBM3D_Final_Process p(*d, n, frameCtx, core, vsapi);
+        // The constructor allocates outside the bad_alloc handling of process()
+        try
+        {
+            VBM3D_Final_Process p(*d, n, frameCtx, core, vsapi);
 
-        return p.process();
+            return p.process();
+        }
+        catch (const std::bad_alloc &)
+        {
+            vsapi->setFilterError("bm3d: failed to allocate memory", frameCtx);
+            return nullptr;
+        }
     }
 
     return nullptr;
@@ -444,9 +462,18 @@ static const VSFrame *VS_CC VAggregate_GetFrame(int n, int activationReason, voi
             return nullptr;
         }
 
-        VAggregate_Process p(*d, n, frameCtx, core, vsapi);
+        // The constructor allocates outside the bad_alloc handling of process()
+        try
+        {
+            VAggregate_Process p(*d, n, frameCtx, core, vsapi);
 
-        return p.process();
+            return p.process();
+        }
+        catch (const std::bad_alloc &)
+        {
+            vsapi->setFilterError("bm3d: failed to allocate memory", frameCtx);
+            return nullptr;
+        }
     }
 
     return nullptr;

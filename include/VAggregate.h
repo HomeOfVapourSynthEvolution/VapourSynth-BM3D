@@ -106,6 +106,9 @@ public:
         cur = -b_offset;
         frames = f_offset - b_offset + 1;
 
+        // Allocate before fetching frames so a bad_alloc cannot leak frames already fetched
+        v_src.reserve(frames);
+
         for (int o = b_offset; o <= f_offset; ++o)
         {
             if (o == 0)
