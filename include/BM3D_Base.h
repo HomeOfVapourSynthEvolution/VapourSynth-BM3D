@@ -192,7 +192,8 @@ protected:
         const bool rgb = fi->colorFamily == cfRGB;
         int64_t _Range = vsapi->mapGetInt(src_map, "_Range", 0, &error);
 
-        if (BM3D_OPP == 1)
+        // OPP is only meaningful for Gray/YUV, an RGB frame with a stale BM3D_OPP tag keeps its own _Range
+        if (BM3D_OPP == 1 && !rgb)
         {
             full = true;
         }
@@ -207,7 +208,7 @@ protected:
             const VSMap *ref_map = vsapi->getFramePropertiesRO(ref);
             const bool ref_OPP = vsapi->mapGetInt(ref_map, "BM3D_OPP", 0, &error) == 1;
             const int64_t ref_Range = vsapi->mapGetInt(ref_map, "_Range", 0, &error);
-            ref_full = ref_OPP || (rgb ? error || ref_Range != 0 : !error && ref_Range != 0);
+            ref_full = rgb ? error || ref_Range != 0 : ref_OPP || (!error && ref_Range != 0);
         }
         else
         {
