@@ -428,8 +428,6 @@ void VBM3D_Process_Base::Kernel(const std::vector<FLType *> &dst,
         ResDen[f] = dst[f * 2 + 1];
     }
 
-    memset(dst[0], 0, sizeof(FLType) * dst_pcount[0] * frames * 2);
-
     const PCType BlockPosBottom = height - d.para.BlockSize;
     const PCType BlockPosRight = width - d.para.BlockSize;
 
@@ -482,8 +480,6 @@ void VBM3D_Process_Base::Kernel(const std::vector<FLType *> &dstY, const std::ve
             ResNumY[f] = dstY[f * 2];
             ResDenY[f] = dstY[f * 2 + 1];
         }
-
-        memset(dstY[0], 0, sizeof(FLType) * dst_pcount[0] * frames * 2);
     }
 
     if (d.process[1])
@@ -493,8 +489,6 @@ void VBM3D_Process_Base::Kernel(const std::vector<FLType *> &dstY, const std::ve
             ResNumU[f] = dstU[f * 2];
             ResDenU[f] = dstU[f * 2 + 1];
         }
-
-        memset(dstU[0], 0, sizeof(FLType) * dst_pcount[1] * frames * 2);
     }
 
     if (d.process[2])
@@ -504,8 +498,6 @@ void VBM3D_Process_Base::Kernel(const std::vector<FLType *> &dstY, const std::ve
             ResNumV[f] = dstV[f * 2];
             ResDenV[f] = dstV[f * 2 + 1];
         }
-
-        memset(dstV[0], 0, sizeof(FLType) * dst_pcount[2] * frames * 2);
     }
 
     const PCType BlockPosBottom = height - d.para.BlockSize;

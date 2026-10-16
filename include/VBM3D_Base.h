@@ -281,6 +281,12 @@ protected:
             dst_pcount[i] = dst_height[i] * dst_stride[i];
         }
 
+        // Zero all planes, so the unwritten parts add nothing if bm3d.VAggregate reads them after a splice or trim
+        for (int i = 0; i < PlaneCount; ++i)
+        {
+            memset(vsapi->getWritePtr(dst, i), 0, vsapi->getStride(dst, i) * vsapi->getFrameHeight(dst, i));
+        }
+
         // Set output frame properties
         VSMap *dst_map = vsapi->getFramePropertiesRW(dst);
 
